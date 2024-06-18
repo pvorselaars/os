@@ -13,7 +13,7 @@ os.img: obj/boot/boot
 	dd if=/dev/zero of=os.img count=2000
 	dd if=obj/boot/boot of=os.img count=1 conv=notrunc
 
-include boot/Makefrag
+include boot/boot.mk
 
 qemu: os.img
 	qemu-system-i386 -drive file=os.img,format=raw
