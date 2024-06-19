@@ -7,7 +7,7 @@ LD      = i386-elf-ld
 OBJDUMP = i386-elf-objdump
 OBJCOPY = i386-elf-objcopy
 
-CFLAGS  = -Iinclude
+CFLAGS  = -Iinclude -nostdinc -fno-builtin -O1 -MD -fno-omit-frame-pointer -Wall -Werror -g -m32
 
 os.img: obj/boot/boot
 	dd if=/dev/zero of=os.img count=2000

@@ -29,6 +29,10 @@ protected_mode:
   movw %ax, %gs
   movw %ax, %ss
 
+  call loader
+
+  # loader experienced an error
+
 spin:
   jmp spin
 
