@@ -2,10 +2,10 @@ OBJDIR = obj
 
 V       = @
 
-CC      = i386-elf-gcc
-LD      = i386-elf-ld
-OBJDUMP = i386-elf-objdump
-OBJCOPY = i386-elf-objcopy
+CC      = gcc
+LD      = ld
+OBJDUMP = objdump
+OBJCOPY = objcopy
 
 CFLAGS  = -Iinclude
 
@@ -16,10 +16,10 @@ os.img: obj/boot/boot
 include boot/boot.mk
 
 qemu: os.img
-	qemu-system-i386 -drive file=os.img,format=raw
+	qemu-system-x86_64 -drive file=os.img,format=raw
 
 qemu-gdb: os.img
-	qemu-system-i386 -drive file=os.img,format=raw -s -S
+	qemu-system-x86_64 -drive file=os.img,format=raw -s -S
 
 clean:
 	rm -rf obj os.img
