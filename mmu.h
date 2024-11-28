@@ -5,13 +5,16 @@
 
 // GDT entry macros
 #define SEGMENT_NULL \
-        .word 0, 0;  \
+        .word 0, 0; \
         .byte 0, 0, 0, 0
 #define SEGMENT(type, base, limit) \
         .word ((limit >> 12) & 0xffff), (base & 0xffff); \
-        .byte ((base >> 16) & 0xff), (0x90 | type), (0xC0 | ((limit >> 28) & 0xf)), ((base >> 24) & 0xff)
+        .byte ((base >> 16) & 0xff), (0x90 | type), (0x20 | ((limit >> 28) & 0xf)), ((base >> 24) & 0xff)
 
 #endif
+
+#define PAGE_PRESENT (1 << 0)
+#define PAGE_WRITE   (1 << 1)
 
 #define STA_X   0x8     // Executable segment
 #define STA_E   0x4     // Expand down (non-executable segments)

@@ -1,25 +1,22 @@
-OBJDIR = obj
+run: os.img
+	qemu-system-x86_64 -drive format=raw,file=os.img
 
-V       = @
+gdb: os.img
+	qemu-system-x86_64 -s -S -drive format=raw,file=os.img&
+	gdb -ex "target remote localhost:1234" -ex "file boot.elf"
 
-CC      = gcc
-LD      = ld
-OBJDUMP = objdump
-OBJCOPY = objcopy
+os.img: boot.bin
+	dd if=boot.bin of=os.img bs=512 count=1
 
-CFLAGS  = -Iinclude
+boot.bin: boot.o boot.ld
+	ld -T boot.ld -o boot.elf boot.o
+	objdump -S boot.elf > boot.l
+	objcopy -S -O binary -j .text boot.elf boot.bin
 
-os.img: obj/boot/boot
-	dd if=/dev/zero of=os.img count=2000
-	dd if=obj/boot/boot of=os.img count=1 conv=notrunc
-
-include boot/boot.mk
-
-qemu: os.img
-	qemu-system-x86_64 -drive file=os.img,format=raw
-
-qemu-gdb: os.img
-	qemu-system-x86_64 -drive file=os.img,format=raw -s -S
+boot.o: boot.S
+	cc -Wall -g -c $^
 
 clean:
-	rm -rf obj os.img
+	rm -f *.o *.l *.elf *.img *.bin
+
+.PHONY: clean
