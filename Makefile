@@ -6,7 +6,8 @@ gdb: os.img
 	gdb -ex "target remote localhost:1234" -ex "file boot.elf"
 
 os.img: boot.bin
-	dd if=boot.bin of=os.img bs=512 count=1
+	dd if=/dev/zero of=os.img bs=512 count=2
+	dd if=boot.bin of=os.img bs=512 conv=notrunc
 
 boot.bin: boot.o boot.ld
 	ld -T boot.ld -o boot.elf boot.o

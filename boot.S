@@ -148,13 +148,65 @@ longmode:
   mov %ax, %gs
   mov %ax, %ss
 
-  mov $0xb8000, %edi
-  mov $500, %rcx
-  mov $0x1f201f201f201f20, %rax
-  rep stosq
+  mov $1, %rax
+  mov $1, %rcx
+  mov $0x100000, %rdi
+  call ata_read
 
 spin:
   jmp spin
+
+ata_read:
+  push %rdi
+  push %rcx
+  push %rax
+  push %rdx
+  mov %eax, %ebx
+
+  shr $24, %eax
+  or $0xe0, %eax
+  mov $0x1f6, %dx
+  out %al, %dx
+
+  mov %ecx, %eax
+  mov $0x1f2, %dx
+  out %al, %dx
+
+  mov %ebx, %eax
+  mov $0x1f3, %dx
+  out %al, %dx
+
+  mov $0x1f4, %dx
+  shr $8, %eax
+  out %al, %dx
+
+  mov $0x1f5, %dx
+  shr $8, %eax
+  out %al, %dx
+
+  mov $0x1f7, %dx
+  mov $0x20, %al
+  out %al, %dx
+
+  .next_sector:
+  push %rcx
+
+  .try:
+  mov $0x1f7, %dx
+  in %dx, %al
+  test $8, %al
+  jz .try
+
+  mov $128, %ecx
+  mov $0x1f0, %dx
+  rep insl
+  pop %rcx
+  loop .next_sector
+  pop %rdx
+  pop %rcx
+  pop %rax
+  pop %rdi
+  ret
 
 cpu_error_msg: .ascii "CPU not supported"
   

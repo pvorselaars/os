@@ -13,6 +13,8 @@ SECTIONS {
       . += 0x1fe - .end - .start;
       BYTE(0x55);
       BYTE(0xAA);
+
+      LONG(0x0b501e7e);
   } = 0x0
 
 }
