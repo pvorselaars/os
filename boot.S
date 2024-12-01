@@ -41,7 +41,6 @@ _start:
   cld
   rep stosl
 
-  map:
   # Setup PML4
   pop %di
   lea 0x1000(%di), %eax
@@ -73,7 +72,6 @@ _start:
 
   pop %di
 
-transfer:
   mov $0xff, %al
   out %al, $0xa1 
   out %al, $0x21
@@ -150,8 +148,16 @@ longmode:
 
   mov $1, %rax
   mov $1, %rcx
-  mov $0x100000, %rdi
+  mov $0x7e00, %rdi
   call ata_read
+  jmp boot
+
+
+error:
+  mov $2000, %rcx
+  mov $0xb8000, %rdi
+  mov $0x4f20, %ax
+  rep stosw
 
 spin:
   jmp spin
@@ -191,6 +197,7 @@ ata_read:
   .next_sector:
   push %rcx
 
+  # TODO: check for errors
   .try:
   mov $0x1f7, %dx
   in %dx, %al
@@ -224,3 +231,39 @@ gdt_descriptor:
   .word gdt_descriptor - gdt - 1        # size of GDT - 1
   .long gdt                             # address of GDT
 
+# partition table
+  .space 440-(.-_start)
+  .long 0xdeadbeef # disk signature
+  .word 0x0        # reserved
+
+partitions:
+  .byte 0x80       # boootable
+  .byte 0x0        # start head (ignored)
+  .byte 0x0        # start sector (ignored)
+  .byte 0x0        # start track (ignored)
+  .byte 0x63       # partition type
+  .byte 0x0        # end head (ignored)
+  .byte 0x0        # end sector (ignored)
+  .byte 0x0        # end track (ignored)
+  .long 0x2        # start LBA
+  .long 0x10       # size
+
+# boot signature
+  .space 510-(.-_start)
+  .word 0xaa55
+
+# check for bootable partition
+boot:
+  mov $4, %rcx
+  mov $partitions, %rbx
+  xor %rax, %rax
+next_partition:
+  mov (%ebx, %eax, 1), %dx
+  cmp $0x80, %dx
+  jz boot_partition
+  add $16, %rax
+  loop next_partition
+  jnz error
+
+boot_partition:
+jmp spin

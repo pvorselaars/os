@@ -3,18 +3,7 @@ SECTIONS {
   . = 0x7c00;
 
   .text : {
-      .start = . ;
-
-      *(.text);
-
-      .end   = . ;
-
-      /* add boot signature */
-      . += 0x1fe - .end - .start;
-      BYTE(0x55);
-      BYTE(0xAA);
-
-      LONG(0x0b501e7e);
+      *(.text)
   } = 0x0
 
 }
