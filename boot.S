@@ -146,12 +146,13 @@ longmode:
   mov %ax, %gs
   mov %ax, %ss
 
+  # load remainder of bootstrap code from disk
+
   mov $1, %rax
   mov $1, %rcx
   mov $0x7e00, %rdi
   call ata_read
   jmp boot
-
 
 error:
   mov $2000, %rcx
@@ -198,15 +199,18 @@ ata_read:
   push %rcx
 
   # TODO: check for errors
-  .try:
   mov $0x1f7, %dx
+  .try:
   in %dx, %al
+  test $0x80, %al
+  jnz .try
   test $8, %al
   jz .try
 
   mov $128, %ecx
   mov $0x1f0, %dx
   rep insl
+
   pop %rcx
   loop .next_sector
   pop %rdx
@@ -231,39 +235,59 @@ gdt_descriptor:
   .word gdt_descriptor - gdt - 1        # size of GDT - 1
   .long gdt                             # address of GDT
 
-# partition table
-  .space 440-(.-_start)
-  .long 0xdeadbeef # disk signature
-  .word 0x0        # reserved
-
-partitions:
-  .byte 0x80       # boootable
-  .byte 0x0        # start head (ignored)
-  .byte 0x0        # start sector (ignored)
-  .byte 0x0        # start track (ignored)
-  .byte 0x63       # partition type
-  .byte 0x0        # end head (ignored)
-  .byte 0x0        # end sector (ignored)
-  .byte 0x0        # end track (ignored)
-  .long 0x2        # start LBA
-  .long 0x10       # size
 
 # boot signature
   .space 510-(.-_start)
   .word 0xaa55
 
+# 2. Load kernel from disk
+
 # check for bootable partition
+
 boot:
   mov $4, %rcx
-  mov $partitions, %rbx
-  xor %rax, %rax
+  mov $partitions, %edi
 next_partition:
-  mov (%ebx, %eax, 1), %dx
-  cmp $0x80, %dx
+  movb (%edi), %al
+  cmp $0x80, %al
   jz boot_partition
-  add $16, %rax
+  add $20, %edi
   loop next_partition
-  jnz error
+  jmp error
 
 boot_partition:
-jmp spin
+  # load super block
+  movw 2(%edi), %ax
+  mov $0x200, %rbx
+  div %rbx
+  mov %ax, %cx
+
+  movq 4(%edi), %rax
+  mul %rcx
+
+  mov $0xc000, %rdi
+  call ata_read
+  jmp spin
+
+
+# partition table
+  .space 924-(.-_start)
+partitions:
+  .byte 0x80       # bootable
+  .byte 0x63       # partition type
+  .word 1024       # block size
+  .quad 1          # start LBA
+  .quad 19         # size
+
+  .space 1024-(.-_start)
+
+superblock:
+  .quad 18        # number of blocks
+  .quad 0         # number of free blocks
+  .word 1024      # block size
+  .word 0         # state
+  .long 0         # reserved
+  .quad 1024/64   # number of inodes
+  .quad 0         # number of free inodes
+
+  .space 2048-(.-_start)
