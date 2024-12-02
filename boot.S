@@ -152,7 +152,7 @@ longmode:
   mov $1, %rcx
   mov $0x7e00, %rdi
   call ata_read
-  jmp boot
+  jmp load
 
 error:
   mov $2000, %rcx
@@ -219,7 +219,8 @@ ata_read:
   pop %rdi
   ret
 
-cpu_error_msg: .ascii "CPU not supported"
+cpu_error_msg: .asciz "CPU not supported"
+kernel_file: .asciz "kernel"
   
 # Initial GDT to identity map virtual addresses to physical addresses
 idt:
@@ -242,52 +243,89 @@ gdt_descriptor:
 
 # 2. Load kernel from disk
 
-# check for bootable partition
-
-boot:
-  mov $4, %rcx
-  mov $partitions, %edi
-next_partition:
-  movb (%edi), %al
-  cmp $0x80, %al
-  jz boot_partition
-  add $20, %edi
-  loop next_partition
-  jmp error
-
-boot_partition:
-  # load super block
-  movw 2(%edi), %ax
-  mov $0x200, %rbx
-  div %rbx
-  mov %ax, %cx
-
-  movq 4(%edi), %rax
-  mul %rcx
-
-  mov $0xc000, %rdi
+load:
+  # load super block and inodes
+  mov $0x2, %ax
+  mov $0x4, %cx
+  mov $0xc000, %edi
   call ata_read
+
+  # load root directory
+  mov $0xc400, %edi
+  mov 18(%edi), %rax
+  mov $2, %cx
+  mul %cx
+
+  mov $0xc800, %edi
+  call ata_read
+
+  xor %rax, %rax
+find_kernel:
+  testq (%rdi), %rax
+  jnz error
+  mov (%rdi), %rbx
+  mov $6, %cx
+  add $8, %rdi
+  mov $kernel_file, %rsi
+  rep cmpsb
+  jz load_kernel
+  jmp find_kernel
+
+load_kernel:
+  dec %rbx
+  mov $0xc400, %edi
+  mov $98, %rax
+  mul %rbx
+  add $18, %rax
+  mov (%rdi, %rax, 1), %rax
+
+  mov $2, %cx
+  mul %cx
+  mov $0x100000, %rdi
+  call ata_read
+
   jmp spin
-
-
-# partition table
-  .space 924-(.-_start)
-partitions:
-  .byte 0x80       # bootable
-  .byte 0x63       # partition type
-  .word 1024       # block size
-  .quad 1          # start LBA
-  .quad 19         # size
 
   .space 1024-(.-_start)
 
 superblock:
-  .quad 18        # number of blocks
-  .quad 0         # number of free blocks
-  .word 1024      # block size
-  .word 0         # state
-  .long 0         # reserved
-  .quad 1024/64   # number of inodes
-  .quad 0         # number of free inodes
 
-  .space 2048-(.-_start)
+  .space 1024-(.-superblock)
+
+inodes:
+  .word 0x1000    # mode
+  .long 0         # owner
+  .long 0         # group
+  .quad 1024      # size
+  .quad 3         # data block 1
+  .quad 0         # data block 2
+  .quad 0         # data block 3
+  .quad 0         # data block 4
+  .quad 0         # data block 5
+  .quad 0         # data block 6
+  .quad 0         # data block 7
+  .quad 0         # data block 8
+  .quad 0         # data block 9
+  .quad 0         # data block 10
+  .word 0x2000    # mode
+  .long 0         # owner
+  .long 0         # group
+  .quad 1024      # size
+  .quad 4         # data block 1
+  .quad 0         # data block 2
+  .quad 0         # data block 3
+  .quad 0         # data block 4
+  .quad 0         # data block 5
+  .quad 0         # data block 6
+  .quad 0         # data block 7
+  .quad 0         # data block 8
+  .quad 0         # data block 9
+  .quad 0         # data block 10
+
+  .space 1024-(.-inodes)
+
+root:
+  .quad 2
+  .asciz "kernel"
+  .space 1024-(.-root)
+
