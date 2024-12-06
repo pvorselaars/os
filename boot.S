@@ -20,47 +20,43 @@ _start:
 
   # Clear segment registers and set stack pointer to the start of the bootsector
   # in memory. The stack grows downward so it will not overwrite boot code.
-  xorw %ax, %ax
-  movw %ax, %ds
-  movw %ax, %es
-  movw %ax, %ss
-  movw $0x7c00, %bp
-  movw %bp, %sp
-
-  # Check for long mode support
-  call check_processor
-  jc cpu_error
+  xor %ax, %ax
+  mov %ax, %ds
+  mov %ax, %es
+  mov %ax, %ss
+  mov $0x7c00, %bp
+  mov %bp, %sp
 
   # In order to enable long mode some simple paging data structures need to be
   # present.
 
   # Clearing a buffer for PML4, PDPT, PD and PT
-  movw $0x8000, %di
+  mov $0x8000, %di
   push %di
-  movw $0x1000, %cx
+  mov $0x1000, %cx
   cld
   rep stosl
 
   # Setup PML4
   pop %di
-  lea 0x1000(%di), %eax
-  or $(PAGE_PRESENT | PAGE_WRITE), %eax
-  movw %ax, (%di)
+  lea 0x1000(%di), %ax
+  or $(PAGE_PRESENT | PAGE_WRITE), %ax
+  mov %ax, (%di)
 
   # Setup PDPT
-  lea 0x2000(%di), %eax
-  or $(PAGE_PRESENT | PAGE_WRITE), %eax
-  movw %ax, 0x1000(%di)
+  lea 0x2000(%di), %ax
+  or $(PAGE_PRESENT | PAGE_WRITE), %ax
+  mov %ax, 0x1000(%di)
 
   # Setup PD
-  lea 0x3000(%di), %eax
-  or $(PAGE_PRESENT | PAGE_WRITE), %eax
-  movw %ax, 0x2000(%di)
+  lea 0x3000(%di), %ax
+  or $(PAGE_PRESENT | PAGE_WRITE), %ax
+  mov %ax, 0x2000(%di)
   
   # Build Page Table
   push %di
   lea 0x3000(%di), %di
-  mov $(PAGE_PRESENT | PAGE_WRITE), %eax
+  mov $(PAGE_PRESENT | PAGE_WRITE), %ax
 
   # Identity map the first 2MB
   .loop:
@@ -98,41 +94,6 @@ _start:
   
   ljmp $CODE_SEG, $longmode
 
-check_processor:
-  # check whether extended CPUID functions are available
-  push %eax
-  mov $0x80000000, %eax
-  cpuid
-  cmp $0x80000001, %eax
-  jb .error
-  mov $0x80000001, %eax
-  cpuid
-  # test LM bit
-  test $(1<<29), %edx
-  jnz .noerror
-  .error:
-  stc
-  .noerror:
-  pop %eax
-  ret
-
-print:
-  push %ax
-  mov $0x0e, %ah
-  .char:
-  lodsb
-  test %al, %al
-  jz .ret
-  int $0x10
-  jmp .char
-  .ret: 
-  pop %ax
-  ret
-
-cpu_error:
-  mov $cpu_error_msg, %si
-  call print
-
 halt:
   hlt
   jmp halt
@@ -146,13 +107,12 @@ longmode:
   mov %ax, %gs
   mov %ax, %ss
 
-  # load remainder of bootstrap code from disk
-
+  # load kernel from disk to 0x100000
   mov $1, %rax
-  mov $1, %rcx
-  mov $0x7e00, %rdi
+  mov $10, %rcx
+  mov $0x100000, %rdi
   call ata_read
-  jmp load
+  jnc 0x100000
 
 error:
   mov $2000, %rcx
@@ -218,9 +178,6 @@ ata_read:
   pop %rax
   pop %rdi
   ret
-
-cpu_error_msg: .asciz "CPU not supported"
-kernel_file: .asciz "kernel"
   
 # Initial GDT to identity map virtual addresses to physical addresses
 idt:
@@ -236,96 +193,6 @@ gdt_descriptor:
   .word gdt_descriptor - gdt - 1        # size of GDT - 1
   .long gdt                             # address of GDT
 
-
 # boot signature
   .space 510-(.-_start)
   .word 0xaa55
-
-# 2. Load kernel from disk
-
-load:
-  # load super block and inodes
-  mov $0x2, %ax
-  mov $0x4, %cx
-  mov $0xc000, %edi
-  call ata_read
-
-  # load root directory
-  mov $0xc400, %edi
-  mov 18(%edi), %rax
-  mov $2, %cx
-  mul %cx
-
-  mov $0xc800, %edi
-  call ata_read
-
-  xor %rax, %rax
-find_kernel:
-  testq (%rdi), %rax
-  jnz error
-  mov (%rdi), %rbx
-  mov $6, %cx
-  add $8, %rdi
-  mov $kernel_file, %rsi
-  rep cmpsb
-  jz load_kernel
-  jmp find_kernel
-
-load_kernel:
-  dec %rbx
-  mov $0xc400, %edi
-  mov $98, %rax
-  mul %rbx
-  add $18, %rax
-  mov (%rdi, %rax, 1), %rax
-
-  mov $2, %cx
-  mul %cx
-  mov $0x100000, %rdi
-  call ata_read
-
-  jmp spin
-
-  .space 1024-(.-_start)
-
-superblock:
-
-  .space 1024-(.-superblock)
-
-inodes:
-  .word 0x1000    # mode
-  .long 0         # owner
-  .long 0         # group
-  .quad 1024      # size
-  .quad 3         # data block 1
-  .quad 0         # data block 2
-  .quad 0         # data block 3
-  .quad 0         # data block 4
-  .quad 0         # data block 5
-  .quad 0         # data block 6
-  .quad 0         # data block 7
-  .quad 0         # data block 8
-  .quad 0         # data block 9
-  .quad 0         # data block 10
-  .word 0x2000    # mode
-  .long 0         # owner
-  .long 0         # group
-  .quad 1024      # size
-  .quad 4         # data block 1
-  .quad 0         # data block 2
-  .quad 0         # data block 3
-  .quad 0         # data block 4
-  .quad 0         # data block 5
-  .quad 0         # data block 6
-  .quad 0         # data block 7
-  .quad 0         # data block 8
-  .quad 0         # data block 9
-  .quad 0         # data block 10
-
-  .space 1024-(.-inodes)
-
-root:
-  .quad 2
-  .asciz "kernel"
-  .space 1024-(.-root)
-
