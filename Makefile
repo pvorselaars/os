@@ -20,8 +20,8 @@ boot.o: boot.S
 	cc $(CFLAGS) -Wa,-alh=$^.l -c $^
 
 kernel.bin: kernel.o
-	ld -Ttext=0x100000 -e kernel -o kernel.elf $^
-	objcopy -S -O binary -j .text kernel.elf kernel.bin
+	ld -Tkernel.ld -o kernel.elf $^
+	objcopy -S -O binary kernel.elf kernel.bin
 
 %.o: %.c
 	cc $(CFLAGS) -Wa,-alh=$^.l -c $^
