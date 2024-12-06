@@ -74,20 +74,20 @@ _start:
 
   lidt idt
 
-  mov $0b10100000, %eax
+  mov $(CR4_PAE | CR4_PGE), %eax
   mov %eax, %cr4
 
   mov %edi, %edx
   mov %edx, %cr3
 
-  mov $0xC0000080, %ecx
+  mov $(MSR_EFER), %ecx
   rdmsr
 
-  or $0x100, %eax
+  or $(EFER_LME), %eax
   wrmsr
 
   mov %cr0, %ebx
-  or $0x80000001, %ebx
+  or $(CR0_PE | CR0_PG), %ebx
   mov %ebx, %cr0
 
   lgdt gdt_descriptor
@@ -185,9 +185,9 @@ idt:
   .long 0
 
 gdt:
-SEGMENT_NULL
-SEGMENT(STA_X|STA_R, 0x0, 0xffffffff)   # code segment
-SEGMENT(STA_W,       0x0, 0xffffffff)   # data segment
+SEGMENT(0, 0, 0, 0)                                             # null segment
+SEGMENT(SDA_P | SDA_S | SDA_E | SDA_R, SDF_L, 0x0, 0xffffffff)  # code segment
+SEGMENT(SDA_P | SDA_S | SDA_W | SDA_D, SDF_L, 0x0, 0xffffffff)  # data segment
 
 gdt_descriptor:
   .word gdt_descriptor - gdt - 1        # size of GDT - 1

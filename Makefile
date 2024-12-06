@@ -1,4 +1,4 @@
-CFLAGS = -Wall -m64 -s -ffreestanding -nostdlib -fcf-protection=none -fno-ident -fno-stack-protector -fno-asynchronous-unwind-tables -Wl,--omit-stack-protector
+CFLAGS = -Wall -m64 -s -ffreestanding -nostdlib -fcf-protection=none -fno-ident -fno-stack-protector -fno-asynchronous-unwind-tables -g
 
 run: os.img
 	qemu-system-x86_64 -drive format=raw,file=os.img
