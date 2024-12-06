@@ -9,7 +9,15 @@
 
 #else
 
-void memsetw(void* ptr, short value, unsigned int num);
+void memsetb(void *ptr, char value, unsigned int num);
+void memsetw(void *ptr, short value, unsigned int num);
+void memsetl(void *ptr, int value, unsigned int num);
+void memsetq(void *ptr, long value, unsigned int num);
+
+int memcmp(void *ptr1, void *ptr2, unsigned int num);
+
+void memmove(void *dst, void *src, unsigned int num);
+void memcpy(void *dst, void *src, unsigned int num);
 
 #endif
 
