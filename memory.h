@@ -1,11 +1,15 @@
-#ifndef MMU_H
-#define MMU_H
+#ifndef MEMORY_H
+#define MEMORY_H
 
 #ifdef __ASSEMBLER__
 
 #define SEGMENT(access, flags, base, limit) \
         .word (limit & 0xffff), (base & 0xffff); \
         .byte ((base >> 16) & 0xff), access, ((flags << 4) | ((limit >> 16) & 0xf)), ((base >> 24) & 0xff)
+
+#else
+
+void memsetw(void* ptr, short value, unsigned int num);
 
 #endif
 
@@ -37,5 +41,8 @@
 
 #define CODE_SEG     0x8          // Kernel code segment index
 #define DATA_SEG     0x10         // Kernel data segment index
+
+
+
 
 #endif

@@ -16,14 +16,17 @@ boot.bin: boot.o
 	ld -Ttext=0x7c00 -o boot.elf boot.o
 	objcopy -S -O binary -j .text boot.elf boot.bin
 
-boot.o: boot.S
-	cc $(CFLAGS) -Wa,-alh=$^.l -c $^
-
-kernel.bin: kernel.o
+kernel.bin: kernel.o memory.o
 	ld -Tkernel.ld -o kernel.elf $^
 	objcopy -S -O binary kernel.elf kernel.bin
 
 %.o: %.c
+	cc $(CFLAGS) -Wa,-alh=$^.l -c $^
+
+%.o: %.S
+	cc $(CFLAGS) -Wa,-alh=$^.l -c $^
+
+%.o: %.s
 	cc $(CFLAGS) -Wa,-alh=$^.l -c $^
 
 clean:

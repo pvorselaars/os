@@ -7,7 +7,7 @@
 # 3. Hand control to the kernel
 #
 
-#include "mmu.h"
+#include "memory.h"
 
 .globl _start
 .code16
