@@ -4,8 +4,7 @@ run: os.img
 	qemu-system-x86_64 -drive format=raw,file=os.img
 
 gdb: os.img
-	qemu-system-x86_64 -s -S -drive format=raw,file=os.img&
-	gdb -ex "target remote :1234"
+	gdb -ex "target remote | qemu-system-x86_64 -gdb stdio -S -drive format=raw,file=os.img"
 
 os.img: boot.bin kernel.bin
 	dd if=/dev/zero of=os.img bs=1024 count=20
