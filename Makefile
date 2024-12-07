@@ -15,7 +15,7 @@ boot.bin: boot.o
 	ld -Ttext=0x7c00 -o boot.elf boot.o
 	objcopy -S -O binary -j .text boot.elf boot.bin
 
-kernel.bin: kernel.o memory.o io.o
+kernel.bin: kernel.o memory.o io.o console.o
 	ld -Tkernel.ld -o kernel.elf $^
 	objcopy -S -O binary kernel.elf kernel.bin
 
