@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "io.h"
 
 void console_init();
 void print(const char *str);
@@ -37,7 +38,14 @@ void print(const char *str)
                         cursor = 3840;
                 }
 
+
                 str++;
         }
+
+        // update cursor
+        outb(0x3d4, 0x0f);
+        outb(0x3d5, cursor / 2 & 0xff);
+        outb(0x3d4, 0x0e);
+        outb(0x3d5, (cursor / 2 >> 8) & 0xff);
 
 }
