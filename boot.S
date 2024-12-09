@@ -108,7 +108,6 @@ read:
   pusha
   mov $dap, %si
   mov $0x42, %ah
-  mov $0x80, %dl
   int $0x13
   popa
   ret
