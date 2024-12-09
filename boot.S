@@ -112,13 +112,8 @@ read:
   popa
   ret
 
-halt:
-  hlt
-  jmp halt
-
 .code64
 longmode:
-  cli
   mov $DATA_SEG, %ax
   mov %ax, %ds
   mov %ax, %es
@@ -127,47 +122,6 @@ longmode:
   mov %ax, %ss
 
   jmp 0x80000
-
-error:
-  mov $2000, %rcx
-  mov $0xb8000, %rdi
-  mov $0x4f20, %ax
-  rep stosw
-
-spin:
-  jmp spin
-
-print_hex:
-  add $3, %rsi
-  mov $4, %rcx
-  std
-  1:
-  pml4:
-  lodsb
-  push %ax
-  rol $4, %al
-  and $0xf, %al
-  cmp $9, %al
-  jbe 2f
-  add $7, %al
-  2:
-  add $48, %al
-  mov %al, (%rdi)
-  inc %di
-  inc %di
-  pop %ax
-  and $0xf, %al
-  cmp $9, %al
-  jbe 3f
-  add $7, %al
-  3:
-  add $0x30, %al
-  mov %al, (%rdi)
-  inc %di
-  inc %di
-  loop 1b
-  ret
-
 
 .align 4
 dap:
