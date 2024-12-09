@@ -12,7 +12,14 @@
 .globl _start
 .code16
 
+  # Bogus boot parameter block
 _start:
+  jmp _entry
+  nop
+
+.fill 53, 1, 0
+
+_entry:
   # 1. Initializing the processor
 
   # Disable interrupts until kernel can setup interrupt routines
@@ -27,15 +34,18 @@ _start:
   mov $0x7c00, %bp
   mov %bp, %sp
 
+  # 2. Read kernel from disk using BIOS routines
+  call read
+
   # In order to enable long mode some simple paging data structures need to be
   # present.
 
   # Clearing a buffer for PML4, PDPT, PD and PT
   mov $0x8000, %di
   push %di
-  mov $0x1000, %cx
+  mov $0x4000, %cx
   cld
-  rep stosl
+  rep stosb
 
   # Setup PML4
   pop %di
@@ -56,13 +66,13 @@ _start:
   # Build Page Table
   push %di
   lea 0x3000(%di), %di
-  mov $(PAGE_PRESENT | PAGE_WRITE), %ax
+  mov $(PAGE_PRESENT | PAGE_WRITE), %eax
 
   # Identity map the first 2MB
   .loop:
   mov %eax, (%di)
   add $0x1000, %eax
-  add $0x8, %edi
+  add $0x8, %di
   cmp $0x200000, %eax
   jb .loop
 
@@ -94,12 +104,22 @@ _start:
   
   ljmp $CODE_SEG, $longmode
 
+read:
+  pusha
+  mov $dap, %si
+  mov $0x42, %ah
+  mov $0x80, %dl
+  int $0x13
+  popa
+  ret
+
 halt:
   hlt
   jmp halt
 
 .code64
 longmode:
+  cli
   mov $DATA_SEG, %ax
   mov %ax, %ds
   mov %ax, %es
@@ -107,12 +127,7 @@ longmode:
   mov %ax, %gs
   mov %ax, %ss
 
-  # load kernel from disk to 0x100000
-  mov $1, %rax
-  mov $10, %rcx
-  mov $0x100000, %rdi
-  call ata_read
-  jnc 0x100000
+  jmp 0x80000
 
 error:
   mov $2000, %rcx
@@ -123,61 +138,47 @@ error:
 spin:
   jmp spin
 
-ata_read:
-  push %rdi
-  push %rcx
-  push %rax
-  push %rdx
-  mov %eax, %ebx
-
-  shr $24, %eax
-  or $0xe0, %eax
-  mov $0x1f6, %dx
-  out %al, %dx
-
-  mov %ecx, %eax
-  mov $0x1f2, %dx
-  out %al, %dx
-
-  mov %ebx, %eax
-  mov $0x1f3, %dx
-  out %al, %dx
-
-  mov $0x1f4, %dx
-  shr $8, %eax
-  out %al, %dx
-
-  mov $0x1f5, %dx
-  shr $8, %eax
-  out %al, %dx
-
-  mov $0x1f7, %dx
-  mov $0x20, %al
-  out %al, %dx
-
-  .next_sector:
-  push %rcx
-
-  # TODO: check for errors
-  mov $0x1f7, %dx
-  .try:
-  in %dx, %al
-  test $0x80, %al
-  jnz .try
-  test $8, %al
-  jz .try
-
-  mov $128, %ecx
-  mov $0x1f0, %dx
-  rep insl
-
-  pop %rcx
-  loop .next_sector
-  pop %rdx
-  pop %rcx
-  pop %rax
-  pop %rdi
+print_hex:
+  add $3, %rsi
+  mov $4, %rcx
+  std
+  1:
+  pml4:
+  lodsb
+  push %ax
+  rol $4, %al
+  and $0xf, %al
+  cmp $9, %al
+  jbe 2f
+  add $7, %al
+  2:
+  add $48, %al
+  mov %al, (%rdi)
+  inc %di
+  inc %di
+  pop %ax
+  and $0xf, %al
+  cmp $9, %al
+  jbe 3f
+  add $7, %al
+  3:
+  add $0x30, %al
+  mov %al, (%rdi)
+  inc %di
+  inc %di
+  loop 1b
   ret
+
+
+.align 4
+dap:
+  .byte 16
+  .byte 0
+  .word 64
+  .word 0x0000
+  .word 0x8000
+  .long 0x1
+  .long 0x0
   
 # Initial GDT to identity map virtual addresses to physical addresses
 idt:
