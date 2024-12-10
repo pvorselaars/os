@@ -34,6 +34,10 @@ _entry:
   mov $0x7c00, %bp
   mov %bp, %sp
 
+  # Detect memory regions
+  mov $0x7000, %di
+  call detect_memory
+
   # 2. Read kernel from disk using BIOS routines
   call read
 
@@ -103,6 +107,26 @@ _entry:
   lgdt gdt_descriptor
   
   ljmp $CODE_SEG, $longmode
+
+detect_memory:
+  pusha
+  xor %ebx, %ebx
+  mov $0x534d4150, %edx
+  mov $0xe820, %eax
+  mov $24, %ecx
+  int $0x15
+  jc 1f
+  2:
+  cmp $0, %ebx
+  je 1f
+  add %cx, %di
+  mov $0xe820, %eax
+  mov $24, %ecx
+  int $0x15
+  jmp 2b
+  1:
+  popa
+  ret
 
 read:
   pusha
