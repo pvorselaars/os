@@ -4,7 +4,7 @@ run: os.img
 	qemu-system-x86_64 -drive format=raw,file=os.img
 
 gdb: os.img
-	gdb -ex "target remote | qemu-system-x86_64 -gdb stdio -S -drive format=raw,file=os.img"
+	gdb -ex "target remote | qemu-system-x86_64 -gdb stdio -S -drive format=raw,file=os.img" -ex "file kernel.elf" -ex "y"
 
 os.img: boot.bin kernel.bin
 	dd if=/dev/zero of=os.img bs=1024 count=20
@@ -15,7 +15,7 @@ boot.bin: boot.o
 	ld -Ttext=0x7c00 -o boot.elf boot.o
 	objcopy -S -O binary -j .text boot.elf boot.bin
 
-kernel.bin: kernel.o memory.o io.o console.o
+kernel.bin: kernel.o memory.o io.o console.o string.o
 	ld -Tkernel.ld -o kernel.elf $^
 	objcopy -S -O binary kernel.elf kernel.bin
 

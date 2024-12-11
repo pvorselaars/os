@@ -1,6 +1,7 @@
 #include "console.h"
 #include "memory.h"
 #include "io.h"
+#include "string.h"
 
 static char *vga = (char*)0xb8000;
 
@@ -46,4 +47,19 @@ void print(const char *str)
         outb(0x3d4, 0x0e);
         outb(0x3d5, (cursor / 2 >> 8) & 0xff);
 
+}
+
+int printf(const char *format, ...)
+{
+        va_list args;
+        char buffer[128];
+        va_start(args, format);
+
+        int i = vsnprintf(buffer, 128, format, args);
+        buffer[i] = 0;
+        print(buffer);
+
+        va_end(args);
+
+        return i;
 }

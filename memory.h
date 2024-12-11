@@ -1,26 +1,6 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#ifdef __ASSEMBLER__
-
-#define SEGMENT(access, flags, base, limit) \
-        .word (limit & 0xffff), (base & 0xffff); \
-        .byte ((base >> 16) & 0xff), access, ((flags << 4) | ((limit >> 16) & 0xf)), ((base >> 24) & 0xff)
-
-#else
-
-void memsetb(void *ptr, char value, unsigned int num);
-void memsetw(void *ptr, short value, unsigned int num);
-void memsetl(void *ptr, int value, unsigned int num);
-void memsetq(void *ptr, long value, unsigned int num);
-
-int memcmp(void *ptr1, void *ptr2, unsigned int num);
-
-void memmove(void *dst, void *src, unsigned int num);
-void memcpy(void *dst, void *src, unsigned int num);
-
-#endif
-
 #define PAGE_PRESENT (1 << 0)
 #define PAGE_WRITE   (1 << 1)
 
@@ -50,7 +30,33 @@ void memcpy(void *dst, void *src, unsigned int num);
 #define CODE_SEG     0x8          // Kernel code segment index
 #define DATA_SEG     0x10         // Kernel data segment index
 
+#ifdef __ASSEMBLER__
 
+#define SEGMENT(access, flags, base, limit) \
+        .word (limit & 0xffff), (base & 0xffff); \
+        .byte ((base >> 16) & 0xff), access, ((flags << 4) | ((limit >> 16) & 0xf)), ((base >> 24) & 0xff)
+
+#else
+
+void memsetb(const void *ptr, const char value, const unsigned int num);
+void memsetw(const void *ptr, const short value, const unsigned int num);
+void memsetl(const void *ptr, const int value, const unsigned int num);
+void memsetq(const void *ptr, const long value, const unsigned int num);
+
+int memcmp(const void *ptr1, const void *ptr2, const unsigned int num);
+
+void memmove(const void *dst, const void *src, const unsigned int num);
+void memcpy(const void *dst, const void *src, const unsigned int num);
+
+#pragma pack(1)
+typedef struct {
+		unsigned long base;
+		unsigned long length;
+		unsigned int type;
+} E820;
+#pragma pack()
+
+#endif
 
 
 #endif
