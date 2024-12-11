@@ -110,6 +110,8 @@ _entry:
 
 detect_memory:
   pusha
+  mov %di, %si
+  add $4, %di
   xor %ebx, %ebx
   mov $0x534d4150, %edx
   mov $0xe820, %eax
@@ -119,6 +121,8 @@ detect_memory:
   2:
   cmp $0, %ebx
   je 1f
+  mov %bx, (%si)
+  mov %cx, 2(%si)
   add %cx, %di
   mov $0xe820, %eax
   mov $24, %ecx
