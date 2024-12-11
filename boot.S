@@ -148,18 +148,19 @@ longmode:
   mov %ax, %fs
   mov %ax, %gs
   mov %ax, %ss
+	mov $0x80000, %rsp
+	mov %rsp, %rbp
 
   jmp 0x80000
 
 .align 4
 dap:
-  .byte 16
-  .byte 0
-  .word 64
-  .word 0x0000
-  .word 0x8000
-  .long 0x1
-  .long 0x0
+  .byte 16			# size of DAP
+  .byte 0				# should be zero
+  .word 99			# sectors to read
+  .word 0x0000  # offset
+  .word 0x8000	# segment
+  .quad 0x1			# starting lba
   
 # Initial GDT to identity map virtual addresses to physical addresses
 idt:

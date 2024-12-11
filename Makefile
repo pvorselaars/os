@@ -7,7 +7,7 @@ gdb: os.img
 	gdb -ex "target remote | qemu-system-x86_64 -gdb stdio -S -drive format=raw,file=os.img" -ex "file kernel.elf" -ex "y"
 
 os.img: boot.bin kernel.bin
-	dd if=/dev/zero of=os.img bs=1024 count=20
+	dd if=/dev/zero of=os.img bs=1024 count=100
 	dd if=boot.bin of=os.img conv=notrunc
 	dd if=kernel.bin of=os.img conv=notrunc seek=1
 
