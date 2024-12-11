@@ -54,6 +54,12 @@ typedef struct {
 		unsigned long length;
 		unsigned int type;
 } E820;
+
+typedef unsigned long int pte;
+typedef unsigned long int pde;
+typedef unsigned long int pdpte;
+typedef unsigned long int pml4e;
+
 #pragma pack()
 
 #endif
