@@ -168,6 +168,7 @@ int vsnprintf(char *str, unsigned int n, const char *format, va_list args)
 
 			break;
 
+		case 'p':
 		case 'x':
 		case 'X':
 			base = 16;
