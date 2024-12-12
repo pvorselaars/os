@@ -20,6 +20,8 @@ typedef struct region {
 region *first_region = NULL;
 region *last_region = NULL;
 
+pml4e *pml4 = (pml4e *) PML4_ADDRESS;
+
 int memory_init()
 {
 	short *entries = (short *)E820_ADDRESS;
@@ -33,13 +35,13 @@ int memory_init()
 		if (regions[r].type == 1) {
 
 			current = (region *) regions[r].base;
-			current->size = regions[r].length / PAGE_SIZE;
 
 			// Ignore first page to avoid a (valid) null pointer
 			if (current == NULL) {
-				unsigned int size = current->size - 1;
 				current = (region *) PAGE_SIZE;
-				current->size = size;
+				current->size = regions[r].length / PAGE_SIZE - 1;
+			} else {
+				current->size = regions[r].length / PAGE_SIZE;
 			}
 
 			current->next = NULL;
@@ -58,13 +60,57 @@ int memory_init()
 	return 0;
 }
 
+void print_pagetable_entries(address a)
+{
+	pdpte *pdpt;
+	pde *pd;
+	pte *pt;
+
+	unsigned short pml4_offset = (a >> 39) & 0x1FF;
+	unsigned short pdpt_offset = (a >> 30) & 0x1FF;
+	unsigned short pd_offset = (a >> 21) & 0x1FF;
+	unsigned short pt_offset = (a >> 12) & 0x1FF;
+
+	if (!pml4[pml4_offset] & PAGE_PRESENT) {
+		printf("Page not present\n");
+		return;
+	}
+
+	printf("PML4: %016x\n", pml4[pml4_offset]);
+	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
+
+	if (!pdpt[pdpt_offset] & PAGE_PRESENT) {
+		printf("Page not present\n");
+		return;
+	}
+
+	printf("PDPT: %016x\n", pdpt[pdpt_offset]);
+	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
+
+	if (!pd[pd_offset] & PAGE_PRESENT) {
+		printf("Page not present\n");
+		return;
+	}
+
+	printf("PD:   %016x\n", pd[pd_offset]);
+	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
+
+	if (!pt[pt_offset] & PAGE_PRESENT) {
+		printf("Page not present\n");
+		return;
+	}
+
+	printf("PT:   %016x\n", pt[pt_offset]);
+
+}
+
 void print_regions()
 {
 
 	region *current = first_region;
+	printf("%-16s %-16s %-16s %-16s\n", "address", "size", "prev", "next");
 	while (current) {
-		printf("%16p, %16x %16x %16x\n", current, current->size, current->prev, current->next);
-
+		printf("%16p %16x %16x %16x\n", current, current->size, current->prev, current->next);
 		current = current->next;
 	}
 

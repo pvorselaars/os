@@ -31,6 +31,7 @@
 #define DATA_SEG     0x10         // Kernel data segment index
 
 #define E820_ADDRESS 0x7000
+#define PML4_ADDRESS 0x8000
 
 #define PAGE_SIZE    0x1000
 
@@ -48,6 +49,7 @@ typedef unsigned long int pdpte;
 typedef unsigned long int pml4e;
 
 typedef unsigned long int page;
+typedef unsigned long int address;
 
 void memsetb(const void *ptr, const char value, const unsigned int num);
 void memsetw(const void *ptr, const short value, const unsigned int num);
@@ -63,6 +65,7 @@ int memory_init(void);
 page alloc(void);
 void free(page p);
 void print_regions();
+void print_pagetable_entries(address a);
 
 
 
