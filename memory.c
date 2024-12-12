@@ -283,19 +283,21 @@ page calloc()
 void free(page * p)
 {
 	address a = (address) p;
+	region *current = first_region;
 
-	for (region * current = first_region; current != NULL; current = current->next) {
+	// Page is located before start of free regions
+	if ((unsigned long)current > (a + PAGE_SIZE)) {
+		region *new = (region *) a;
+		new->next = first_region;
+		new->prev = NULL;
+		new->size = 1;
 
-		// Page is located before start of free regions
-		if ((unsigned long)current > (a + PAGE_SIZE)) {
-			region *new = (region *) a;
-			new->next = first_region;
-			new->prev = NULL;
-			new->size = 1;
+		first_region = new;
+		return;
+	}
 
-			first_region = new;
-			return;
-		}
+	for (; current != NULL; current = current->next) {
+
 		// Page fits at start of free region
 		if ((unsigned long)current == (a + PAGE_SIZE)) {
 
