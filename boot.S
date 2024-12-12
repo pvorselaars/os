@@ -42,12 +42,13 @@ _entry:
   call read
 
   # In order to enable long mode some simple paging data structures need to be
-  # present.
+  # present. So we identity map the first 4MiB of memory and
+  # map 0xFFFF800000000000 - 0xFFFF800000400000 to 0x0 - 0x400000 for the kernel.
 
   # Clearing a buffer for PML4, PDPT, PD and PT
   mov $0x8000, %di
   push %di
-  mov $0x5000, %cx
+  mov $0x4000, %cx
   cld
   rep stosb
 
@@ -57,34 +58,26 @@ _entry:
   or $(PAGE_PRESENT | PAGE_WRITE), %ax
   mov %ax, (%di)
 
-  # Setup PDPT
+  lea 0x1000(%di), %ax
+  or $(PAGE_PRESENT | PAGE_WRITE), %ax
+  mov %ax, 0x800(%di)
+
+  # Setup Page Directory Pointer Tables
   lea 0x2000(%di), %ax
   or $(PAGE_PRESENT | PAGE_WRITE), %ax
   mov %ax, 0x1000(%di)
 
-  # Setup PD
-  lea 0x3000(%di), %ax
-  or $(PAGE_PRESENT | PAGE_WRITE), %ax
-  mov %ax, 0x2000(%di)
-  
   lea 0x4000(%di), %ax
   or $(PAGE_PRESENT | PAGE_WRITE), %ax
+  mov %ax, 0x3000(%di)
+
+  # Setup Page Directories
+  xor %ax, %ax
+  or $(PAGE_PRESENT | PAGE_WRITE | PAGE_PS), %ax
+  mov %ax, 0x2000(%di)
   mov %ax, 0x2008(%di)
-
-  # Build Page Table
-  push %di
-  lea 0x3000(%di), %di
-  mov $(PAGE_PRESENT | PAGE_WRITE), %eax
-
-  # Identity map the first 2MB
-  .loop:
-  mov %eax, (%di)
-  add $0x1000, %eax
-  add $0x8, %di
-  cmp $0x200000, %eax
-  jb .loop
-
-  pop %di
+  mov %ax, 0x4000(%di)
+  mov %ax, 0x4008(%di)
 
   mov $0xff, %al
   out %al, $0xa1 
@@ -152,10 +145,11 @@ longmode:
   mov %ax, %fs
   mov %ax, %gs
   mov %ax, %ss
-	mov $0x80000, %rsp
+	mov $0xffff800000200000, %rsp
 	mov %rsp, %rbp
 
-  jmp 0x80000
+  mov $0xffff800000010000, %rax
+  jmpq *%rax
 
 .align 4
 dap:
@@ -163,10 +157,9 @@ dap:
   .byte 0				# should be zero
   .word 99			# sectors to read
   .word 0x0000  # offset
-  .word 0x8000	# segment
+  .word 0x1000	# segment
   .quad 0x1			# starting lba
   
-# Initial GDT to identity map virtual addresses to physical addresses
 idt:
   .word 0
   .long 0

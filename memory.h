@@ -3,6 +3,7 @@
 
 #define PAGE_PRESENT (1 << 0)
 #define PAGE_WRITE   (1 << 1)
+#define PAGE_PS      (1 << 7)
 
 #define SDA_P        (1 << 7)     // Present segment
 #define SDA_U        (3 << 5)     // User segment
@@ -32,6 +33,10 @@
 
 #define E820_ADDRESS 0x7000
 #define PML4_ADDRESS 0x8000
+
+#define KERNEL_SIZE  (KERNEL_START + KERNEL_END)
+
+#define KERNEL_VA    0xFFF8000000000000
 
 #define PAGE_SIZE    0x1000
 

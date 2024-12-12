@@ -202,13 +202,13 @@ void print_pagetable_entries(address a)
 	unsigned short pd_offset = (a >> 21) & 0x1FF;
 	unsigned short pt_offset = (a >> 12) & 0x1FF;
 
-	printf("Addr: %016x\n", a);
+	printf("Addr: %016lx\n", a);
 	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
-		printf("Page not present\n");
+		printf("Page not present %x\n", pml4_offset*8);
 		return;
 	}
 
-	printf("PML4: %016x\n", pml4[pml4_offset]);
+	printf("PML4: %016lx\n", pml4[pml4_offset]);
 	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT)) {
@@ -216,7 +216,7 @@ void print_pagetable_entries(address a)
 		return;
 	}
 
-	printf("PDPT: %016x\n", pdpt[pdpt_offset]);
+	printf("PDPT: %016lx\n", pdpt[pdpt_offset]);
 	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!(pd[pd_offset] & PAGE_PRESENT)) {
@@ -224,7 +224,12 @@ void print_pagetable_entries(address a)
 		return;
 	}
 
-	printf("PD:   %016x\n", pd[pd_offset]);
+	printf("PD:   %016lx\n", pd[pd_offset]);
+
+	if (pd[pd_offset] & PAGE_PS) {
+		return;
+	}
+
 	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
 
 	if (!(pt[pt_offset] & PAGE_PRESENT)) {
@@ -232,7 +237,7 @@ void print_pagetable_entries(address a)
 		return;
 	}
 
-	printf("PT:   %016x\n", pt[pt_offset]);
+	printf("PT:   %016lx\n", pt[pt_offset]);
 
 }
 

@@ -1,7 +1,8 @@
 ENTRY(kernel)
 SECTIONS {
-	. = 0x80000;
-	
+	. = 0xffff800000010000;
+	PROVIDE(KERNEL_START = .);
+
 	.text : {
 		*(.text)
 	}
@@ -17,5 +18,7 @@ SECTIONS {
 	.bss : {
 		*(.bss)
 	}
+
+	PROVIDE(KERNEL_END = .);
 
 }
