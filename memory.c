@@ -94,7 +94,7 @@ page alloc()
 void free(page p)
 {
 
-	for (region *current = first_region; current != NULL; current = current->next) {
+	for (region * current = first_region; current != NULL; current = current->next) {
 
 		// Page is located before start of free regions
 		if ((unsigned long)current > (p + PAGE_SIZE)) {
@@ -104,9 +104,8 @@ void free(page p)
 			new->size = 1;
 
 			first_region = new;
-			break;
+			return;
 		}
-
 		// Page fits at start of free region
 		if ((unsigned long)current == (p + PAGE_SIZE)) {
 
@@ -127,10 +126,10 @@ void free(page p)
 				first_region = new;
 			}
 
-			break;
+			return;
 		}
 		// Page fits at end of free region
-		if ((unsigned long)current + current->size*PAGE_SIZE == p) {
+		if ((unsigned long)current + current->size * PAGE_SIZE == p) {
 
 			current->size++;
 
@@ -140,9 +139,17 @@ void free(page p)
 				current->next = current->next->next;
 			}
 
-			break;
+			return;
 		}
 
 	}
 
+	// Page is the new last region
+
+	region *new = (region *) p;
+	new->prev = last_region;
+	new->next = NULL;
+	new->size = 1;
+
+	last_region = new;
 }
