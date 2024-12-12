@@ -47,7 +47,7 @@ _entry:
   # Clearing a buffer for PML4, PDPT, PD and PT
   mov $0x8000, %di
   push %di
-  mov $0x4000, %cx
+  mov $0x5000, %cx
   cld
   rep stosb
 
@@ -67,6 +67,10 @@ _entry:
   or $(PAGE_PRESENT | PAGE_WRITE), %ax
   mov %ax, 0x2000(%di)
   
+  lea 0x4000(%di), %ax
+  or $(PAGE_PRESENT | PAGE_WRITE), %ax
+  mov %ax, 0x2008(%di)
+
   # Build Page Table
   push %di
   lea 0x3000(%di), %di

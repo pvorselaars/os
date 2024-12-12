@@ -28,19 +28,25 @@ int memory_init()
 	E820 *regions = (E820 *) (E820_ADDRESS + 4);
 
 	// Convert the E820 memory map to a doubly linked list 
-	// of free memory pages of size PAGE_SIZE.
+	// of free memory pages of size PAGE_SIZE. However
+	// not all pages are actually free as the first
+	// 2MiB of memory is already mapped by the bootstrap
+	// paging tables and are in use.
 
 	region *current;
 	for (int r = 0; r < *entries; r++) {
 		if (regions[r].type == 1) {
 
-			current = (region *) regions[r].base;
-
-			// Ignore first page to avoid a (valid) null pointer
-			if (current == NULL) {
-				current = (region *) PAGE_SIZE;
-				current->size = regions[r].length / PAGE_SIZE - 1;
+			// Ignore first 2MiB
+			if (regions[r].base + regions[r].length < 0x200000) {
+				continue;
+			} else if (regions[r].base < 0x200000) {
+				map(0x200000, 0x200000, PAGE_WRITE);
+				current = (region *) 0x200000;
+				current->size = (regions[r].length - (0x200000 - regions[r].base)) / PAGE_SIZE;
 			} else {
+				map(regions[r].base, regions[r].base, PAGE_WRITE);
+				current = (region *) regions[r].base;
 				current->size = regions[r].length / PAGE_SIZE;
 			}
 
