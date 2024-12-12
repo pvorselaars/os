@@ -88,7 +88,7 @@ int map(address va, address pa, int flags)
 	flags |= PAGE_PRESENT;
 
 	if (!pml4[pml4_offset] & PAGE_PRESENT) {
-		page p = calloc();
+		page *p = calloc();
 
 		if (p == NULL) {
 			return -1;
@@ -100,7 +100,7 @@ int map(address va, address pa, int flags)
 	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
 
 	if (!pdpt[pdpt_offset] & PAGE_PRESENT) {
-		page p = calloc();
+		page *p = calloc();
 
 		if (p == NULL) {
 			return -1;
@@ -112,7 +112,7 @@ int map(address va, address pa, int flags)
 	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!pd[pd_offset] & PAGE_PRESENT) {
-		page p = calloc();
+		page *p = calloc();
 
 		if (p == NULL) {
 			return -1;
@@ -242,20 +242,22 @@ void print_regions()
 	region *current = first_region;
 	printf("%-16s %-16s %-16s %-16s\n", "address", "size", "prev", "next");
 	while (current) {
-		printf("%16p %16x %16x %16x\n", current, current->size, current->prev, current->next);
+		printf("%-16p %-16x %-16x %-16x\n", current, current->size, current->prev, current->next);
 		current = current->next;
 	}
 
 }
 
-page alloc()
+page* alloc()
 {
-	page p = NULL;
+	page *p = NULL;
 
 	if (first_region != NULL) {
-		p = (page) first_region;
+		p = (page*) first_region;
 
 		region *new = (region *) ((unsigned long)first_region + PAGE_SIZE);
+
+		map((address) new, (address) new, PAGE_WRITE);
 
 		if (first_region->size > 1) {
 			new->size = first_region->size - 1;
@@ -269,9 +271,9 @@ page alloc()
 	return p;
 }
 
-page calloc()
+page* calloc()
 {
-	page p = alloc();
+	page *p = alloc();
 
 	if (p != NULL) {
 		memsetq((void *)p, 0, PAGE_SIZE / 8);
@@ -293,6 +295,7 @@ void free(page * p)
 		new->size = 1;
 
 		first_region = new;
+		unmap(a);
 		return;
 	}
 
@@ -318,6 +321,7 @@ void free(page * p)
 				first_region = new;
 			}
 
+			unmap(a);
 			return;
 		}
 		// Page fits at end of free region
@@ -331,6 +335,7 @@ void free(page * p)
 				current->next = current->next->next;
 			}
 
+			unmap(a);
 			return;
 		}
 
