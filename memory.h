@@ -62,8 +62,13 @@ void memmove(const void *dst, const void *src, const unsigned int num);
 void memcpy(const void *dst, const void *src, const unsigned int num);
 
 int memory_init(void);
+
+int map(address va, address pa, int flags);
+int unmap(address va);
 page alloc(void);
-void free(page p);
+page calloc(void);
+void free(page *p);
+
 void print_regions();
 void print_pagetable_entries(address a);
 

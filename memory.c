@@ -60,6 +60,131 @@ int memory_init()
 	return 0;
 }
 
+int map(address va, address pa, int flags)
+{
+	pdpte *pdpt;
+	pde *pd;
+	pte *pt;
+
+	unsigned short pml4_offset = (va >> 39) & 0x1FF;
+	unsigned short pdpt_offset = (va >> 30) & 0x1FF;
+	unsigned short pd_offset = (va >> 21) & 0x1FF;
+	unsigned short pt_offset = (va >> 12) & 0x1FF;
+
+	if (va % PAGE_SIZE != 0) {
+		va += PAGE_SIZE - (va % PAGE_SIZE);
+	}
+
+	if (pa % PAGE_SIZE != 0) {
+		pa += PAGE_SIZE - (pa % PAGE_SIZE);
+	}
+
+	flags |= PAGE_PRESENT;
+
+	if (!pml4[pml4_offset] & PAGE_PRESENT) {
+		page p = calloc();
+
+		if (p == NULL) {
+			return -1;
+		}
+
+		pml4[pml4_offset] = (pml4e) p | flags;
+	}
+
+	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
+
+	if (!pdpt[pdpt_offset] & PAGE_PRESENT) {
+		page p = calloc();
+
+		if (p == NULL) {
+			return -1;
+		}
+
+		pdpt[pdpt_offset] = (pdpte) p | flags;
+	}
+
+	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
+
+	if (!pd[pd_offset] & PAGE_PRESENT) {
+		page p = calloc();
+
+		if (p == NULL) {
+			return -1;
+		}
+
+		pd[pd_offset] = (pde) p | flags;
+	}
+
+	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
+
+	if (pt[pt_offset] & PAGE_PRESENT) {
+		return -1;
+	} else {
+		pt[pt_offset] = (pte) pa | flags;
+	}
+
+	return 0;
+}
+
+bool empty(unsigned long *table)
+{
+	for (int i = 0; i < 512; i++) {
+		if (table[i] & PAGE_PRESENT)
+			return false;
+	}
+
+	return true;
+}
+
+int unmap(address va)
+{
+	pdpte *pdpt;
+	pde *pd;
+	pte *pt;
+
+	unsigned short pml4_offset = (va >> 39) & 0x1FF;
+	unsigned short pdpt_offset = (va >> 30) & 0x1FF;
+	unsigned short pd_offset = (va >> 21) & 0x1FF;
+	unsigned short pt_offset = (va >> 12) & 0x1FF;
+
+	if (!(pml4[pml4_offset] & PAGE_PRESENT))
+		return -1;
+
+	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
+
+	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
+		return -1;
+
+	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
+
+	if (!(pd[pd_offset] & PAGE_PRESENT))
+		return -1;
+
+	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
+
+	pt[pt_offset] ^= PAGE_PRESENT;
+
+	// Cascade free pages in page table structure
+	if (empty(pt)) {
+		pd[pd_offset] ^= PAGE_PRESENT;
+		free(pt);
+
+		if (empty(pd)) {
+			pdpt[pdpt_offset] ^= PAGE_PRESENT;
+			free(pd);
+
+			if (empty(pdpt)) {
+				pml4[pml4_offset] ^= PAGE_PRESENT;
+				free(pdpt);
+			}
+
+		}
+
+	}
+
+	return 0;
+}
+
 void print_pagetable_entries(address a)
 {
 	pdpte *pdpt;
@@ -71,7 +196,8 @@ void print_pagetable_entries(address a)
 	unsigned short pd_offset = (a >> 21) & 0x1FF;
 	unsigned short pt_offset = (a >> 12) & 0x1FF;
 
-	if (!pml4[pml4_offset] & PAGE_PRESENT) {
+	printf("Addr: %016x\n", a);
+	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
 		printf("Page not present\n");
 		return;
 	}
@@ -79,7 +205,7 @@ void print_pagetable_entries(address a)
 	printf("PML4: %016x\n", pml4[pml4_offset]);
 	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
 
-	if (!pdpt[pdpt_offset] & PAGE_PRESENT) {
+	if (!(pdpt[pdpt_offset] & PAGE_PRESENT)) {
 		printf("Page not present\n");
 		return;
 	}
@@ -87,7 +213,7 @@ void print_pagetable_entries(address a)
 	printf("PDPT: %016x\n", pdpt[pdpt_offset]);
 	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
 
-	if (!pd[pd_offset] & PAGE_PRESENT) {
+	if (!(pd[pd_offset] & PAGE_PRESENT)) {
 		printf("Page not present\n");
 		return;
 	}
@@ -95,7 +221,7 @@ void print_pagetable_entries(address a)
 	printf("PD:   %016x\n", pd[pd_offset]);
 	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
 
-	if (!pt[pt_offset] & PAGE_PRESENT) {
+	if (!(pt[pt_offset] & PAGE_PRESENT)) {
 		printf("Page not present\n");
 		return;
 	}
@@ -137,14 +263,26 @@ page alloc()
 	return p;
 }
 
-void free(page p)
+page calloc()
 {
+	page p = alloc();
+
+	if (p != NULL) {
+		memsetq((void *)p, 0, PAGE_SIZE / 8);
+	}
+
+	return p;
+}
+
+void free(page * p)
+{
+	address a = (address) p;
 
 	for (region * current = first_region; current != NULL; current = current->next) {
 
 		// Page is located before start of free regions
-		if ((unsigned long)current > (p + PAGE_SIZE)) {
-			region *new = (region *) p;
+		if ((unsigned long)current > (a + PAGE_SIZE)) {
+			region *new = (region *) a;
 			new->next = first_region;
 			new->prev = NULL;
 			new->size = 1;
@@ -153,9 +291,9 @@ void free(page p)
 			return;
 		}
 		// Page fits at start of free region
-		if ((unsigned long)current == (p + PAGE_SIZE)) {
+		if ((unsigned long)current == (a + PAGE_SIZE)) {
 
-			region *new = (region *) p;
+			region *new = (region *) a;
 			new->next = current->next;
 			new->prev = current->prev;
 			new->size = current->size + 1;
@@ -175,12 +313,12 @@ void free(page p)
 			return;
 		}
 		// Page fits at end of free region
-		if ((unsigned long)current + current->size * PAGE_SIZE == p) {
+		if ((unsigned long)current + current->size * PAGE_SIZE == a) {
 
 			current->size++;
 
 			// Page joins two free regions
-			if ((unsigned long)current->next == (p + PAGE_SIZE)) {
+			if ((unsigned long)current->next == (a + PAGE_SIZE)) {
 				current->size += current->next->size;
 				current->next = current->next->next;
 			}
@@ -192,7 +330,7 @@ void free(page p)
 
 	// Page is the new last region
 
-	region *new = (region *) p;
+	region *new = (region *) a;
 	new->prev = last_region;
 	new->next = NULL;
 	new->size = 1;
