@@ -69,3 +69,13 @@ int printf(const char *format, ...)
 
 	return i;
 }
+
+int vprintf(const char *format, va_list args)
+{
+	char buffer[128];
+	int i = vsnprintf(buffer, 128, format, args);
+	buffer[i] = 0;
+	print(buffer);
+
+	return i;
+}
