@@ -48,6 +48,7 @@
 
 #else
 
+
 typedef unsigned long int pte;
 typedef unsigned long int pde;
 typedef unsigned long int pdpte;

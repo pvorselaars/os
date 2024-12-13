@@ -1,24 +1,21 @@
 ENTRY(kernel)
 SECTIONS {
 	. = 0xffff800000010000;
-	PROVIDE(KERNEL_START = .);
 
+	__KERNEL_START = .;
 	.text : {
 		*(.text)
 	}
 
 	.data : {
 		*(.data)
+		*(.bss)
 	}
 
 	.rodata : {
 		*(.rodata)
 	}
 
-	.bss : {
-		*(.bss)
-	}
-
-	PROVIDE(KERNEL_END = .);
+	__KERNEL_END = .;
 
 }

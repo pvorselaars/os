@@ -31,7 +31,7 @@ _entry:
   mov %ax, %ds
   mov %ax, %es
   mov %ax, %ss
-  mov $0x7c00, %bp
+  mov $0x7000, %bp
   mov %bp, %sp
 
   # Detect memory regions

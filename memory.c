@@ -1,17 +1,18 @@
 #include "memory.h"
+#include "arg.h"
 #include "defs.h"
 #include "console.h"
 
 #pragma pack(1)
 typedef struct {
 	unsigned long base;
-	unsigned long length;
+	unsigned long size;
 	unsigned int type;
 } E820;
 
 typedef struct {
 	unsigned long base;
-	unsigned long length;
+	unsigned long size;
 	unsigned int type;
 	unsigned int attributes;
 } E820_3;
@@ -24,90 +25,122 @@ typedef struct region {
 
 #pragma pack()
 
+extern char __KERNEL_START;
+extern char __KERNEL_END;
+
+unsigned long kernel_start_pa;
+unsigned long kernel_end_pa;
+
 region *first_region = NULL;
 region *last_region = NULL;
 
 pml4e *pml4 = (pml4e *) PML4_ADDRESS;
 
+void fatal(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	printf("FATAL: ");
+	printf(format, args);
+	va_end(args);
+
+	while (1) ;
+}
+
+void append_region(unsigned long start, unsigned long size)
+{
+	region *current;
+	map(start, start, PAGE_WRITE);
+
+	current = (region *) start;
+	current->size = size;
+	current->next = NULL;
+	current->prev = last_region;
+
+	if (last_region != NULL) {
+		last_region->next = current;
+	} else {
+		first_region = current;
+	}
+
+	last_region = current;
+}
+
+void evaluate_region(unsigned long start, unsigned long size)
+{
+
+	// Only 4MB for now
+	if (start > 0x400000)
+		return;
+
+	// Does region overlap with bootstrap or kernel code?
+	if (start < kernel_end_pa && (start + size > 0x7000)) {
+
+		// Split the region up
+		if (start < 0x7000) {
+
+			if (start == 0) {
+				start += PAGE_SIZE;
+				size -= PAGE_SIZE;
+			}
+
+			append_region(start, (0x7000 - start) / PAGE_SIZE);
+		}
+
+		if (start + size > kernel_end_pa) {
+			append_region(kernel_end_pa, (start + size - kernel_end_pa) / PAGE_SIZE);
+		}
+
+	} else {
+		append_region(start, size / PAGE_SIZE);
+	}
+
+}
+
 int memory_init()
 {
 	short *entries = (short *)E820_ADDRESS;
 	short *size = (short *)(E820_ADDRESS + 2);
+	kernel_start_pa = (unsigned long)&__KERNEL_START & 0x7fffffffffff;
+	kernel_end_pa = (unsigned long)&__KERNEL_END & 0x7fffffffffff;
+	kernel_end_pa = kernel_end_pa + (PAGE_SIZE - kernel_end_pa % PAGE_SIZE);
 
 	// Convert the E820 memory map to a doubly linked list 
 	// of free memory pages of size PAGE_SIZE. However
-	// not all pages are actually free as the first
-	// 2MiB of memory is already mapped by the bootstrap
-	// paging tables and are in use.
+	// not all pages are actually free as 0x7000 - 0xffff
+	// is in use by the bootstrap code, E820 and page tables.
+	// 0x10000 - KERNEL_END is in use by the kernel code.
+	// These regions need to be removed from the free regions
+	// list.
+
+	printf("Kernel start: %016lx\n", kernel_start_pa);
+	printf("Kernel end:   %016lx\n", kernel_end_pa);
+	printf("Kernel size:  %10ld pages\n", (kernel_end_pa - kernel_start_pa) / PAGE_SIZE);
 
 	if (*size == 20) {
 		E820 *regions = (E820 *) (E820_ADDRESS + 4);
-		region *current;
+
 		for (int r = 0; r < *entries; r++) {
 			if (regions[r].type == 1) {
-
-				// ignore first 2mib
-				if (regions[r].base + regions[r].length < 0x200000) {
-					continue;
-				} else if (regions[r].base < 0x200000) {
-					map(0x200000, 0x200000, PAGE_WRITE);
-					current = (region *) 0x200000;
-					current->size = (regions[r].length - (0x200000 - regions[r].base)) / PAGE_SIZE;
-				} else {
-					map(regions[r].base, regions[r].base, PAGE_WRITE);
-					current = (region *) regions[r].base;
-					current->size = regions[r].length / PAGE_SIZE;
-				}
-
-				current->next = NULL;
-				current->prev = last_region;
-
-				if (last_region != NULL) {
-					last_region->next = current;
-				} else {
-					first_region = current;
-				}
-
-				last_region = current;
+				evaluate_region(regions[r].base, regions[r].size);
 			}
 		}
+
 	} else if (*size == 24) {
 
 		E820_3 *regions = (E820_3 *) (E820_ADDRESS + 4);
-		region *current;
+
 		for (int r = 0; r < *entries; r++) {
 			if (regions[r].type == 1 && (regions[r].attributes & 1)) {
-
-				// ignore first 2mib
-				if (regions[r].base + regions[r].length < 0x200000) {
-					continue;
-				} else if (regions[r].base < 0x200000) {
-					map(0x200000, 0x200000, PAGE_WRITE);
-					current = (region *) 0x200000;
-					current->size = (regions[r].length - (0x200000 - regions[r].base)) / PAGE_SIZE;
-				} else {
-					map(regions[r].base, regions[r].base, PAGE_WRITE);
-					current = (region *) regions[r].base;
-					current->size = regions[r].length / PAGE_SIZE;
-				}
-
-				current->next = NULL;
-				current->prev = last_region;
-
-				if (last_region != NULL) {
-					last_region->next = current;
-				} else {
-					first_region = current;
-				}
-
-				last_region = current;
+				evaluate_region(regions[r].base, regions[r].size);
 			}
 		}
 
 	} else {
-		printf("Fatal: invalid E820 entry size\n");
-		while (1) ;
+		fatal("invalid E820 entry size\n");
 	}
+
+	print_regions();
 
 	return 0;
 }
@@ -137,6 +170,7 @@ int map(address va, address pa, int flags)
 		page *p = calloc();
 
 		if (p == NULL) {
+			fatal("Unable to get page for PDPT\n");
 			return -1;
 		}
 
@@ -149,6 +183,7 @@ int map(address va, address pa, int flags)
 		page *p = calloc();
 
 		if (p == NULL) {
+			fatal("Unable to get page for PD\n");
 			return -1;
 		}
 
@@ -161,6 +196,7 @@ int map(address va, address pa, int flags)
 		page *p = calloc();
 
 		if (p == NULL) {
+			fatal("Unable to get page for PT\n");
 			return -1;
 		}
 
@@ -291,9 +327,10 @@ void print_regions()
 {
 
 	region *current = first_region;
+	printf("Free memory regions:\n");
 	printf("%-16s %-16s %-16s %-16s\n", "address", "size", "prev", "next");
 	while (current) {
-		printf("%-16p %-16x %-16x %-16x\n", current, current->size, current->prev, current->next);
+		printf("%-16p %-16d %-16x %-16x\n", current, current->size, current->prev, current->next);
 		current = current->next;
 	}
 
