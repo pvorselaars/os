@@ -103,7 +103,10 @@ int memory_init()
 	short *size = (short *)(E820_ADDRESS + 2);
 	kernel_start_pa = (unsigned long)&__KERNEL_START & 0x7fffffffffff;
 	kernel_end_pa = (unsigned long)&__KERNEL_END & 0x7fffffffffff;
-	kernel_end_pa = kernel_end_pa + (PAGE_SIZE - kernel_end_pa % PAGE_SIZE);
+
+	if (kernel_end_pa % PAGE_SIZE != 0) {
+		kernel_end_pa = kernel_end_pa + (PAGE_SIZE - kernel_end_pa % PAGE_SIZE);
+	}
 
 	total_memory = 0;
 	total_memory_free = 0;
@@ -168,12 +171,11 @@ int map(address va, address pa, int flags)
 
 	flags |= PAGE_PRESENT;
 
-	if (!pml4[pml4_offset] & PAGE_PRESENT) {
+	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
 		page *p = calloc();
 
 		if (p == NULL) {
 			fatal("Unable to get page for PDPT\n");
-			return -1;
 		}
 
 		pml4[pml4_offset] = (pml4e) p | flags;
@@ -181,12 +183,11 @@ int map(address va, address pa, int flags)
 
 	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
 
-	if (!pdpt[pdpt_offset] & PAGE_PRESENT) {
+	if (!(pdpt[pdpt_offset] & PAGE_PRESENT)) {
 		page *p = calloc();
 
 		if (p == NULL) {
 			fatal("Unable to get page for PD\n");
-			return -1;
 		}
 
 		pdpt[pdpt_offset] = (pdpte) p | flags;
@@ -194,12 +195,11 @@ int map(address va, address pa, int flags)
 
 	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
 
-	if (!pd[pd_offset] & PAGE_PRESENT) {
+	if (!(pd[pd_offset] & PAGE_PRESENT)) {
 		page *p = calloc();
 
 		if (p == NULL) {
 			fatal("Unable to get page for PT\n");
-			return -1;
 		}
 
 		pd[pd_offset] = (pde) p | flags;
@@ -257,15 +257,15 @@ int unmap(address va)
 	// Cascade free pages in page table structure
 	if (empty(pt)) {
 		pd[pd_offset] ^= PAGE_PRESENT;
-		free(pt);
+		dealloc(pt);
 
 		if (empty(pd)) {
 			pdpt[pdpt_offset] ^= PAGE_PRESENT;
-			free(pd);
+			dealloc(pd);
 
 			if (empty(pdpt)) {
 				pml4[pml4_offset] ^= PAGE_PRESENT;
-				free(pdpt);
+				dealloc(pdpt);
 			}
 
 		}
@@ -374,7 +374,7 @@ page *calloc()
 	return p;
 }
 
-void free(page * p)
+void dealloc(page * p)
 {
 	address a = (address) p;
 	region *current = first_region;

@@ -71,9 +71,8 @@ int memory_init(void);
 
 int map(address va, address pa, int flags);
 int unmap(address va);
-page* alloc(void);
 page* calloc(void);
-void free(page *p);
+void dealloc(page *p);
 
 void print_regions();
 void print_pagetable_entries(address a);
