@@ -1,7 +1,9 @@
 #include "memory.h"
+
 #include "arg.h"
-#include "defs.h"
 #include "console.h"
+#include "defs.h"
+#include "utils.h"
 
 #pragma pack(1)
 typedef struct {
@@ -31,21 +33,14 @@ extern char __KERNEL_END;
 unsigned long kernel_start_pa;
 unsigned long kernel_end_pa;
 
+unsigned long total_memory;
+unsigned long total_memory_free;
+unsigned long total_memory_reserved;
+
 region *first_region = NULL;
 region *last_region = NULL;
 
 pml4e *pml4 = (pml4e *) PML4_ADDRESS;
-
-void fatal(const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	printf("FATAL: ");
-	printf(format, args);
-	va_end(args);
-
-	while (1) ;
-}
 
 void append_region(unsigned long start, unsigned long size)
 {
@@ -66,13 +61,14 @@ void append_region(unsigned long start, unsigned long size)
 	last_region = current;
 }
 
-void evaluate_region(unsigned long start, unsigned long size)
+void evaluate_region(unsigned long start, unsigned long size, int type)
 {
 
-	// Only 4MB for now
-	if (start > 0x400000)
+	if (type != 1) {
+		total_memory += size;
+		total_memory_reserved += size;
 		return;
-
+	}
 	// Does region overlap with bootstrap or kernel code?
 	if (start < kernel_end_pa && (start + size > 0x7000)) {
 
@@ -82,6 +78,7 @@ void evaluate_region(unsigned long start, unsigned long size)
 			if (start == 0) {
 				start += PAGE_SIZE;
 				size -= PAGE_SIZE;
+				total_memory_reserved += PAGE_SIZE;
 			}
 
 			append_region(start, (0x7000 - start) / PAGE_SIZE);
@@ -95,6 +92,9 @@ void evaluate_region(unsigned long start, unsigned long size)
 		append_region(start, size / PAGE_SIZE);
 	}
 
+	total_memory += size;
+	total_memory_free += size;
+
 }
 
 int memory_init()
@@ -104,6 +104,10 @@ int memory_init()
 	kernel_start_pa = (unsigned long)&__KERNEL_START & 0x7fffffffffff;
 	kernel_end_pa = (unsigned long)&__KERNEL_END & 0x7fffffffffff;
 	kernel_end_pa = kernel_end_pa + (PAGE_SIZE - kernel_end_pa % PAGE_SIZE);
+
+	total_memory = 0;
+	total_memory_free = 0;
+	total_memory_reserved = 0;
 
 	// Convert the E820 memory map to a doubly linked list 
 	// of free memory pages of size PAGE_SIZE. However
@@ -115,15 +119,13 @@ int memory_init()
 
 	printf("Kernel start: %016lx\n", kernel_start_pa);
 	printf("Kernel end:   %016lx\n", kernel_end_pa);
-	printf("Kernel size:  %10ld pages\n", (kernel_end_pa - kernel_start_pa) / PAGE_SIZE);
+	printf("Kernel size:  %12ld KiB\n", (kernel_end_pa - kernel_start_pa) / 0x400);
 
 	if (*size == 20) {
 		E820 *regions = (E820 *) (E820_ADDRESS + 4);
 
 		for (int r = 0; r < *entries; r++) {
-			if (regions[r].type == 1) {
-				evaluate_region(regions[r].base, regions[r].size);
-			}
+			evaluate_region(regions[r].base, regions[r].size, regions[r].type);
 		}
 
 	} else if (*size == 24) {
@@ -131,8 +133,8 @@ int memory_init()
 		E820_3 *regions = (E820_3 *) (E820_ADDRESS + 4);
 
 		for (int r = 0; r < *entries; r++) {
-			if (regions[r].type == 1 && (regions[r].attributes & 1)) {
-				evaluate_region(regions[r].base, regions[r].size);
+			if (regions[r].attributes & 1) {
+				evaluate_region(regions[r].base, regions[r].size, regions[r].type);
 			}
 		}
 
@@ -330,9 +332,11 @@ void print_regions()
 	printf("Free memory regions:\n");
 	printf("%-16s %-16s %-16s %-16s\n", "address", "size", "prev", "next");
 	while (current) {
-		printf("%-16p %-16d %-16x %-16x\n", current, current->size, current->prev, current->next);
+		printf("%-16lx %-16lx %-16lx %-16lx\n", current, current->size, current->prev, current->next);
 		current = current->next;
 	}
+
+	printf("%ld/%ld KiB", total_memory_free / 0x400, total_memory / 0x400);
 
 }
 
@@ -343,16 +347,16 @@ page *alloc()
 	if (first_region != NULL) {
 		p = (page *) first_region;
 
-		region *new = (region *) ((unsigned long)first_region + PAGE_SIZE);
+		if (first_region->size == 1) {
+			first_region = first_region->next;
+			first_region->prev = NULL;
 
-		map((address) new, (address) new, PAGE_WRITE);
-
-		if (first_region->size > 1) {
+		} else {
+			region *new = (region *) ((unsigned long)first_region + PAGE_SIZE);
+			map((address) new, (address) new, PAGE_WRITE);
 			new->size = first_region->size - 1;
 			new->next = first_region->next;
 			first_region = new;
-		} else {
-			first_region = first_region->next;
 		}
 	}
 
