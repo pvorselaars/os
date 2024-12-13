@@ -9,6 +9,13 @@ typedef struct {
 	unsigned int type;
 } E820;
 
+typedef struct {
+	unsigned long base;
+	unsigned long length;
+	unsigned int type;
+	unsigned int attributes;
+} E820_3;
+
 typedef struct region {
 	unsigned long size;
 	struct region *prev;
@@ -25,7 +32,7 @@ pml4e *pml4 = (pml4e *) PML4_ADDRESS;
 int memory_init()
 {
 	short *entries = (short *)E820_ADDRESS;
-	E820 *regions = (E820 *) (E820_ADDRESS + 4);
+	short *size = (short *)(E820_ADDRESS + 2);
 
 	// Convert the E820 memory map to a doubly linked list 
 	// of free memory pages of size PAGE_SIZE. However
@@ -33,34 +40,73 @@ int memory_init()
 	// 2MiB of memory is already mapped by the bootstrap
 	// paging tables and are in use.
 
-	region *current;
-	for (int r = 0; r < *entries; r++) {
-		if (regions[r].type == 1) {
+	if (*size == 20) {
+		E820 *regions = (E820 *) (E820_ADDRESS + 4);
+		region *current;
+		for (int r = 0; r < *entries; r++) {
+			if (regions[r].type == 1) {
 
-			// Ignore first 2MiB
-			if (regions[r].base + regions[r].length < 0x200000) {
-				continue;
-			} else if (regions[r].base < 0x200000) {
-				map(0x200000, 0x200000, PAGE_WRITE);
-				current = (region *) 0x200000;
-				current->size = (regions[r].length - (0x200000 - regions[r].base)) / PAGE_SIZE;
-			} else {
-				map(regions[r].base, regions[r].base, PAGE_WRITE);
-				current = (region *) regions[r].base;
-				current->size = regions[r].length / PAGE_SIZE;
+				// ignore first 2mib
+				if (regions[r].base + regions[r].length < 0x200000) {
+					continue;
+				} else if (regions[r].base < 0x200000) {
+					map(0x200000, 0x200000, PAGE_WRITE);
+					current = (region *) 0x200000;
+					current->size = (regions[r].length - (0x200000 - regions[r].base)) / PAGE_SIZE;
+				} else {
+					map(regions[r].base, regions[r].base, PAGE_WRITE);
+					current = (region *) regions[r].base;
+					current->size = regions[r].length / PAGE_SIZE;
+				}
+
+				current->next = NULL;
+				current->prev = last_region;
+
+				if (last_region != NULL) {
+					last_region->next = current;
+				} else {
+					first_region = current;
+				}
+
+				last_region = current;
 			}
-
-			current->next = NULL;
-			current->prev = last_region;
-
-			if (last_region != NULL) {
-				last_region->next = current;
-			} else {
-				first_region = current;
-			}
-
-			last_region = current;
 		}
+	} else if (*size == 24) {
+
+		E820_3 *regions = (E820_3 *) (E820_ADDRESS + 4);
+		region *current;
+		for (int r = 0; r < *entries; r++) {
+			if (regions[r].type == 1 && (regions[r].attributes & 1)) {
+
+				// ignore first 2mib
+				if (regions[r].base + regions[r].length < 0x200000) {
+					continue;
+				} else if (regions[r].base < 0x200000) {
+					map(0x200000, 0x200000, PAGE_WRITE);
+					current = (region *) 0x200000;
+					current->size = (regions[r].length - (0x200000 - regions[r].base)) / PAGE_SIZE;
+				} else {
+					map(regions[r].base, regions[r].base, PAGE_WRITE);
+					current = (region *) regions[r].base;
+					current->size = regions[r].length / PAGE_SIZE;
+				}
+
+				current->next = NULL;
+				current->prev = last_region;
+
+				if (last_region != NULL) {
+					last_region->next = current;
+				} else {
+					first_region = current;
+				}
+
+				last_region = current;
+			}
+		}
+
+	} else {
+		printf("Fatal: invalid E820 entry size\n");
+		while (1) ;
 	}
 
 	return 0;
@@ -204,7 +250,7 @@ void print_pagetable_entries(address a)
 
 	printf("Addr: %016lx\n", a);
 	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
-		printf("Page not present %x\n", pml4_offset*8);
+		printf("Page not present %x\n", pml4_offset * 8);
 		return;
 	}
 
@@ -253,12 +299,12 @@ void print_regions()
 
 }
 
-page* alloc()
+page *alloc()
 {
 	page *p = NULL;
 
 	if (first_region != NULL) {
-		p = (page*) first_region;
+		p = (page *) first_region;
 
 		region *new = (region *) ((unsigned long)first_region + PAGE_SIZE);
 
@@ -276,7 +322,7 @@ page* alloc()
 	return p;
 }
 
-page* calloc()
+page *calloc()
 {
 	page *p = alloc();
 
