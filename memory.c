@@ -126,8 +126,6 @@ int memory_init()
 	total_memory_free = 0;
 	total_memory_reserved = 0;
 
-	memsetq(free_regions, 0, PAGE_SIZE / 8);
-
 	// Convert the E820 memory map to a doubly linked list 
 	// of free memory pages of size PAGE_SIZE. However
 	// not all pages are actually free as 0x7000 - 0xffff
@@ -191,7 +189,7 @@ int map(address va, address pa, int flags)
 	flags |= PAGE_PRESENT;
 
 	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
-		page *p = calloc();
+		page *p = alloc();
 
 		if (p == NULL) {
 			fatal("Unable to get page for PDPT\n");
@@ -203,7 +201,7 @@ int map(address va, address pa, int flags)
 	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT)) {
-		page *p = calloc();
+		page *p = alloc();
 
 		if (p == NULL) {
 			fatal("Unable to get page for PD\n");
@@ -215,7 +213,7 @@ int map(address va, address pa, int flags)
 	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!(pd[pd_offset] & PAGE_PRESENT)) {
-		page *p = calloc();
+		page *p = alloc();
 
 		if (p == NULL) {
 			fatal("Unable to get page for PT\n");
@@ -302,17 +300,9 @@ page *alloc()
 		p = (page *) free_regions[0].start;
 		free_regions[0].start += PAGE_SIZE;
 		free_regions[0].size--;
+
 		sort(free_regions, total_regions);
-	}
 
-	return p;
-}
-
-page *calloc()
-{
-	page *p = alloc();
-
-	if (p != NULL) {
 		memsetq((void *)p, 0, PAGE_SIZE / 8);
 	}
 
