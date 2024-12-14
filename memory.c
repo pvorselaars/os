@@ -27,6 +27,7 @@ typedef struct region {
 #pragma pack()
 
 #define KERNELVA(pa) (pa + 0xffff800000000000)
+#define ALIGN(x, size) ((((x) + (size)) & ~(size - 1)))
 
 extern char __KERNEL_START;
 extern char __KERNEL_END;
@@ -42,8 +43,6 @@ unsigned long total_memory_reserved;
 region *free_regions = (region*)KERNELVA(0x0);
 
 pml4e *pml4 = (pml4e *) PML4_ADDRESS;
-
-page *alloc();
 
 // TODO: more efficient sorting algorithm
 void sort(region r[], int size)
@@ -117,9 +116,7 @@ int memory_init()
 	kernel_start_pa = (unsigned long)&__KERNEL_START & 0x7fffffffffff;
 	kernel_end_pa = (unsigned long)&__KERNEL_END & 0x7fffffffffff;
 
-	if (kernel_end_pa % PAGE_SIZE != 0) {
-		kernel_end_pa = kernel_end_pa + (PAGE_SIZE - kernel_end_pa % PAGE_SIZE);
-	}
+	kernel_end_pa = ALIGN(kernel_end_pa, PAGE_SIZE);
 
 	total_regions = 0;
 	total_memory = 0;
@@ -169,6 +166,8 @@ int memory_init()
 
 int map(address va, address pa, int flags)
 {
+	assert(pa = ALIGN(pa, PAGE_SIZE));
+
 	pdpte *pdpt;
 	pde *pd;
 	pte *pt;
@@ -178,13 +177,6 @@ int map(address va, address pa, int flags)
 	unsigned short pd_offset = (va >> 21) & 0x1FF;
 	unsigned short pt_offset = (va >> 12) & 0x1FF;
 
-	if (va % PAGE_SIZE != 0) {
-		va += PAGE_SIZE - (va % PAGE_SIZE);
-	}
-
-	if (pa % PAGE_SIZE != 0) {
-		pa += PAGE_SIZE - (pa % PAGE_SIZE);
-	}
 
 	flags |= PAGE_PRESENT;
 
@@ -246,8 +238,7 @@ bool empty(unsigned long *table)
 int unmap(address va)
 {
 	pdpte *pdpt;
-	pde *pd;
-	pte *pt;
+	pde *pd; pte *pt;
 
 	unsigned short pml4_offset = (va >> 39) & 0x1FF;
 	unsigned short pdpt_offset = (va >> 30) & 0x1FF;

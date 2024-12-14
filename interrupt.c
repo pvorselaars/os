@@ -104,7 +104,7 @@ void register_interrupt(interrupt_descriptor * idt, unsigned int number, int sel
 
 void interrupt_init()
 {
-	idt = (interrupt_descriptor *) calloc();
+	idt = (interrupt_descriptor *) alloc();
 
 	assert(idt);
 

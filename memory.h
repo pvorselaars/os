@@ -71,7 +71,7 @@ int memory_init(void);
 
 int map(address va, address pa, int flags);
 int unmap(address va);
-page* calloc(void);
+page* alloc(void);
 void dealloc(page *p);
 
 #ifdef DEBUG
