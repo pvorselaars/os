@@ -7,6 +7,7 @@
 # 3. Hand control to the kernel
 #
 
+#include "boot.h"
 #include "memory.h"
 
 .globl _start
@@ -31,11 +32,11 @@ _entry:
   mov %ax, %ds
   mov %ax, %es
   mov %ax, %ss
-  mov $0x7000, %bp
+  mov $STACK, %bp
   mov %bp, %sp
 
   # Detect memory regions
-  mov $0x7000, %di
+  mov $E820_ADDRESS, %di
   call detect_memory
 
   # 2. Read kernel from disk using BIOS routines
@@ -46,7 +47,7 @@ _entry:
   # map 0xFFFF800000000000 - 0xFFFF800000400000 to 0x0 - 0x400000 for the kernel.
 
   # Clearing a buffer for PML4, PDPT, PD and PT
-  mov $0x8000, %di
+  mov $PML4_ADDRESS, %di
   push %di
   mov $0x4000, %cx
   cld
@@ -145,7 +146,7 @@ longmode:
   mov %ax, %fs
   mov %ax, %gs
   mov %ax, %ss
-	mov $0xffff800000200000, %rsp
+	mov $0xffff800000400000, %rsp
 	mov %rsp, %rbp
 
   mov $0xffff800000010000, %rax

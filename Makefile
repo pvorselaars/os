@@ -1,16 +1,22 @@
-CFLAGS = -Wall -m64 -s -g -pedantic \
-                          -ffreestanding \
-                          -nostdlib \
-                          -fcf-protection=none \
-                          -fno-ident \
-                          -fno-stack-protector \
-                          -fno-unwind-tables \
-                          -fno-asynchronous-unwind-tables \
-                          -fdata-sections \
-                          -fno-builtin \
-                          -std=c2x
-
+CFLAGS = -Wall -m64 -s  -pedantic \
+                        -ffreestanding \
+                        -nostdlib \
+                        -fcf-protection=none \
+                        -fno-ident \
+                        -fno-stack-protector \
+                        -fno-unwind-tables \
+                        -fno-asynchronous-unwind-tables \
+                        -fdata-sections \
+                        -fno-builtin \
+                        -std=c2x
+DEBUG_FLAGS = -g -DDEBUG
 LFLAGS = --gc-sections
+
+BUILD = debug
+
+ifeq ($(BUILD), debug)
+	CFLAGS += $(DEBUG_FLAGS)
+endif
 
 run: os.img
 	qemu-system-x86_64 -drive format=raw,file=os.img
@@ -42,5 +48,7 @@ kernel.bin: kernel.o memory.o io.o console.o string.o utils.o interrupt.o
 
 clean:
 	rm -f *.o *.l *.elf *.img *.bin
+
+debug: CFLAGS += -DDEBUG -g
 
 .PHONY: clean

@@ -120,9 +120,6 @@ int memory_init()
 	// These regions need to be removed from the free regions
 	// list.
 
-	printf("Kernel start: %016lx\n", kernel_start_pa);
-	printf("Kernel end:   %016lx\n", kernel_end_pa);
-	printf("Kernel size:  %12ld KiB\n", (kernel_end_pa - kernel_start_pa) / 0x400);
 
 	if (*size == 20) {
 		E820 *regions = (E820 *) (E820_ADDRESS + 4);
@@ -145,7 +142,12 @@ int memory_init()
 		fatal("invalid E820 entry size\n");
 	}
 
+#ifdef DEBUG
+	printf("Kernel start: %016lx\n", kernel_start_pa);
+	printf("Kernel end:   %016lx\n", kernel_end_pa);
+	printf("Kernel size:  %12ld KiB\n", (kernel_end_pa - kernel_start_pa) / 0x400);
 	print_regions();
+#endif
 
 	return 0;
 }
@@ -275,70 +277,6 @@ int unmap(address va)
 	return 0;
 }
 
-void print_pagetable_entries(address a)
-{
-	pdpte *pdpt;
-	pde *pd;
-	pte *pt;
-
-	unsigned short pml4_offset = (a >> 39) & 0x1FF;
-	unsigned short pdpt_offset = (a >> 30) & 0x1FF;
-	unsigned short pd_offset = (a >> 21) & 0x1FF;
-	unsigned short pt_offset = (a >> 12) & 0x1FF;
-
-	printf("Addr: %016lx\n", a);
-	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
-		printf("Page not present %x\n", pml4_offset * 8);
-		return;
-	}
-
-	printf("PML4: %016lx\n", pml4[pml4_offset]);
-	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
-
-	if (!(pdpt[pdpt_offset] & PAGE_PRESENT)) {
-		printf("Page not present\n");
-		return;
-	}
-
-	printf("PDPT: %016lx\n", pdpt[pdpt_offset]);
-	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
-
-	if (!(pd[pd_offset] & PAGE_PRESENT)) {
-		printf("Page not present\n");
-		return;
-	}
-
-	printf("PD:   %016lx\n", pd[pd_offset]);
-
-	if (pd[pd_offset] & PAGE_PS) {
-		return;
-	}
-
-	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
-
-	if (!(pt[pt_offset] & PAGE_PRESENT)) {
-		printf("Page not present\n");
-		return;
-	}
-
-	printf("PT:   %016lx\n", pt[pt_offset]);
-
-}
-
-void print_regions()
-{
-
-	region *current = first_region;
-	printf("Free memory regions:\n");
-	printf("%-16s %-16s %-16s %-16s\n", "address", "size", "prev", "next");
-	while (current) {
-		printf("%-16lx %-16lx %-16lx %-16lx\n", current, current->size, current->prev, current->next);
-		current = current->next;
-	}
-
-	printf("%ld/%ld KiB", total_memory_free / 0x400, total_memory / 0x400);
-
-}
 
 page *alloc()
 {
@@ -442,3 +380,70 @@ void dealloc(page * p)
 
 	last_region = new;
 }
+
+#ifdef DEBUG
+void print_pagetable_entries(address a)
+{
+	pdpte *pdpt;
+	pde *pd;
+	pte *pt;
+
+	unsigned short pml4_offset = (a >> 39) & 0x1FF;
+	unsigned short pdpt_offset = (a >> 30) & 0x1FF;
+	unsigned short pd_offset = (a >> 21) & 0x1FF;
+	unsigned short pt_offset = (a >> 12) & 0x1FF;
+
+	printf("Addr: %016lx\n", a);
+	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
+		printf("Page not present %x\n", pml4_offset * 8);
+		return;
+	}
+
+	printf("PML4: %016lx\n", pml4[pml4_offset]);
+	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
+
+	if (!(pdpt[pdpt_offset] & PAGE_PRESENT)) {
+		printf("Page not present\n");
+		return;
+	}
+
+	printf("PDPT: %016lx\n", pdpt[pdpt_offset]);
+	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
+
+	if (!(pd[pd_offset] & PAGE_PRESENT)) {
+		printf("Page not present\n");
+		return;
+	}
+
+	printf("PD:   %016lx\n", pd[pd_offset]);
+
+	if (pd[pd_offset] & PAGE_PS) {
+		return;
+	}
+
+	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
+
+	if (!(pt[pt_offset] & PAGE_PRESENT)) {
+		printf("Page not present\n");
+		return;
+	}
+
+	printf("PT:   %016lx\n", pt[pt_offset]);
+
+}
+
+void print_regions()
+{
+
+	region *current = first_region;
+	printf("Free memory regions:\n");
+	printf("%-16s %-16s %-16s %-16s\n", "address", "size", "prev", "next");
+	while (current) {
+		printf("%-16lx %-16lx %-16lx %-16lx\n", current, current->size, current->prev, current->next);
+		current = current->next;
+	}
+
+	printf("%ld/%ld KiB\n", total_memory_free / 0x400, total_memory / 0x400);
+
+}
+#endif

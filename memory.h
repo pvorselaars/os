@@ -74,9 +74,10 @@ int unmap(address va);
 page* calloc(void);
 void dealloc(page *p);
 
+#ifdef DEBUG
 void print_regions();
 void print_pagetable_entries(address a);
-
+#endif
 
 
 #endif
