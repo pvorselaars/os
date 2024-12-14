@@ -9,8 +9,9 @@ CFLAGS = -Wall -m64 -s  -pedantic \
                         -fdata-sections \
                         -fno-builtin \
                         -std=c2x
+
 DEBUG_FLAGS = -g -DDEBUG
-LFLAGS = --gc-sections
+LFLAGS = --gc-sections --no-relax
 
 BUILD = debug
 
