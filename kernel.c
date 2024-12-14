@@ -6,9 +6,9 @@ void kernel()
 {
   console_init();
 	memory_init();
-	interrupt_init();
+	//interrupt_init();
 
-	enable_interrupts();
+	//enable_interrupts();
 
 	while (1);
 }

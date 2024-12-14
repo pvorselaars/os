@@ -20,12 +20,13 @@ typedef struct {
 } E820_3;
 
 typedef struct region {
+	unsigned long start;
 	unsigned long size;
-	struct region *prev;
-	struct region *next;
 } region;
 
 #pragma pack()
+
+#define KERNELVA(pa) (pa + 0xffff800000000000)
 
 extern char __KERNEL_START;
 extern char __KERNEL_END;
@@ -33,32 +34,33 @@ extern char __KERNEL_END;
 unsigned long kernel_start_pa;
 unsigned long kernel_end_pa;
 
+unsigned long total_regions;
 unsigned long total_memory;
 unsigned long total_memory_free;
 unsigned long total_memory_reserved;
 
-region *first_region = NULL;
-region *last_region = NULL;
+region *free_regions = (region*)KERNELVA(0x0);
 
 pml4e *pml4 = (pml4e *) PML4_ADDRESS;
 
-void append_region(unsigned long start, unsigned long size)
+page *alloc();
+
+// TODO: more efficient sorting algorithm
+void sort(region r[], int size)
 {
-	region *current;
-	map(start, start, PAGE_WRITE);
-
-	current = (region *) start;
-	current->size = size;
-	current->next = NULL;
-	current->prev = last_region;
-
-	if (last_region != NULL) {
-		last_region->next = current;
-	} else {
-		first_region = current;
+	region temp;
+	bool swapped = false;
+	for (int i = 0; i < size - 1; i++) {
+		for (int j = 0; j < size - i - 1; j++) {
+			if (r[j].start > r[j + 1].start) {
+				temp = r[j];
+				r[j] = r[j + 1];
+				r[j + 1] = temp;
+				swapped = true;
+			}
+		}
+		if (!swapped) break;
 	}
-
-	last_region = current;
 }
 
 void evaluate_region(unsigned long start, unsigned long size, int type)
@@ -69,6 +71,9 @@ void evaluate_region(unsigned long start, unsigned long size, int type)
 		total_memory_reserved += size;
 		return;
 	}
+
+	assert(total_regions < 256);
+
 	// Does region overlap with bootstrap or kernel code?
 	if (start < kernel_end_pa && (start + size > 0x7000)) {
 
@@ -81,15 +86,23 @@ void evaluate_region(unsigned long start, unsigned long size, int type)
 				total_memory_reserved += PAGE_SIZE;
 			}
 
-			append_region(start, (0x7000 - start) / PAGE_SIZE);
+			free_regions[total_regions].start = start;
+			free_regions[total_regions].size = (0x7000 - start) / PAGE_SIZE;
+			total_regions++;
 		}
 
 		if (start + size > kernel_end_pa) {
-			append_region(kernel_end_pa, (start + size - kernel_end_pa) / PAGE_SIZE);
+			assert(total_regions < 256);
+
+			free_regions[total_regions].start = kernel_end_pa;
+			free_regions[total_regions].size = (start + size - kernel_end_pa) / PAGE_SIZE;
+			total_regions++;
 		}
 
 	} else {
-		append_region(start, size / PAGE_SIZE);
+		free_regions[total_regions].start = start;
+		free_regions[total_regions].size = size / PAGE_SIZE;
+		total_regions++;
 	}
 
 	total_memory += size;
@@ -108,9 +121,12 @@ int memory_init()
 		kernel_end_pa = kernel_end_pa + (PAGE_SIZE - kernel_end_pa % PAGE_SIZE);
 	}
 
+	total_regions = 0;
 	total_memory = 0;
 	total_memory_free = 0;
 	total_memory_reserved = 0;
+
+	memsetq(free_regions, 0, PAGE_SIZE / 8);
 
 	// Convert the E820 memory map to a doubly linked list 
 	// of free memory pages of size PAGE_SIZE. However
@@ -119,7 +135,6 @@ int memory_init()
 	// 0x10000 - KERNEL_END is in use by the kernel code.
 	// These regions need to be removed from the free regions
 	// list.
-
 
 	if (*size == 20) {
 		E820 *regions = (E820 *) (E820_ADDRESS + 4);
@@ -141,6 +156,8 @@ int memory_init()
 	} else {
 		fatal("invalid E820 entry size\n");
 	}
+
+	sort(free_regions, total_regions);
 
 #ifdef DEBUG
 	printf("Kernel start: %016lx\n", kernel_start_pa);
@@ -277,25 +294,15 @@ int unmap(address va)
 	return 0;
 }
 
-
 page *alloc()
 {
 	page *p = NULL;
 
-	if (first_region != NULL) {
-		p = (page *) first_region;
-
-		if (first_region->size == 1) {
-			first_region = first_region->next;
-			first_region->prev = NULL;
-
-		} else {
-			region *new = (region *) ((unsigned long)first_region + PAGE_SIZE);
-			map((address) new, (address) new, PAGE_WRITE);
-			new->size = first_region->size - 1;
-			new->next = first_region->next;
-			first_region = new;
-		}
+	if (free_regions[0].size > 0) {
+		p = (page *) free_regions[0].start;
+		free_regions[0].start += PAGE_SIZE;
+		free_regions[0].size--;
+		sort(free_regions, total_regions);
 	}
 
 	return p;
@@ -315,70 +322,54 @@ page *calloc()
 void dealloc(page * p)
 {
 	address a = (address) p;
-	region *current = first_region;
+	region *current;
 
-	// Page is located before start of free regions
-	if ((unsigned long)current > (a + PAGE_SIZE)) {
-		region *new = (region *) a;
-		new->next = first_region;
-		new->prev = NULL;
-		new->size = 1;
+	for (int r = 0; r < total_regions; r++) {
+		current = &free_regions[r];
 
-		first_region = new;
-		unmap(a);
-		return;
-	}
-
-	for (; current != NULL; current = current->next) {
-
+		// Page is located before start of free regions
+		if (current->start > (a + PAGE_SIZE)) {
+			assert(total_regions < 256);
+			free_regions[total_regions].start = a;
+			free_regions[total_regions].size = 1;
+			total_regions++;
+			break;
+		}
 		// Page fits at start of free region
-		if ((unsigned long)current == (a + PAGE_SIZE)) {
+		if (current->start == (a + PAGE_SIZE)) {
 
-			region *new = (region *) a;
-			new->next = current->next;
-			new->prev = current->prev;
-			new->size = current->size + 1;
-
-			if (new->next) {
-				new->next->prev = new;
-			} else {
-				last_region = new;
-			}
-
-			if (new->prev) {
-				new->prev->next = new;
-			} else {
-				first_region = new;
-			}
-
-			unmap(a);
-			return;
+			current->start -= PAGE_SIZE;
+			current->size++;
+			break;
 		}
 		// Page fits at end of free region
-		if ((unsigned long)current + current->size * PAGE_SIZE == a) {
+		if (current->start + current->size * PAGE_SIZE == a) {
 
 			current->size++;
 
 			// Page joins two free regions
-			if ((unsigned long)current->next == (a + PAGE_SIZE)) {
-				current->size += current->next->size;
-				current->next = current->next->next;
+			if (free_regions[r + 1].start == (a + PAGE_SIZE)) {
+				current->size += free_regions[r + 1].size;
+				free_regions[r + 1].start = -1;
+				free_regions[r + 1].size = 0;
+				sort(free_regions, total_regions--);
+				return;
 			}
 
-			unmap(a);
-			return;
+			break;
+		}
+		// Page is the new last region
+		if (r == total_regions - 1) {
+			assert(total_regions < 256);
+			free_regions[total_regions].start = a;
+			free_regions[total_regions].size = 1;
+			total_regions++;
+
 		}
 
 	}
 
-	// Page is the new last region
-
-	region *new = (region *) a;
-	new->prev = last_region;
-	new->next = NULL;
-	new->size = 1;
-
-	last_region = new;
+	sort(free_regions, total_regions);
 }
 
 #ifdef DEBUG
@@ -435,12 +426,11 @@ void print_pagetable_entries(address a)
 void print_regions()
 {
 
-	region *current = first_region;
 	printf("Free memory regions:\n");
-	printf("%-16s %-16s %-16s %-16s\n", "address", "size", "prev", "next");
-	while (current) {
-		printf("%-16lx %-16lx %-16lx %-16lx\n", current, current->size, current->prev, current->next);
-		current = current->next;
+	printf("%-16s %-16s\n", "address", "size");
+
+	for (int r = 0; r < total_regions; r++) {
+		printf("%-16lx %-16lx\n", free_regions[r].start, free_regions[r].size);
 	}
 
 	printf("%ld/%ld KiB\n", total_memory_free / 0x400, total_memory / 0x400);
