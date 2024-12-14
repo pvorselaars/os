@@ -8,6 +8,8 @@
 .globl memmove
 .globl memcpy
 
+.section .text
+
 memsetb:
   cld
   mov %rsi, %rax

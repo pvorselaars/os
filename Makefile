@@ -27,15 +27,18 @@ boot.bin: boot.o
 	ld -Ttext=0x7c00 $(LFLAGS) -o boot.elf boot.o
 	objcopy -S -O binary -j .text boot.elf boot.bin
 
-kernel.bin: kernel.o mem.o memory.o io.o console.o string.o utils.o
+kernel.bin: kernel.o memory.o io.o console.o string.o utils.o interrupt.o
 	ld -Tkernel.ld $(LFLAGS) -o kernel.elf $^
 	objcopy -S -O binary kernel.elf kernel.bin
 
-%.o: %.c %.h
-	cc $(CFLAGS) -Wa,-alh=$<.l -c $<
+%.o: %.c %.S %.h
+	cc $(CFLAGS) -c $*.c -o $*.c.o
+	cc $(CFLAGS) -c $*.S -o $*.S.o
+	ld -r $*.c.o $*.S.o -o $@
+	@rm $*.c.o $*.S.o
 
 %.o: %.S %.h
-	cc $(CFLAGS) -Wa,-alh=$<.l -c $<
+	cc $(CFLAGS) -c $<
 
 clean:
 	rm -f *.o *.l *.elf *.img *.bin
