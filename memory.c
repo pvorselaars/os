@@ -26,7 +26,7 @@ typedef struct region {
 
 #pragma pack()
 
-#define KERNELVA(pa) (pa + 0xffff800000000000)
+#define KERNELVA(pa) (pa + UPPER_MEMORY)
 #define ALIGN(x, size) ((((x) + (size)) & ~(size - 1)))
 
 extern char __KERNEL_START;
@@ -40,7 +40,7 @@ unsigned long total_memory;
 unsigned long total_memory_free;
 unsigned long total_memory_reserved;
 
-region *free_regions = (region*)KERNELVA(0x0);
+region *free_regions = (region *) KERNELVA(0x0);
 
 pml4e *pml4 = (pml4e *) PML4_ADDRESS;
 
@@ -58,7 +58,8 @@ void sort(region r[], int size)
 				swapped = true;
 			}
 		}
-		if (!swapped) break;
+		if (!swapped)
+			break;
 	}
 }
 
@@ -177,7 +178,6 @@ int map(address va, address pa, int flags)
 	unsigned short pd_offset = (va >> 21) & 0x1FF;
 	unsigned short pt_offset = (va >> 12) & 0x1FF;
 
-
 	flags |= PAGE_PRESENT;
 
 	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
@@ -238,7 +238,8 @@ bool empty(unsigned long *table)
 int unmap(address va)
 {
 	pdpte *pdpt;
-	pde *pd; pte *pt;
+	pde *pd;
+	pte *pt;
 
 	unsigned short pml4_offset = (va >> 39) & 0x1FF;
 	unsigned short pdpt_offset = (va >> 30) & 0x1FF;
