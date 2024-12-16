@@ -25,12 +25,10 @@ typedef struct {
 #define PIC_4					 0x01
 #define PIC_8086			 0x01
 
-interrupt_descriptor *idt;
+interrupt_descriptor idt[MAX_INTERRUPTS];
 idt_descriptor idtr;
 
 extern void load_idt(idt_descriptor * idtr);
-extern unsigned long error_code();
-extern unsigned long faulty_address();
 
 extern void interrupt0();
 extern void interrupt2();
@@ -104,9 +102,6 @@ void register_interrupt(interrupt_descriptor * idt, unsigned int number, int sel
 
 void interrupt_init()
 {
-	idt = (interrupt_descriptor *) alloc();
-
-	assert(idt);
 
 	idtr.size = MAX_INTERRUPTS * sizeof(interrupt_descriptor) - 1;
 	idtr.offset = idt;

@@ -34,7 +34,7 @@ boot.bin: boot.o
 	ld -Ttext=0x7c00 $(LFLAGS) -o boot.elf boot.o
 	objcopy -S -O binary -j .text boot.elf boot.bin
 
-kernel.bin: kernel.o memory.o io.o console.o string.o utils.o interrupt.o
+kernel.bin: kernel.o memory.o io.o console.o string.o utils.o interrupt.o disk.o
 	ld -Tkernel.ld $(LFLAGS) -o kernel.elf $^
 	objcopy -S -O binary kernel.elf kernel.bin
 

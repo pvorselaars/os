@@ -1,6 +1,7 @@
 #include "console.h"
 #include "memory.h"
 #include "interrupt.h"
+#include "disk.h"
 
 void kernel()
 {
