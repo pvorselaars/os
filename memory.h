@@ -32,7 +32,7 @@
 #define DATA_SEG     0x10         // Kernel data segment index
 
 #define E820_ADDRESS 0x7000
-#define PML4_ADDRESS 0x8000
+#define PML4_ADDRESS 0x1000
 
 #define UPPER_MEMORY 0xFFFF800000000000
 
