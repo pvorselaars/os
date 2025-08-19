@@ -42,7 +42,7 @@
 
 #define SEGMENT(access, flags, base, limit) \
         .word (limit & 0xffff), (base & 0xffff); \
-        .byte ((base >> 16) & 0xff), access, ((flags << 4) | ((limit >> 16) & 0xf)), ((base >> 24) & 0xff)
+        .byte ((base >> 16) & 0xff), access, (((flags) << 4) | ((limit >> 16) & 0xf)), ((base >> 24) & 0xff)
 
 #else
 
