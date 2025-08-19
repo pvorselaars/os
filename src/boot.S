@@ -73,12 +73,13 @@ protected_mode:
 
 .code64
 long_mode:
-  mov $0x20, %ax
-  mov %ax, %ds
-  mov %ax, %es
-  mov %ax, %fs
-  mov %ax, %gs
-  mov %ax, %ss
+  mov $0x20, %rax
+  mov %rax, %ds
+  mov %rax, %es
+  mov %rax, %fs
+  mov %rax, %gs
+  mov %rax, %ss
+  mov $0x100, %rsp
 
   # For now, just halt
   cli
@@ -105,9 +106,7 @@ gdt_descriptor:
   .word gdt_descriptor - gdt - 1    # size of GDT - 1
   .long BOOT_ADDRESS + gdt          # GDT address
 
-.org 0xFFF0
+.section .reset,"ax"
 .code16
 reset_vector:
-  ljmp $0xF000, $0
-.org 0xFFFF
-  .byte 0x0
+  ljmp $0xF000, $_start

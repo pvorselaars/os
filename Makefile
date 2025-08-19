@@ -12,15 +12,16 @@ CFLAGS = -Wall -m64 -s  -pedantic \
 						-Iinclude \
 						-g
 
-LFLAGS = --gc-sections --no-relax
+LFLAGS = --no-relax
 
 QEMU = qemu-system-x86_64 \
 						-nodefaults \
-						-bios bin/boot \
+						-bios bin/os \
 						-M pc \
 						-cpu qemu64 \
 						-m 64M \
-						#-vga std \
+						#-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
+						-vga std \
 						-rtc base=localtime \
 						-parallel file:lpt.log \
 						-fda os.img \
@@ -28,23 +29,15 @@ QEMU = qemu-system-x86_64 \
 						-device ne2k_pci,netdev=net0 \
 						-no-acpi \
 
-gdb: bin/boot
-	gdb -ex "target remote | $(QEMU) -gdb stdio -S " -ex "set confirm off" -ex "add-symbol-file bin/boot.elf 0xF0000" -ex "file bin/boot.elf" 
+gdb: bin/os
+	gdb -q -ex "target remote | $(QEMU) -d int,cpu_reset -gdb stdio -S " -ex "set confirm off" -ex "add-symbol-file bin/os.elf 0xF0000"  -ex "file bin/os.elf"
 
-run: os.img
+run: bin/os
 	$(QEMU)
 
-os.img: bin/kernel
-	dd if=/dev/zero of=os.img bs=1024 count=128
-	dd if=bin/kernel of=os.img conv=notrunc
-
-bin/boot: obj/boot.o | dir
-	ld -Ttext=0x0 $(LFLAGS) -o bin/boot.elf $<
-	objcopy -S -O binary -j .text bin/boot.elf bin/boot
-
-bin/kernel: obj/kernel.o obj/memory.o obj/io.o obj/console.o obj/string.o obj/utils.o obj/interrupt.o obj/disk.o
-	ld -Tkernel.ld $(LFLAGS) -o bin/kernel.elf $^
-	objcopy -S -O binary bin/kernel.elf bin/kernel
+bin/os: obj/boot.o | dir
+	ld -Tlink.ld $(LFLAGS) -o bin/os.elf $^
+	objcopy -X -O binary bin/os.elf $@
 
 obj/%.o: src/%.c src/%.S include/%.h | dir
 	cc $(CFLAGS) -c src/$*.c -o obj/$*.c.o
