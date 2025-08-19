@@ -1,5 +1,8 @@
+bin
+obj
 *.o
 *.bin
 *.img
 *.l
 *.elf
+*.log

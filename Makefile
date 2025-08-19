@@ -9,39 +9,59 @@ CFLAGS = -Wall -m64 -s  -pedantic \
                         -fdata-sections \
                         -fno-builtin \
                         -std=c2x \
+						-Iinclude \
 						-g
 
 LFLAGS = --gc-sections --no-relax
 
-gdb: boot.bin
-	gdb -ex "target remote | qemu-system-x86_64 -gdb stdio -S -bios boot.bin" -ex "set confirm off" -ex "add-symbol-file boot.elf 0xF0000" -ex "file boot.elf" 
+QEMU = qemu-system-x86_64 \
+						-nodefaults \
+						-bios bin/boot \
+						-M pc \
+						-cpu qemu64 \
+						-m 64M \
+						#-vga std \
+						-rtc base=localtime \
+						-parallel file:lpt.log \
+						-fda os.img \
+						-netdev user,id=net0 \
+						-device ne2k_pci,netdev=net0 \
+						-no-acpi \
+
+gdb: bin/boot
+	gdb -ex "target remote | $(QEMU) -gdb stdio -S " -ex "set confirm off" -ex "add-symbol-file bin/boot.elf 0xF0000" -ex "file bin/boot.elf" 
 
 run: os.img
-	qemu-system-x86_64 -bios boot.bin
+	$(QEMU)
 
-os.img: boot.bin kernel.bin
+os.img: bin/kernel
 	dd if=/dev/zero of=os.img bs=1024 count=128
-	dd if=boot.bin of=os.img conv=notrunc
-	dd if=kernel.bin of=os.img conv=notrunc seek=1
+	dd if=bin/kernel of=os.img conv=notrunc
 
-boot.bin: boot.o
-	ld -Ttext=0x0 $(LFLAGS) -o boot.elf boot.o
-	objcopy -S -O binary -j .text boot.elf boot.bin
+bin/boot: obj/boot.o | dir
+	ld -Ttext=0x0 $(LFLAGS) -o bin/boot.elf $<
+	objcopy -S -O binary -j .text bin/boot.elf bin/boot
 
-kernel.bin: kernel.o memory.o io.o console.o string.o utils.o interrupt.o disk.o
-	ld -Tkernel.ld $(LFLAGS) -o kernel.elf $^
-	objcopy -S -O binary kernel.elf kernel.bin
+bin/kernel: obj/kernel.o obj/memory.o obj/io.o obj/console.o obj/string.o obj/utils.o obj/interrupt.o obj/disk.o
+	ld -Tkernel.ld $(LFLAGS) -o bin/kernel.elf $^
+	objcopy -S -O binary bin/kernel.elf bin/kernel
 
-%.o: %.c %.S %.h
-	cc $(CFLAGS) -c $*.c -o $*.c.o
-	cc $(CFLAGS) -c $*.S -o $*.S.o
-	ld -r $*.c.o $*.S.o -o $@
-	@rm $*.c.o $*.S.o
+obj/%.o: src/%.c src/%.S include/%.h | dir
+	cc $(CFLAGS) -c src/$*.c -o obj/$*.c.o
+	cc $(CFLAGS) -c src/$*.S -o obj/$*.S.o
+	ld -r obj/$*.c.o obj/$*.S.o -o $@
+	@rm obj/$*.c.o obj/$*.S.o
 
-%.o: %.S %.h
-	cc $(CFLAGS) -c $<
+obj/%.o: src/%.c | dir
+	cc $(CFLAGS) -c $< -o obj/$*.o
+
+obj/%.o: src/%.S | dir
+	cc $(CFLAGS) -c $< -o $@
+
+dir:
+	@mkdir -p obj bin
 
 clean:
-	rm -f *.o *.l *.elf *.img *.bin
+	rm -rf obj/ bin/ *.l *.img
 
 .PHONY: clean

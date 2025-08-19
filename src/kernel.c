@@ -6,7 +6,7 @@
 
 void kernel()
 {
-  console_init();
+  	console_init();
 	memory_init();
 	interrupt_init();
 

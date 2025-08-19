@@ -6,7 +6,6 @@
 # 2. Hand control to the kernel
 #
 
-#include "boot.h"
 #include "memory.h"
 
 .globl _start
@@ -31,8 +30,8 @@ protected_mode:
   # present. So we identity map the first 2MiB of memory
 
   # Clearing a buffer for PML4, PDPT, PD and PT
-  mov $0x1000, %edi
-  mov $0x5000, %ecx
+  mov $PML4_ADDRESS, %edi
+  mov $(512*8*4), %ecx
   xor %eax, %eax
   cld
   rep stosl
@@ -53,7 +52,7 @@ protected_mode:
   mov %eax, (%edi)
   
   # Load PML4
-  mov $0x1000, %eax
+  mov $PML4_ADDRESS, %eax
   mov %eax, %cr3
   
   # Enable PAE
@@ -70,7 +69,7 @@ protected_mode:
   or $(CR0_PE | CR0_PG), %eax
   mov %eax, %cr0
   
-  ljmp $0x18, $(0xF0000 + long_mode)
+  ljmp $0x18, $(BOOT_ADDRESS + long_mode)
 
 .code64
 long_mode:
@@ -104,11 +103,11 @@ gdt:
 
 gdt_descriptor:
   .word gdt_descriptor - gdt - 1    # size of GDT - 1
-  .long 0xF0000 + gdt               # GDT address
+  .long BOOT_ADDRESS + gdt          # GDT address
 
 .org 0xFFF0
 .code16
 reset_vector:
-  ljmp $0xf000, $0
+  ljmp $0xF000, $0
 .org 0xFFFF
   .byte 0x0
