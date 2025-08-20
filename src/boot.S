@@ -82,11 +82,9 @@ long_mode:
   mov %rax, %fs
   mov %rax, %gs
   mov %rax, %ss
-  mov $0x100, %rsp
+  mov $0x1000, %rsp
 
-  # For now, just halt
-  cli
-  hlt
+  jmp kernel
 
 .align 8
 gdt:

@@ -13,15 +13,25 @@ typedef struct region {
 #define ALIGN(x, size) ((((x) + (size)) & ~(size - 1)))
 
 region *free_regions = (region *) 0xA000;
-free_regions[0].start = 0x100000;
-free_regions[0].size = (0x100000)*63;
 
-unsigned long total_regions = 1;
-unsigned long total_memory = (0x10000)*64;
-unsigned long total_memory_free = free_regions[0].size;
-unsigned long total_memory_reserved = total_memory - total_memory_free
+static unsigned long total_regions;
+static unsigned long total_memory;
+static unsigned long total_memory_free;
+static unsigned long total_memory_reserved;
 
 pml4e *pml4 = (pml4e *) PML4_ADDRESS;
+
+void memory_init()
+{
+	free_regions[0].start = 0x100000;
+	free_regions[0].size = (0x100000)*63;
+
+	total_regions = 1;
+	total_memory = (0x10000)*64;
+	total_memory_free = free_regions[0].size;
+	total_memory_reserved = total_memory - total_memory_free;
+
+}
 
 // TODO: more efficient sorting algorithm
 static void sort(region r[], int size)
@@ -293,4 +303,15 @@ void print_regions()
 
 	printf("%ld/%ld KiB\n", total_memory_free / 0x400, total_memory / 0x400);
 
+}
+
+void examine(void* ptr, unsigned long bytes)
+{
+
+	unsigned char *mem = (unsigned char*)ptr;
+
+	for (int i = 0; i < bytes; i++) {
+		printf("%02x ", *mem++);
+	}
+	printf("\n");
 }

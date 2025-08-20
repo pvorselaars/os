@@ -30,12 +30,12 @@ QEMU = qemu-system-x86_64 \
 						-no-acpi \
 
 gdb: bin/os
-	gdb -q -ex "target remote | $(QEMU) -d int,cpu_reset -gdb stdio -S " -ex "set confirm off" -ex "add-symbol-file bin/os.elf 0xF0000"  -ex "file bin/os.elf"
+	gdb bin/os.elf -q -ex "target remote | $(QEMU) -d int,cpu_reset -gdb stdio -S"
 
 run: bin/os
 	$(QEMU)
 
-bin/os: obj/boot.o | dir
+bin/os: obj/boot.o obj/kernel.o obj/memory.o obj/utils.o obj/string.o obj/console.o obj/io.o obj/interrupt.o | dir
 	ld -Tlink.ld $(LFLAGS) -o bin/os.elf $^
 	objcopy -X -O binary bin/os.elf $@
 
