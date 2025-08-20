@@ -28,14 +28,11 @@
 #define MSR_EFER     0xC0000080   // EFER model specific register
 #define EFER_LME     (1 << 8)     // Long mode bit
 
-#define CODE_SEG     0x8          // Kernel code segment index
-#define DATA_SEG     0x10         // Kernel data segment index
+#define CODE_SEG     0x18         // Kernel code segment index
+#define DATA_SEG     0x20         // Kernel data segment index
 
-#define E820_ADDRESS 0x7000
 #define PML4_ADDRESS 0x1000
 #define BOOT_ADDRESS 0xF0000
-
-#define UPPER_MEMORY 0xFFFF800000000000
 
 #define PAGE_SIZE    0x1000
 
@@ -46,7 +43,6 @@
         .byte ((base >> 16) & 0xff), access, (((flags) << 4) | ((limit >> 16) & 0xf)), ((base >> 24) & 0xff)
 
 #else
-
 
 typedef unsigned long int pte;
 typedef unsigned long int pde;
@@ -66,18 +62,13 @@ int memcmp(const void *ptr1, const void *ptr2, const unsigned int num);
 void memmove(const void *dst, const void *src, const unsigned int num);
 void memcpy(const void *dst, const void *src, const unsigned int num);
 
-int memory_init(void);
-
 int map(address va, address pa, int flags);
 int unmap(address va);
 page* alloc(void);
 void dealloc(page *p);
 
-#ifdef DEBUG
 void print_regions();
 void print_pagetable_entries(address a);
-#endif
-
 
 #endif
 

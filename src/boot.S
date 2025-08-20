@@ -69,11 +69,11 @@ protected_mode:
   or $(CR0_PE | CR0_PG), %eax
   mov %eax, %cr0
   
-  ljmp $0x18, $(BOOT_ADDRESS + long_mode)
+  ljmp $CODE_SEG, $(BOOT_ADDRESS + long_mode)
 
 .code64
 long_mode:
-  mov $0x20, %rax
+  mov $DATA_SEG, %rax
   mov %rax, %ds
   mov %rax, %es
   mov %rax, %fs

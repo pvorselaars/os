@@ -5,47 +5,26 @@
 #include "defs.h"
 #include "utils.h"
 
-#pragma pack(1)
-typedef struct {
-	unsigned long base;
-	unsigned long size;
-	unsigned int type;
-} E820;
-
-typedef struct {
-	unsigned long base;
-	unsigned long size;
-	unsigned int type;
-	unsigned int attributes;
-} E820_3;
-
 typedef struct region {
 	unsigned long start;
 	unsigned long size;
 } region;
 
-#pragma pack()
-
-#define KERNELVA(pa) (pa + UPPER_MEMORY)
 #define ALIGN(x, size) ((((x) + (size)) & ~(size - 1)))
 
-extern char __KERNEL_START;
-extern char __KERNEL_END;
+region *free_regions = (region *) 0xA000;
+free_regions[0].start = 0x100000;
+free_regions[0].size = (0x100000)*63;
 
-unsigned long kernel_start_pa;
-unsigned long kernel_end_pa;
-
-unsigned long total_regions;
-unsigned long total_memory;
-unsigned long total_memory_free;
-unsigned long total_memory_reserved;
-
-region *free_regions = (region *) KERNELVA(0x0);
+unsigned long total_regions = 1;
+unsigned long total_memory = (0x10000)*64;
+unsigned long total_memory_free = free_regions[0].size;
+unsigned long total_memory_reserved = total_memory - total_memory_free
 
 pml4e *pml4 = (pml4e *) PML4_ADDRESS;
 
 // TODO: more efficient sorting algorithm
-void sort(region r[], int size)
+static void sort(region r[], int size)
 {
 	region temp;
 	bool swapped = false;
@@ -61,108 +40,6 @@ void sort(region r[], int size)
 		if (!swapped)
 			break;
 	}
-}
-
-void evaluate_region(unsigned long start, unsigned long size, int type)
-{
-
-	if (type != 1) {
-		total_memory += size;
-		total_memory_reserved += size;
-		return;
-	}
-
-	assert(total_regions < 256);
-
-	// Does region overlap with bootstrap or kernel code?
-	if (start < kernel_end_pa && (start + size > 0x7000)) {
-
-		// Split the region up
-		if (start < 0x7000) {
-
-			if (start == 0) {
-				start += PAGE_SIZE;
-				size -= PAGE_SIZE;
-				total_memory_reserved += PAGE_SIZE;
-			}
-
-			free_regions[total_regions].start = start;
-			free_regions[total_regions].size = (0x7000 - start) / PAGE_SIZE;
-			total_regions++;
-		}
-
-		if (start + size > kernel_end_pa) {
-			assert(total_regions < 256);
-
-			free_regions[total_regions].start = kernel_end_pa;
-			free_regions[total_regions].size = (start + size - kernel_end_pa) / PAGE_SIZE;
-			total_regions++;
-		}
-
-	} else {
-		free_regions[total_regions].start = start;
-		free_regions[total_regions].size = size / PAGE_SIZE;
-		total_regions++;
-	}
-
-	total_memory += size;
-	total_memory_free += size;
-
-}
-
-int memory_init()
-{
-	short *entries = (short *)E820_ADDRESS;
-	short *size = (short *)(E820_ADDRESS + 2);
-	kernel_start_pa = (unsigned long)&__KERNEL_START & 0x7fffffffffff;
-	kernel_end_pa = (unsigned long)&__KERNEL_END & 0x7fffffffffff;
-
-	kernel_end_pa = ALIGN(kernel_end_pa, PAGE_SIZE);
-
-	total_regions = 0;
-	total_memory = 0;
-	total_memory_free = 0;
-	total_memory_reserved = 0;
-
-	// Convert the E820 memory map to a doubly linked list 
-	// of free memory pages of size PAGE_SIZE. However
-	// not all pages are actually free as 0x7000 - 0xffff
-	// is in use by the bootstrap code, E820 and page tables.
-	// 0x10000 - KERNEL_END is in use by the kernel code.
-	// These regions need to be removed from the free regions
-	// list.
-
-	if (*size == 20) {
-		E820 *regions = (E820 *) (E820_ADDRESS + 4);
-
-		for (int r = 0; r < *entries; r++) {
-			evaluate_region(regions[r].base, regions[r].size, regions[r].type);
-		}
-
-	} else if (*size == 24) {
-
-		E820_3 *regions = (E820_3 *) (E820_ADDRESS + 4);
-
-		for (int r = 0; r < *entries; r++) {
-			if (regions[r].attributes & 1) {
-				evaluate_region(regions[r].base, regions[r].size, regions[r].type);
-			}
-		}
-
-	} else {
-		fatal("invalid E820 entry size\n");
-	}
-
-	sort(free_regions, total_regions);
-
-#ifdef DEBUG
-	printf("Kernel start: %016lx\n", kernel_start_pa);
-	printf("Kernel end:   %016lx\n", kernel_end_pa);
-	printf("Kernel size:  %12ld KiB\n", (kernel_end_pa - kernel_start_pa) / 0x400);
-	print_regions();
-#endif
-
-	return 0;
 }
 
 int map(address va, address pa, int flags)
@@ -225,7 +102,7 @@ int map(address va, address pa, int flags)
 	return 0;
 }
 
-bool empty(unsigned long *table)
+static bool empty(unsigned long *table)
 {
 	for (int i = 0; i < 512; i++) {
 		if (table[i] & PAGE_PRESENT)
@@ -354,7 +231,6 @@ void dealloc(page * p)
 	sort(free_regions, total_regions);
 }
 
-#ifdef DEBUG
 void print_pagetable_entries(address a)
 {
 	pdpte *pdpt;
@@ -418,4 +294,3 @@ void print_regions()
 	printf("%ld/%ld KiB\n", total_memory_free / 0x400, total_memory / 0x400);
 
 }
-#endif
