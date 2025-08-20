@@ -8,19 +8,22 @@
 
 #include "memory.h"
 
+.set gdt_offset, gdt_descriptor - _start
+.set start_offset, 0x0
+
 .globl _start
 .code16
 _start:
   # Disable interrupts until kernel can setup interrupt routines
   cli
     
-  lgdt %cs:gdt_descriptor
+  lgdt %cs:gdt_offset
   
   # Enable protected mode
   mov %cr0, %eax
   or $0x1, %eax
   mov %eax, %cr0
-  ljmp $0x08, $protected_mode
+  ljmp $0x08, $(protected_mode-_start)
 
 .code32
 protected_mode:
@@ -31,24 +34,24 @@ protected_mode:
 
   # Clearing a buffer for PML4, PDPT, PD and PT
   mov $PML4_ADDRESS, %edi
-  mov $(512*8*4), %ecx
+  mov $(PAGE_SIZE*4), %ecx
   xor %eax, %eax
   cld
   rep stosl
   
   # Setup PML4
-  mov $0x1000, %edi
-  mov $0x2003, %eax       # Point to PDPT, present + writable
+  mov $PML4_ADDRESS, %edi
+  mov $(PML4_ADDRESS + PAGE_SIZE + 0x3), %eax       # Point to PDPT, present + writable
   mov %eax, (%edi)
   
   # Setup Page Directory Pointer Table
-  mov $0x2000, %edi
-  mov $0x3003, %eax       # Point to PD, present + writable
+  mov $(PML4_ADDRESS + PAGE_SIZE), %edi
+  mov $(PML4_ADDRESS + PAGE_SIZE * 2 + 0x3), %eax   # Point to PD, present + writable
   mov %eax, (%edi)
   
   # Setup Page Directory
-  mov $0x3000, %edi
-  mov $0x83, %eax         # 2MB page, present + writable + large
+  mov $(PML4_ADDRESS + PAGE_SIZE * 2), %edi
+  mov $0x83, %eax                                   # 2MB page, present + writable + large
   mov %eax, (%edi)
   
   # Load PML4
@@ -69,7 +72,7 @@ protected_mode:
   or $(CR0_PE | CR0_PG), %eax
   mov %eax, %cr0
   
-  ljmp $CODE_SEG, $(BOOT_ADDRESS + long_mode)
+  ljmp $CODE_SEG, $long_mode
 
 .code64
 long_mode:
@@ -91,7 +94,7 @@ gdt:
   SEGMENT(0, 0, 0, 0)
 
   # 32-bit code segment (0x08)
-  SEGMENT(SDA_P | SDA_S | SDA_E | SDA_R, SDF_DB | SDF_G, 0xF0000, 0xFFFFF)
+  SEGMENT(SDA_P | SDA_S | SDA_E | SDA_R, SDF_DB | SDF_G, BOOT_SEGMENT*16, 0xFFFFF)
 
   # 32-bit data segment (0x10)
   SEGMENT(SDA_P | SDA_S | SDA_W, SDF_DB | SDF_G, 0x0, 0xFFFFF)
@@ -104,9 +107,9 @@ gdt:
 
 gdt_descriptor:
   .word gdt_descriptor - gdt - 1    # size of GDT - 1
-  .long BOOT_ADDRESS + gdt          # GDT address
+  .long gdt                         # GDT address
 
 .section .reset,"ax"
 .code16
 reset_vector:
-  ljmp $0xF000, $_start
+  ljmp $BOOT_SEGMENT, $start_offset

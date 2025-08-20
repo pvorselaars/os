@@ -1,6 +1,10 @@
 ENTRY(_start)
 SECTIONS {
 
+	. = 0xF0000;
+
+	BEGIN = .;
+
 	.text : {
 		obj/boot.o(.text)
 		*(.text)
@@ -15,7 +19,9 @@ SECTIONS {
 		*(.rodata)
 	}
 
-	. = 0xfff0;
+	END = .;
+
+	. += 0xfff0 - (END - BEGIN);
 	.reset : {
 		*(.reset)
 		. = ALIGN(16);

@@ -32,7 +32,7 @@
 #define DATA_SEG     0x20         // Kernel data segment index
 
 #define PML4_ADDRESS 0x1000
-#define BOOT_ADDRESS 0xF0000
+#define BOOT_SEGMENT 0xF000
 
 #define PAGE_SIZE    0x1000
 
