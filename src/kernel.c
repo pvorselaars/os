@@ -3,6 +3,7 @@
 #include "interrupt.h"
 #include "disk.h"
 #include "utils.h"
+#include "audio.h"
 
 void kernel()
 {
@@ -10,7 +11,7 @@ void kernel()
 	memory_init();
 	interrupt_init();
 
-	enable_interrupts();
+	beep();
 
 	while (1);
 }

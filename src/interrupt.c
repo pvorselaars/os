@@ -13,20 +13,22 @@ typedef struct {
 } idt_descriptor;
 #pragma pack()
 
-#define MAX_INTERRUPTS 256
+#define MAX_INTERRUPTS	256
 
-#define PIC1					 0x20
-#define PIC1_DATA			 (PIC1+1)
+#define PIC1			0x20
+#define PIC1_DATA		(PIC1+1)
 
-#define PIC2					 0xA0
-#define PIC2_DATA			 (PIC2+1)
+#define PIC2			0xA0
+#define PIC2_DATA		(PIC2+1)
 
-#define PIC_INIT			 0x10
-#define PIC_4					 0x01
-#define PIC_8086			 0x01
+#define PIC_INIT		0x10
+#define PIC_4			0x01
+#define PIC_8086		0x01
 
 interrupt_descriptor idt[MAX_INTERRUPTS];
 idt_descriptor idtr;
+
+uint64_t ticks = 0;
 
 extern void load_idt(idt_descriptor * idtr);
 
@@ -35,6 +37,7 @@ extern void interrupt2();
 extern void interrupt4();
 extern void interrupt13();
 extern void interrupt14();
+extern void interrupt20();
 
 void zero()
 {
@@ -63,11 +66,6 @@ void page_fault(address instruction, address a, unsigned long error)
 
 void remap_PIC()
 {
-	char mask1, mask2;
-
-	mask1 = inb(PIC1_DATA);
-	mask2 = inb(PIC2_DATA);
-
 	outb(PIC1, PIC_INIT | PIC_4);
 	outb(PIC2, PIC_INIT | PIC_4);
 
@@ -80,9 +78,19 @@ void remap_PIC()
 	outb(PIC1_DATA, PIC_8086);
 	outb(PIC2_DATA, PIC_8086);
 
-	outb(PIC1_DATA, mask1);
-	outb(PIC2_DATA, mask2);
+	outb(PIC1_DATA, 0xfe);
+	outb(PIC2_DATA, 0xff);
 
+}
+
+void pit_init()
+{
+    uint16_t divisor = 1193180 / 1000;
+    outb(PIT_COMMAND, 0x34);
+    outb(PIT_CHANNEL_0, (uint8_t) (divisor));
+    outb(PIT_CHANNEL_0, (uint8_t) (divisor >> 8));
+
+	return;
 }
 
 void register_interrupt(interrupt_descriptor * idt, unsigned int number, int selector, void (*function)(void),
@@ -91,27 +99,33 @@ void register_interrupt(interrupt_descriptor * idt, unsigned int number, int sel
 
 	assert(number < MAX_INTERRUPTS - 1);
 
-	idt[number].offset_low = (unsigned long)function & 0xffff;
+	uint64_t handler = (uint64_t)function;
+
+	idt[number].offset_low = handler & 0xffff;
 	idt[number].selector = selector;
-	idt[number].flags = (1 << 15) | (access << 11) | (type << 8) | stack_table;
-	idt[number].offset_mid = ((unsigned long)function >> 16);
-	idt[number].offset_high = ((unsigned long)function >> 32);
+	idt[number].ist = stack_table & 0x07;
+	idt[number].flags = 0x80 | (access << 5) | type;
+	idt[number].offset_mid = (handler >> 16) & 0xffff;
+	idt[number].offset_high = (handler >> 32) & 0xffffffff;
 	idt[number].reserved = 0;
 
 }
 
 void interrupt_init()
 {
+	remap_PIC();
+	pit_init();
 
 	idtr.size = MAX_INTERRUPTS * sizeof(interrupt_descriptor) - 1;
 	idtr.offset = idt;
 
-	register_interrupt(idt, 0,  CODE_SEG, interrupt0, KERNEL, INTERRUPT_GATE, 0);
-	register_interrupt(idt, 2,  CODE_SEG, interrupt2, KERNEL, INTERRUPT_GATE, 0);
-	register_interrupt(idt, 4,  CODE_SEG, interrupt4, KERNEL, INTERRUPT_GATE, 0);
-	register_interrupt(idt, 13, CODE_SEG, interrupt13, KERNEL, INTERRUPT_GATE, 0);
-	register_interrupt(idt, 14, CODE_SEG, interrupt14, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x0,  CODE_SEG, interrupt0, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x2,  CODE_SEG, interrupt2, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x4,  CODE_SEG, interrupt4, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0xD,  CODE_SEG, interrupt13, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0xE,  CODE_SEG, interrupt14, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x20, CODE_SEG, interrupt20, KERNEL, INTERRUPT_GATE, 0);
 
 	load_idt(&idtr);
-	remap_PIC();
+	enable_interrupts();
 }

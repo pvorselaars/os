@@ -1,8 +1,5 @@
 #include "utils.h"
 
-#include "arg.h"
-#include "console.h"
-
 void fatal(const char *format, ...)
 {
 	va_list args;
@@ -13,5 +10,13 @@ void fatal(const char *format, ...)
 
 	va_end(args);
 
-	while (1) ;
+	while (1);
+}
+
+
+void sleep(uint64_t milliseconds)
+{
+	uint64_t start = ticks;
+	while (ticks - start < milliseconds)
+		halt();
 }

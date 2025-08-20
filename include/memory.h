@@ -67,8 +67,10 @@ int unmap(address va);
 page* alloc(void);
 void dealloc(page *p);
 
+void memory_init();
 void print_regions();
 void print_pagetable_entries(address a);
+void examine(void* ptr, unsigned long bytes);
 
 #endif
 
