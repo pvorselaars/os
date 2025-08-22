@@ -4,14 +4,14 @@
 #include "disk.h"
 #include "utils.h"
 #include "audio.h"
+#include "serial.h"
 
 void kernel()
 {
 
 	memory_init();
+	serial_init();
 	interrupt_init();
-
-	beep();
 
 	while (1);
 }

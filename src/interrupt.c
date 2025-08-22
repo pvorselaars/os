@@ -13,6 +13,7 @@ extern void interrupt4();
 extern void interrupt13();
 extern void interrupt14();
 extern void interrupt20();
+extern void interrupt24();
 
 void zero()
 {
@@ -53,8 +54,8 @@ void remap_PIC()
 	outb(PIC1_DATA, PIC_8086);
 	outb(PIC2_DATA, PIC_8086);
 
-	outb(PIC1_DATA, 0xfe);
-	outb(PIC2_DATA, 0xff);
+	outb(PIC1_DATA, (uint8_t)0b11101110);
+	outb(PIC2_DATA, (uint8_t)0xff);
 
 }
 
@@ -100,6 +101,7 @@ void interrupt_init()
 	register_interrupt(idt, 0xD,  CODE_SEG, interrupt13, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0xE,  CODE_SEG, interrupt14, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0x20, CODE_SEG, interrupt20, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x24, CODE_SEG, interrupt24, KERNEL, INTERRUPT_GATE, 0);
 
 	load_idt(&idtr);
 	enable_interrupts();

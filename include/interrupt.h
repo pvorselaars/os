@@ -8,6 +8,7 @@
 #include "io.h"
 #include "pit.h"
 #include "pic.h"
+#include "serial.h"
 
 #pragma pack(1)
 typedef struct {
