@@ -10,6 +10,8 @@ CFLAGS = -Wall -m64 -s  -pedantic \
                         -fno-builtin \
                         -std=c2x \
 						-Iinclude \
+						-Werror \
+						-Wno-error=unused-variable \
 						-g
 
 LFLAGS = --no-relax
@@ -23,6 +25,7 @@ QEMU = qemu-system-x86_64 \
 						-cpu qemu64,-apic,-x2apic \
 						-m 64M \
 						-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
+						-serial stdio \
 						#-vga std \
 						-rtc base=localtime \
 						-parallel file:lpt.log \
@@ -30,13 +33,21 @@ QEMU = qemu-system-x86_64 \
 						-netdev user,id=net0 \
 						-device ne2k_pci,netdev=net0 \
 
+SRC := $(wildcard src/*.c src/*.S)
+OBJ := $(patsubst src/%,obj/%,$(SRC:.c=.o))
+OBJ := $(OBJ:.S=.o)
+
 gdb: bin/os
-	gdb bin/os.elf -q -ex "target remote | $(QEMU) -d cpu_reset -gdb stdio -S"
+	tmux new-session -d -s os
+	tmux send-keys -t os "$(QEMU) -S -d cpu_reset -gdb tcp::1235" Enter
+	tmux split-window -t os -h
+	tmux send-keys -t os "gdb bin/os.elf -q -ex 'target remote :1235'" Enter
+	tmux attach-session -t os
 
 run: bin/os
 	$(QEMU)
 
-bin/os: obj/boot.o obj/kernel.o obj/memory.o obj/utils.o obj/string.o obj/console.o obj/io.o obj/interrupt.o obj/audio.o | dir
+bin/os: $(OBJ) | dir
 	ld -Tlink.ld $(LFLAGS) -o bin/os.elf $^
 	objcopy -X -O binary bin/os.elf $@
 

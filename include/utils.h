@@ -2,7 +2,6 @@
 #define UTILS_H
 
 #include "definitions.h"
-#include "arg.h"
 #include "console.h"
 #include "interrupt.h"
 #include "io.h"
