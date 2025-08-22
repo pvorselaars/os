@@ -1,7 +1,7 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include "arg.h"
+#include "definitions.h"
 
 #define FLAGS_ZERO      (1 << 0)
 #define FLAGS_LEFT      (1 << 1)
@@ -13,6 +13,6 @@
 #define FLAGS_SHORT     (1 << 7)
 #define FLAGS_CHAR      (1 << 8)
 
-int vsnprintf(char *s, unsigned int n, const char *format, va_list arg);
+int vsnprintf(int8_t *s, uint32_t n, const int8_t *format, va_list arg);
 
 #endif

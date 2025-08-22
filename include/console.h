@@ -1,11 +1,11 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include "arg.h"
+#include "definitions.h"
 
 void console_init();
-void print(const char *str);
-int printf(const char *format, ...);
-int vprintf(const char *format, va_list args);
+void print(const int8_t *str);
+int printf(const int8_t *format, ...);
+int vprintf(const int8_t *format, va_list args);
 
 #endif

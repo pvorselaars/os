@@ -1,5 +1,4 @@
 #include "string.h"
-#include "defs.h"
 #include "memory.h"
 
 static unsigned int strlen(const char *str)

@@ -3,7 +3,7 @@
 #include "arg.h"
 #include "console.h"
 
-void fatal(const char *format, ...)
+void fatal(const int8_t *format, ...)
 {
 	va_list args;
 	va_start(args, format);

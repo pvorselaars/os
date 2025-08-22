@@ -1,14 +1,17 @@
 #ifndef INTERRUPT_H
 #define INTERRUPT_H
 
+#include "definitions.h"
+
 #pragma pack(1)
 typedef struct {
-	unsigned short offset_low;
-	unsigned short selector;
-	unsigned short flags;
-	unsigned short offset_mid;
-	unsigned int offset_high;
-	unsigned int reserved;
+	uint16_t offset_low;
+	uint16_t selector;
+	uint8_t ist;
+	uint8_t flags;
+	uint16_t offset_mid;
+	uint32_t offset_high;
+	uint32_t reserved;
 } interrupt_descriptor;
 #pragma pack()
 
@@ -27,6 +30,6 @@ void interrupt_init();
 void enable_interrupts();
 void disable_interrupts();
 
-void interrupt(unsigned int num);
+void interrupt(uint32_t number);
 
 #endif

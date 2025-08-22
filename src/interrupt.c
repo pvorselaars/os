@@ -1,7 +1,6 @@
 #include "interrupt.h"
 
 #include "console.h"
-#include "defs.h"
 #include "utils.h"
 #include "memory.h"
 #include "io.h"

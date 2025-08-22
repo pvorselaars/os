@@ -1,10 +1,10 @@
 #ifndef IO_H
 #define IO_H
 
-unsigned char inb(int port);
-unsigned short inw(int port);
+unsigned char inb(uint32_t port);
+unsigned short inw(uint32_t port);
 
-void outb(int port, int value);
-void outw(int port, int value);
+void outb(uint32_t port, int32_t value);
+void outw(uint32_t port, int32_t value);
 
 #endif

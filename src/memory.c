@@ -1,8 +1,6 @@
 #include "memory.h"
 
-#include "arg.h"
 #include "console.h"
-#include "defs.h"
 #include "utils.h"
 
 typedef struct region {
