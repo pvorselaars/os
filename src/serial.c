@@ -1,7 +1,11 @@
 #include "serial.h"
 
+static uint8_t buffer[SERIAL_BUFFER_SIZE];
+static uint8_t buffer_index = 0;
+
 void serial_init()
 {
+    // TODO: support more ports
     outb(SERIAL_PORT_0 + 1, 0x00); // Disable interrupts
 
     outb(SERIAL_PORT_0 + 3, 0x80); // Set DLAB
@@ -14,17 +18,35 @@ void serial_init()
 
     outb(SERIAL_PORT_0 + 0, 0xAE); // Send test byte
 
-    assert(serial_read(SERIAL_PORT_0) == 0xAE);
+    while (!(inb(SERIAL_PORT_0+5) & 0x01));
+    assert(inb(SERIAL_PORT_0) == 0xAE);
 
     outb(SERIAL_PORT_0 + 4, 0x0F); // Disable loopback mode
     outb(SERIAL_PORT_0 + 1, 0x01); // Enable interrupts
 }
 
-uint8_t serial_read(serial_ports port)
+uint8_t serial_read()
 {
-    while (!(inb(port+5) & 0x01));
+    // wait for buffer content
+    while(!buffer_index)
+        halt();
 
-    return inb(port);
+    return buffer[--buffer_index];
+}
+
+void serial_write(serial_port port, uint8_t data)
+{
+    // wait for transmit buffer to be empty
+    while (!(inb(port+5) & 0x40));
+
+    outb(SERIAL_PORT_0, data);
+}
+
+static void write_buffer(uint8_t data)
+{
+    buffer[buffer_index++] = data;
+    if (buffer_index > SERIAL_BUFFER_SIZE - 1)
+        buffer_index = 0;
 }
 
 void serial_receive()
@@ -34,9 +56,12 @@ void serial_receive()
     while(!(iir & 0x01)) {
         uint8_t data = inb(SERIAL_PORT_0);
 
-        outb(SERIAL_PORT_0, data); // echo received data
-        if (data == '\r')
-            outb(SERIAL_PORT_0, '\n');
+        serial_write(SERIAL_PORT_0, data); // echo received data
+        write_buffer(data);
+        if (data == '\r') {
+            serial_write(SERIAL_PORT_0, '\n');
+            write_buffer('\n');
+        }
 
         iir = inb(SERIAL_PORT_0 + 2);
     }

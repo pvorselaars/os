@@ -11,7 +11,7 @@ A minimal operating system for x86_64. Designed for learning and experimenting w
 - [x] PIC support
 - [x] Basic audio driver
 - [x] RS232 support
-- [ ] Parallel port support
+- [x] Parallel port support
 - [ ] VGA support
 - [ ] PS/2 keyboard support
 - [ ] Process management
