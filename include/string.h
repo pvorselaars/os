@@ -2,6 +2,7 @@
 #define STRING_H
 
 #include "definitions.h"
+#include "memory.h"
 
 #define FLAGS_ZERO      (1 << 0)
 #define FLAGS_LEFT      (1 << 1)

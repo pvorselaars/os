@@ -2,6 +2,9 @@
 #define CONSOLE_H
 
 #include "definitions.h"
+#include "memory.h"
+#include "io.h"
+#include "string.h"
 
 void console_init();
 void print(const int8_t *str);

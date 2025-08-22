@@ -2,6 +2,12 @@
 #define INTERRUPT_H
 
 #include "definitions.h"
+#include "console.h"
+#include "utils.h"
+#include "memory.h"
+#include "io.h"
+#include "pit.h"
+#include "pic.h"
 
 #pragma pack(1)
 typedef struct {
@@ -14,6 +20,15 @@ typedef struct {
 	uint32_t reserved;
 } interrupt_descriptor;
 #pragma pack()
+
+#pragma pack(1)
+typedef struct {
+	unsigned short size;
+	interrupt_descriptor *offset;
+} idt_descriptor;
+#pragma pack()
+
+#define MAX_INTERRUPTS 256
 
 typedef enum {
 	INTERRUPT_GATE = 0xe,

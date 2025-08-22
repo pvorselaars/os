@@ -45,6 +45,8 @@
 #else
 
 #include "definitions.h"
+#include "console.h"
+#include "utils.h"
 
 typedef uint64_t pte;
 typedef uint64_t pde;

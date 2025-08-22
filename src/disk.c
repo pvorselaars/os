@@ -1,5 +1,4 @@
 #include "disk.h"
-#include "io.h"
 
 int read_blocks(unsigned long device, void* buffer, unsigned long start, unsigned short count)
 {

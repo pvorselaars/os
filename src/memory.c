@@ -1,8 +1,5 @@
 #include "memory.h"
 
-#include "console.h"
-#include "utils.h"
-
 typedef struct region {
 	unsigned long start;
 	unsigned long size;

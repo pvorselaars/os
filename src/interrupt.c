@@ -1,29 +1,5 @@
 #include "interrupt.h"
 
-#include "console.h"
-#include "utils.h"
-#include "memory.h"
-#include "io.h"
-
-#pragma pack(1)
-typedef struct {
-	unsigned short size;
-	interrupt_descriptor *offset;
-} idt_descriptor;
-#pragma pack()
-
-#define MAX_INTERRUPTS	256
-
-#define PIC1			0x20
-#define PIC1_DATA		(PIC1+1)
-
-#define PIC2			0xA0
-#define PIC2_DATA		(PIC2+1)
-
-#define PIC_INIT		0x10
-#define PIC_4			0x01
-#define PIC_8086		0x01
-
 interrupt_descriptor idt[MAX_INTERRUPTS];
 idt_descriptor idtr;
 
