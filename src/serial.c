@@ -13,8 +13,8 @@ void serial_init()
     outb(SERIAL_PORT_0 + 4, 0x1E); // Set in loopback mode for testing
 
     outb(SERIAL_PORT_0 + 0, 0xAE); // Send test byte
-    uint8_t byte = serial_read(SERIAL_PORT_0);
-    assert(byte == 0xAE);
+
+    assert(serial_read(SERIAL_PORT_0) == 0xAE);
 
     outb(SERIAL_PORT_0 + 4, 0x0F); // Disable loopback mode
     outb(SERIAL_PORT_0 + 1, 0x01); // Enable interrupts
