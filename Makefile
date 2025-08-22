@@ -12,6 +12,7 @@ CFLAGS = -Wall -m64 -s  -pedantic \
 						-Iinclude \
 						-Werror \
 						-Wno-error=unused-variable \
+						-Wno-error=unused-but-set-variable \
 						-g
 
 LFLAGS = --no-relax
@@ -27,8 +28,8 @@ QEMU = qemu-system-x86_64 \
 						-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 						-serial stdio \
 						-parallel file:lpt.log \
-						#-vga std \
-						-rtc base=localtime \
+						-vga std \
+						#-rtc base=localtime \
 						-fda os.img \
 						-netdev user,id=net0 \
 						-device ne2k_pci,netdev=net0 \
@@ -39,7 +40,7 @@ OBJ := $(OBJ:.S=.o)
 
 gdb: bin/os
 	tmux new-session -d -s os
-	tmux send-keys -t os "$(QEMU) -S -d cpu_reset -gdb tcp::1235" Enter
+	tmux send-keys -t os "$(QEMU) -S -d cpu_reset,guest_errors -gdb tcp::1235" Enter
 	tmux split-window -t os -v
 	tmux send-keys -t os "tail -f lpt.log" Enter
 	tmux split-window -t os -h

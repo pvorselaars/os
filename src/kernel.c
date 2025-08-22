@@ -6,6 +6,7 @@
 #include "audio.h"
 #include "serial.h"
 #include "parallel.h"
+#include "video.h"
 
 void kernel()
 {
@@ -13,6 +14,7 @@ void kernel()
 	memory_init();
 	serial_init();
 	interrupt_init();
+	vga_init();
 
 	while (1) {
 		uint8_t data = serial_read();

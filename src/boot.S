@@ -51,7 +51,7 @@ protected_mode:
   
   # Setup Page Directory
   mov $(PML4_ADDRESS + PAGE_SIZE * 2), %edi
-  mov $0x83, %eax                                   # 2MB page, present + writable + large
+  mov $0x9B, %eax                                   # 2MB page, present + writable + large
   mov %eax, (%edi)
   
   # Load PML4
