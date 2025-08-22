@@ -15,27 +15,28 @@ CFLAGS = -Wall -m64 -s  -pedantic \
 LFLAGS = --no-relax
 
 QEMU = qemu-system-x86_64 \
+						-monitor telnet:127.0.01:1234,server,nowait\
 						-nodefaults \
+						-no-acpi \
 						-bios bin/os \
-						-M pc \
-						-cpu qemu64 \
+						-M isapc \
+						-cpu qemu64,-apic,-x2apic \
 						-m 64M \
-						#-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
-						-vga std \
+						-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
+						#-vga std \
 						-rtc base=localtime \
 						-parallel file:lpt.log \
 						-fda os.img \
 						-netdev user,id=net0 \
 						-device ne2k_pci,netdev=net0 \
-						-no-acpi \
 
 gdb: bin/os
-	gdb bin/os.elf -q -ex "target remote | $(QEMU) -d int,cpu_reset -gdb stdio -S"
+	gdb bin/os.elf -q -ex "target remote | $(QEMU) -d cpu_reset -gdb stdio -S"
 
 run: bin/os
 	$(QEMU)
 
-bin/os: obj/boot.o obj/kernel.o obj/memory.o obj/utils.o obj/string.o obj/console.o obj/io.o obj/interrupt.o | dir
+bin/os: obj/boot.o obj/kernel.o obj/memory.o obj/utils.o obj/string.o obj/console.o obj/io.o obj/interrupt.o obj/audio.o | dir
 	ld -Tlink.ld $(LFLAGS) -o bin/os.elf $^
 	objcopy -X -O binary bin/os.elf $@
 
