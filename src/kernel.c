@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "audio.h"
 #include "serial.h"
+#include "parallel.h"
 
 void kernel()
 {
@@ -13,5 +14,8 @@ void kernel()
 	serial_init();
 	interrupt_init();
 
-	while (1);
+	while (1) {
+		uint8_t data = serial_read();
+		parallel_write(PARALLEL_PORT_0, data);
+	};
 }
