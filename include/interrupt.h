@@ -32,4 +32,8 @@ void disable_interrupts();
 
 void interrupt(uint32_t number);
 
+void halt();
+
+extern uint64_t ticks;
+
 #endif

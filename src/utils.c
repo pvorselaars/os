@@ -13,5 +13,13 @@ void fatal(const int8_t *format, ...)
 
 	va_end(args);
 
-	while (1) ;
+	while (1);
+}
+
+
+void sleep(uint64_t milliseconds)
+{
+	uint64_t start = ticks;
+	while (ticks - start < milliseconds)
+		halt();
 }

@@ -1,6 +1,13 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "defs.h"
+#include "arg.h"
+#include "console.h"
+#include "interrupt.h"
+#include "io.h"
+
+
 #include "definitions.h"
 #include "console.h"
 #include "interrupt.h"

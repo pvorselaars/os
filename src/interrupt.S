@@ -8,6 +8,9 @@
 .globl interrupt4
 .globl interrupt13
 .globl interrupt14
+.globl interrupt20
+
+.globl halt
 
 .extern zero
 .extern nmi
@@ -17,6 +20,10 @@
 
 .code64
 .section .text
+
+halt:
+	hlt
+	ret
 
 load_idt:
 	lidt (%rdi)
@@ -57,6 +64,12 @@ interrupt14:
 	mov %cr2, %rsi
 	pop %rdi
 	call page_fault
+	iretq
+
+interrupt20:
+	incq ticks(%rip)
+	mov $0x20, %al
+	out %al, $0x20
 	iretq
 
 
