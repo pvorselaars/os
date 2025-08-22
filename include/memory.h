@@ -44,25 +44,29 @@
 
 #else
 
-typedef unsigned long int pte;
-typedef unsigned long int pde;
-typedef unsigned long int pdpte;
-typedef unsigned long int pml4e;
+#include "definitions.h"
+#include "console.h"
+#include "utils.h"
 
-typedef unsigned long int page;
-typedef unsigned long int address;
+typedef uint64_t pte;
+typedef uint64_t pde;
+typedef uint64_t pdpte;
+typedef uint64_t pml4e;
 
-void memsetb(const void *ptr, const char value, const unsigned int num);
-void memsetw(const void *ptr, const short value, const unsigned int num);
-void memsetl(const void *ptr, const int value, const unsigned int num);
-void memsetq(const void *ptr, const long value, const unsigned int num);
+typedef uint64_t page;
+typedef uint64_t address;
 
-int memcmp(const void *ptr1, const void *ptr2, const unsigned int num);
+void memsetb(const void *ptr, const int8_t value, const uint32_t num);
+void memsetw(const void *ptr, const int16_t value, const uint32_t num);
+void memsetl(const void *ptr, const int32_t value, const uint32_t num);
+void memsetq(const void *ptr, const int64_t value, const uint32_t num);
 
-void memmove(const void *dst, const void *src, const unsigned int num);
-void memcpy(const void *dst, const void *src, const unsigned int num);
+int memcmp(const void *ptr1, const void *ptr2, const uint32_t num);
 
-int map(address va, address pa, int flags);
+void memmove(const void *dst, const void *src, const uint32_t num);
+void memcpy(const void *dst, const void *src, const uint32_t num);
+
+int map(address va, address pa, int32_t flags);
 int unmap(address va);
 page* alloc(void);
 void dealloc(page *p);
@@ -70,7 +74,7 @@ void dealloc(page *p);
 void memory_init();
 void print_regions();
 void print_pagetable_entries(address a);
-void examine(void* ptr, unsigned long bytes);
+void examine(void* ptr, uint64_t bytes);
 
 #endif
 

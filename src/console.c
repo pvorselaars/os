@@ -1,7 +1,4 @@
 #include "console.h"
-#include "memory.h"
-#include "io.h"
-#include "string.h"
 
 static char *vga = (char *)0xb8000;
 static int cursor = 0;

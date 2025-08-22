@@ -1,7 +1,8 @@
 #ifndef AUDIO_H
 #define AUDIO_H
 
-#include "defs.h"
+#include "definitions.h"
+#include "pit.h"
 #include "utils.h"
 
 void beep();
