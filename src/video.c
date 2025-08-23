@@ -300,7 +300,7 @@ void vga_load_font_simple(void) {
 void vga_init()
 {
     outb(0x3C4, 0x01);
-    outb(0x3C5, 0x21); // synchronous reset
+    outb(0x3C5, 0x21); 
 
     // 1. Misc Output: color, clock, enable video
     outb(VGA_MISC_WRITE, 0x67);
@@ -386,4 +386,148 @@ void vga_init()
         vga[i*2+1] = 0x0A;   // light green on black
     }
   
+}
+
+void vga_init_basic()
+{
+    outb(0x3C2, 0x67);
+
+    // Reset sequencer
+    outb(0x3C4, 0x00); outb(0x3C5, 0x01); // synchronous reset
+    outb(0x3C4, 0x01); outb(0x3C5, 0x00); 
+    outb(0x3C4, 0x02); outb(0x3C5, 0x0F);
+    outb(0x3C4, 0x03); outb(0x3C5, 0x00);
+    outb(0x3C4, 0x04); outb(0x3C5, 0x07);
+    outb(0x3C4, 0x00); outb(0x3C5, 0x03); // end reset
+
+    // Unlock CRTC registers
+    outb(0x3D4, 0x11); outb(0x3D5, 0x00);
+
+    // Minimal CRTC settings for 80x25 text mode
+    uint8_t crtc[25] = {
+        0x5F,0x4F,0x50,0x82,0x55,0x81,0xBF,0x1F,
+        0x00,0x4F,0x0D,0x0E,0x00,0x00,0x00,0x00,
+        0x9C,0x8E,0x8F,0x28,0x1F,0x96,0xB9,0xA3,
+        0xFF
+    };
+    for (int i = 0; i < 25; i++) {
+        outb(0x3D4, i);
+        outb(0x3D5, crtc[i]);
+    }
+
+    // Graphics Controller
+    outb(0x3CE, 0x00); outb(0x3CF, 0x00);
+    outb(0x3CE, 0x01); outb(0x3CF, 0x00);
+    outb(0x3CE, 0x02); outb(0x3CF, 0x00);
+    outb(0x3CE, 0x03); outb(0x3CF, 0x00);
+    outb(0x3CE, 0x04); outb(0x3CF, 0x00);
+    outb(0x3CE, 0x05); outb(0x3CF, 0x10);
+    outb(0x3CE, 0x06); outb(0x3CF, 0x0E);
+    outb(0x3CE, 0x07); outb(0x3CF, 0x0F);
+    outb(0x3CE, 0x08); outb(0x3CF, 0xFF);
+
+    // Attribute Controller
+    outb(0x3C0, 0x10); outb(0x3C0, 0x0C);
+    inb(0x3DA);       // reset flip-flop
+    outb(0x3C0, 0x12); outb(0x3C0, 0x0F);
+
+    inb(0x3DA);       // reset flip-flop
+    for (int i = 0; i < 16; i++) {
+        outb(0x3C0, i);     // select palette index
+        outb(0x3C0, i);     // identity mapping
+    }
+
+    outb(0x3C0, 0x10); outb(0x3C0, 0x0C); // mode control
+    outb(0x3C0, 0x12); outb(0x3C0, 0x0F); // color plane enable
+    outb(0x3C0, 0x13); outb(0x3C0, 0x00); // horiz panning
+    outb(0x3C0, 0x14); outb(0x3C0, 0x00); // color select
+    outb(0x3C0, 0x20);                     // unblank
+
+    volatile uint8_t* vga = (volatile uint8_t*)0xB8000;
+    const char* msg = "Hello world!";
+    for (int i = 0; msg[i]; i++) {
+        vga[i*2] = msg[i];   // character
+        vga[i*2+1] = 0xe0;   // white on black
+    }
+}
+
+void vga_init_minimal() {
+    // 1. Misc Output Register: select color mode, enable screen
+    outb(0x3C2, 0x67);
+
+    // 2. Sequencer: reset + basic text setup
+    outb(0x3C4, 0x00); outb(0x3C5, 0x01); // async reset
+    outb(0x3C4, 0x01); outb(0x3C5, 0x00); // clocking mode
+    outb(0x3C4, 0x02); outb(0x3C5, 0x0F); // map mask (enable planes 0+1)
+    outb(0x3C4, 0x03); outb(0x3C5, 0x00); // char map
+    outb(0x3C4, 0x04); outb(0x3C5, 0x02); // memory mode (odd/even, text)
+    outb(0x3C4, 0x00); outb(0x3C5, 0x03); // end reset
+
+    // 3. Unlock CRTC
+    outb(0x3D4, 0x11); outb(0x3D5, 0x00);
+
+    // 4. CRTC registers for 80x25 text mode
+    uint8_t crtc[25] = {
+        0x5F, // 0: Horizontal Total (number of character clocks per line - 5Fh = 95)
+        0x4F, // 1: Horizontal Display End (last displayed character column - 4Fh = 79)
+        0x50, // 2: Start Horizontal Blank (column where blanking starts)
+        0x82, // 3: End Horizontal Blank (upper 6 bits + bits 0–1: 82h)
+        0x55, // 4: Start Horizontal Retrace (column where H-sync pulse starts)
+        0x81, // 5: End Horizontal Retrace (upper 6 bits + bits 0–1: 81h)
+        0xBF, // 6: Vertical Total (number of scan lines - BFh = 191)
+        0x1F, // 7: Overflow (vertical total bits 8–9 + vertical retrace bits 8–9)
+        0x00, // 8: Preset Row Scan (row scan start, usually 0)
+        0x4F, // 9: Maximum Scan Line (rows per character - 0..15; 0x4F sets 16 scan lines)
+        0x00, // 10: Cursor Start (scan line where cursor appears)
+        0x0F, // 11: Cursor End (scan line where cursor disappears)
+        0x00, // 12: Start Address High (high byte of start of display memory)
+        0x00, // 13: Start Address Low  (low byte of start of display memory, usually 0xB8000)
+        0x00, // 14: Cursor Address High (high byte of cursor offset)
+        0x00, // 15: Cursor Address Low  (low byte of cursor offset)
+        0x9C, // 16: Vertical Retrace Start (line where V-sync starts)
+        0x8E, // 17: Vertical Retrace End (line where V-sync ends + flags)
+        0x8F, // 18: Vertical Display End (last visible scan line)
+        0x28, // 19: Offset (number of bytes between start of one row to next in memory)
+        0x1F, // 20: Underline Location (scan line where underline appears)
+        0x96, // 21: Start Vertical Blank (line where vertical blank starts)
+        0xB9, // 22: End Vertical Blank (line where vertical blank ends)
+        0xA3, // 23: CRTC Mode Control (text mode, color, etc.)
+        0xFF  // 24: Line Compare (used to detect split-screen effects, usually 0xFF)
+    };
+
+    for (int i = 0; i < 25; i++) {
+        outb(0x3D4, i);
+        outb(0x3D5, crtc[i]);
+    }
+
+    // 5. Graphics Controller: text/odd-even addressing
+    uint8_t gc[9] = {0x00,0x00,0x00,0x00,0x00,0x10,0x0E,0x0F,0xFF};
+    for (int i = 0; i < 9; i++) {
+        outb(0x3CE, i);
+        outb(0x3CF, gc[i]);
+    }
+
+    inb(0x3DA);
+    // 6. Attribute Controller: text mode + unblank
+    for (int i = 0; i < 16; i++) {
+        outb(0x3C0, i);
+        outb(0x3C0, i);
+    }
+    outb(0x3C0, 0x10); outb(0x3C0, 0x0C);
+    outb(0x3C0, 0x12); outb(0x3C0, 0x0F);
+    outb(0x3C0, 0x13); outb(0x3C0, 0x00);
+    outb(0x3C0, 0x14); outb(0x3C0, 0x00);
+    outb(0x3C0, 0x20); // unblank 
+
+    // 7. Test: clear and print message
+    volatile uint8_t* vga = (volatile uint8_t*)0xB8000;
+    for (int i = 0; i < 80*25*2; i++) vga[i] = 0;
+
+    for (int i = 0; i < 80*25; i++) {
+        vga[i*2]   = 'A' + (i % 26);    // char
+        vga[i*2+1] = 0x1F;      // white on blue
+    }
+
+    inb(0x3DA);
+    outb(0x3C0, 0x20); // unblank 
 }

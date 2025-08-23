@@ -14,7 +14,7 @@ void kernel()
 	memory_init();
 	serial_init();
 	interrupt_init();
-	vga_init();
+	vga_init_minimal();
 
 	while (1) {
 		uint8_t data = serial_read();
