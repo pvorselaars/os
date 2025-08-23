@@ -2,6 +2,74 @@
 
 // Basic 8x16 font data for ASCII characters 0x20-0x7F
 // Each character is 16 bytes (16 rows of 8 pixels each)
+
+// Oct   Dec   Hex   Char                      │ Oct   Dec   Hex   Char
+// ────────────────────────────────────────────┼───────────────────────────
+// 000   0     00    NUL '\0' (null character) │ 100   64    40    @
+// 001   1     01    SOH (start of heading)    │ 101   65    41    A
+// 002   2     02    STX (start of text)       │ 102   66    42    B
+// 003   3     03    ETX (end of text)         │ 103   67    43    C
+// 004   4     04    EOT (end of transmission) │ 104   68    44    D
+// 005   5     05    ENQ (enquiry)             │ 105   69    45    E
+// 006   6     06    ACK (acknowledge)         │ 106   70    46    F
+// 007   7     07    BEL '\a' (bell)           │ 107   71    47    G
+// 010   8     08    BS  '\b' (backspace)      │ 110   72    48    H
+// 011   9     09    HT  '\t' (horizontal tab) │ 111   73    49    I
+// 012   10    0A    LF  '\n' (new line)       │ 112   74    4A    J
+// 013   11    0B    VT  '\v' (vertical tab)   │ 113   75    4B    K
+// 014   12    0C    FF  '\f' (form feed)      │ 114   76    4C    L
+// 015   13    0D    CR  '\r' (carriage ret)   │ 115   77    4D    M
+// 016   14    0E    SO  (shift out)           │ 116   78    4E    N
+// 017   15    0F    SI  (shift in)            │ 117   79    4F    O
+// 020   16    10    DLE (data link escape)    │ 120   80    50    P
+// 021   17    11    DC1 (device control 1)    │ 121   81    51    Q
+// 022   18    12    DC2 (device control 2)    │ 122   82    52    R
+// 023   19    13    DC3 (device control 3)    │ 123   83    53    S
+// 024   20    14    DC4 (device control 4)    │ 124   84    54    T
+// 025   21    15    NAK (negative ack.)       │ 125   85    55    U
+// 026   22    16    SYN (synchronous idle)    │ 126   86    56    V
+// 027   23    17    ETB (end of trans. blk)   │ 127   87    57    W
+// 030   24    18    CAN (cancel)              │ 130   88    58    X
+// 031   25    19    EM  (end of medium)       │ 131   89    59    Y
+// 032   26    1A    SUB (substitute)          │ 132   90    5A    Z
+// 033   27    1B    ESC (escape)              │ 133   91    5B    [
+// 034   28    1C    FS  (file separator)      │ 134   92    5C    \  '\\'
+// 035   29    1D    GS  (group separator)     │ 135   93    5D    ]
+// 036   30    1E    RS  (record separator)    │ 136   94    5E    ^
+// 037   31    1F    US  (unit separator)      │ 137   95    5F    _
+// 040   32    20    SPACE                     │ 140   96    60    `
+// 041   33    21    !                         │ 141   97    61    a
+// 042   34    22    "                         │ 142   98    62    b
+// 043   35    23    #                         │ 143   99    63    c
+// 044   36    24    $                         │ 144   100   64    d
+// 045   37    25    %                         │ 145   101   65    e
+// 046   38    26    &                         │ 146   102   66    f
+// 047   39    27    '                         │ 147   103   67    g
+// 050   40    28    (                         │ 150   104   68    h
+// 051   41    29    )                         │ 151   105   69    i
+// 052   42    2A    *                         │ 152   106   6A    j
+// 053   43    2B    +                         │ 153   107   6B    k
+// 054   44    2C    ,                         │ 154   108   6C    l
+// 055   45    2D    -                         │ 155   109   6D    m
+// 056   46    2E    .                         │ 156   110   6E    n
+// 057   47    2F    /                         │ 157   111   6F    o
+// 060   48    30    0                         │ 160   112   70    p
+// 061   49    31    1                         │ 161   113   71    q
+// 062   50    32    2                         │ 162   114   72    r
+// 063   51    33    3                         │ 163   115   73    s
+// 064   52    34    4                         │ 164   116   74    t
+// 065   53    35    5                         │ 165   117   75    u
+// 066   54    36    6                         │ 166   118   76    v
+// 067   55    37    7                         │ 167   119   77    w
+// 070   56    38    8                         │ 170   120   78    x
+// 071   57    39    9                         │ 171   121   79    y
+// 072   58    3A    :                         │ 172   122   7A    z
+// 073   59    3B    ;                         │ 173   123   7B    {
+// 074   60    3C    <                         │ 174   124   7C    |
+// 075   61    3D    =                         │ 175   125   7D    }
+// 076   62    3E    >                         │ 176   126   7E    ~
+// 077   63    3F    ?                         │ 177   127   7F    DEL
+
 static const uint8_t vga_font[96][16] = {
     // 0x20 - Space
     {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
@@ -123,7 +191,7 @@ static const uint8_t vga_font[96][16] = {
     {0x00,0x00,0x7E,0x06,0x0C,0x18,0x30,0x60,0x60,0x60,0x7E,0x00,0x00,0x00,0x00,0x00},
     // 0x5B - [
     {0x00,0x00,0x3C,0x30,0x30,0x30,0x30,0x30,0x30,0x30,0x3C,0x00,0x00,0x00,0x00,0x00},
-    // 0x5C - backslash
+    // 0x5C - '\'
     {0x00,0x00,0x00,0x80,0xC0,0x60,0x30,0x18,0x0C,0x06,0x02,0x00,0x00,0x00,0x00,0x00},
     // 0x5D - ]
     {0x00,0x00,0x3C,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x0C,0x3C,0x00,0x00,0x00,0x00,0x00},
@@ -131,9 +199,6 @@ static const uint8_t vga_font[96][16] = {
     {0x10,0x38,0x6C,0xC6,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
     // 0x5F - _
     {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF,0x00,0x00},
-    // Additional characters continue with similar patterns...
-    // For brevity, I'll add a few more important ones:
-    
     // 0x60 - `
     {0x00,0x30,0x18,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
     // 0x61 - a
@@ -259,214 +324,23 @@ void vga_load_font(void) {
     outb(0x3CF, gc6);
 }
 
-void vga_load_font_simple(void) {
-    // Set sequencer to allow access to all planes
-    outb(0x3C4, 0x02);
-    outb(0x3C5, 0x04); // Enable plane 2
-    outb(0x3C4, 0x04);
-    outb(0x3C5, 0x06); // Disable odd/even, enable extended memory
-    
-    // Set graphics controller
-    outb(0x3CE, 0x05);
-    outb(0x3CF, 0x00); // Write mode 0
-    outb(0x3CE, 0x06);
-    outb(0x3CF, 0x04); // Map A0000-AFFFF, odd/even disabled
-    
-    // Load font data
-    volatile uint8_t* font_mem = (volatile uint8_t*)0xA0000;
-    
-    // Load just a few test characters first
-    for (int char_code = 0x20; char_code <= 0x7E; char_code++) {
-        int font_index = char_code - 0x20;
-        if (font_index < 96) {
-            volatile uint8_t* char_ptr = font_mem + char_code * 32;
-            for (int row = 0; row < 16; row++) {
-                char_ptr[row] = vga_font[font_index][row];
-            }
-        }
-    }
-    
-    // Reset to text mode
-    outb(0x3C4, 0x02);
-    outb(0x3C5, 0x03); // Enable planes 0,1
-    outb(0x3C4, 0x04);
-    outb(0x3C5, 0x03); // Odd/even, no extended memory
-    outb(0x3CE, 0x05);
-    outb(0x3CF, 0x10); // Odd/even mode
-    outb(0x3CE, 0x06);
-    outb(0x3CF, 0x0E); // Map B8000-BFFFF, text mode
-}
-
 void vga_init()
 {
-    outb(0x3C4, 0x01);
-    outb(0x3C5, 0x21); 
-
-    // 1. Misc Output: color, clock, enable video
-    outb(VGA_MISC_WRITE, 0x67);
-
-    // 2. Sequencer setup
-    // Reset sequencer
-    outb(0x3C4, 0x00); outb(0x3C5, 0x01); // synchronous reset
-
-    // Write registers 1-4
-    outb(0x3C4, 0x01); outb(0x3C5, 0x00);
-    outb(0x3C4, 0x02); outb(0x3C5, 0x03);
-    outb(0x3C4, 0x03); outb(0x3C5, 0x00);
-    outb(0x3C4, 0x04); outb(0x3C5, 0x02);
-
-    // End reset
-    outb(0x3C4, 0x00); outb(0x3C5, 0x03);
-
-    // 3. Unlock CRTC registers
-    outb(VGA_CRTC_INDEX, 0x11);
-    outb(VGA_CRTC_DATA, inb(VGA_CRTC_DATA) & 0x7F);
-
-    // 4. Minimal CRTC for 80x25 text mode
-    uint8_t crtc[25] = {
-        0x5F,0x4F,0x50,0x82,0x55,0x81,0xBF,0x1F,
-        0x00,0x4F,0x0D,0x0E,0x00,0x00,0x00,0x00,
-        0x9C,0x8E,0x8F,0x28,0x1F,0x96,0xB9,0xA3,0xFF
-    };
-    for (int i = 0; i < 25; i++) {
-        outb(VGA_CRTC_INDEX, i);
-        outb(VGA_CRTC_DATA, crtc[i]);
-    }
-
-    // 5. Graphics Controller
-    uint8_t gc[9] = {0x00,0x00,0x00,0x00,0x00,0x10,0x0E,0x00,0xFF};
-    for (int i = 0; i < 9; i++) {
-        outb(VGA_GRAPHICS_INDEX, i);
-        outb(VGA_GRAPHICS_DATA, gc[i]);
-    }
-
-    // 6. Attribute Controller
-    for (int i = 0; i < 16; i++) {
-        inb(VGA_INPUT_STATUS);       // reset flip-flop
-        outb(VGA_ATTR_INDEX, i);     // select palette index
-        outb(VGA_ATTR_INDEX, i);     // identity mapping
-    }
-
-    // Mode control + overscan + plane enable + unblank
-    inb(VGA_INPUT_STATUS);
-    outb(VGA_ATTR_INDEX, 0x10); outb(VGA_ATTR_INDEX, 0x0C); // text mode
-    inb(VGA_INPUT_STATUS);
-    outb(VGA_ATTR_INDEX, 0x11); outb(VGA_ATTR_INDEX, 0x00); // overscan black
-    inb(VGA_INPUT_STATUS);
-    outb(VGA_ATTR_INDEX, 0x12); outb(VGA_ATTR_INDEX, 0x0F); // all planes
-    inb(VGA_INPUT_STATUS);
-    outb(VGA_ATTR_INDEX, 0x13); outb(VGA_ATTR_INDEX, 0x08); // no panning
-    inb(VGA_INPUT_STATUS);
-    outb(VGA_ATTR_INDEX, 0x14); outb(VGA_ATTR_INDEX, 0x00); // color select
-
-    inb(VGA_INPUT_STATUS);
-    outb(VGA_ATTR_INDEX, 0x20); // unblank screen
-
-    outb(0x3C4, 0x01);
-    outb(0x3C5, 0x00); // Screen on, normal clocking
-
-    // 7. Test without custom font first
-    volatile uint8_t* vga = (volatile uint8_t*)0xB8000;
-    const char* msg = "Before font load";
-    for (int i = 0; msg[i]; i++) {
-        vga[i*2] = msg[i];   // character
-        vga[i*2+1] = 0x0F;   // white on black
-    }
+    outb(0x3C2, 0x67);  // Color mode, enable video, select clocks
     
-    // Small delay to see the text
-    for (volatile int delay = 0; delay < 10000000; delay++);
+    // Sequencer
+    outb(0x3C4, 0x00); outb(0x3C5, 0x01);  // Reset
+    
+    outb(0x3C4, 0x01); outb(0x3C5, 0x00);  // Clocking mode
+    outb(0x3C4, 0x02); outb(0x3C5, 0x03);  // Map mask (all planes)
+    outb(0x3C4, 0x03); outb(0x3C5, 0x00);  // Char map select  
+    outb(0x3C4, 0x04); outb(0x3C5, 0x02);  // Memory mode
 
-    // 8. Load our custom font (try the simple version first)
-    vga_load_font_simple();
+    outb(0x3C4, 0x00); outb(0x3C5, 0x03);  // Normal operation
+    
+    // CRTC
+    outb(0x3D4, 0x11); outb(0x3D5, inb(0x3D5) & 0x7f);  // Unlock
 
-    // 9. Test after font loading
-    const char* msg2 = "After font load ";
-    for (int i = 0; msg2[i]; i++) {
-        vga[i*2] = msg2[i];   // character
-        vga[i*2+1] = 0x0A;   // light green on black
-    }
-  
-}
-
-void vga_init_basic()
-{
-    outb(0x3C2, 0x67);
-
-    // Reset sequencer
-    outb(0x3C4, 0x00); outb(0x3C5, 0x01); // synchronous reset
-    outb(0x3C4, 0x01); outb(0x3C5, 0x00); 
-    outb(0x3C4, 0x02); outb(0x3C5, 0x0F);
-    outb(0x3C4, 0x03); outb(0x3C5, 0x00);
-    outb(0x3C4, 0x04); outb(0x3C5, 0x07);
-    outb(0x3C4, 0x00); outb(0x3C5, 0x03); // end reset
-
-    // Unlock CRTC registers
-    outb(0x3D4, 0x11); outb(0x3D5, 0x00);
-
-    // Minimal CRTC settings for 80x25 text mode
-    uint8_t crtc[25] = {
-        0x5F,0x4F,0x50,0x82,0x55,0x81,0xBF,0x1F,
-        0x00,0x4F,0x0D,0x0E,0x00,0x00,0x00,0x00,
-        0x9C,0x8E,0x8F,0x28,0x1F,0x96,0xB9,0xA3,
-        0xFF
-    };
-    for (int i = 0; i < 25; i++) {
-        outb(0x3D4, i);
-        outb(0x3D5, crtc[i]);
-    }
-
-    // Graphics Controller
-    outb(0x3CE, 0x00); outb(0x3CF, 0x00);
-    outb(0x3CE, 0x01); outb(0x3CF, 0x00);
-    outb(0x3CE, 0x02); outb(0x3CF, 0x00);
-    outb(0x3CE, 0x03); outb(0x3CF, 0x00);
-    outb(0x3CE, 0x04); outb(0x3CF, 0x00);
-    outb(0x3CE, 0x05); outb(0x3CF, 0x10);
-    outb(0x3CE, 0x06); outb(0x3CF, 0x0E);
-    outb(0x3CE, 0x07); outb(0x3CF, 0x0F);
-    outb(0x3CE, 0x08); outb(0x3CF, 0xFF);
-
-    // Attribute Controller
-    outb(0x3C0, 0x10); outb(0x3C0, 0x0C);
-    inb(0x3DA);       // reset flip-flop
-    outb(0x3C0, 0x12); outb(0x3C0, 0x0F);
-
-    inb(0x3DA);       // reset flip-flop
-    for (int i = 0; i < 16; i++) {
-        outb(0x3C0, i);     // select palette index
-        outb(0x3C0, i);     // identity mapping
-    }
-
-    outb(0x3C0, 0x10); outb(0x3C0, 0x0C); // mode control
-    outb(0x3C0, 0x12); outb(0x3C0, 0x0F); // color plane enable
-    outb(0x3C0, 0x13); outb(0x3C0, 0x00); // horiz panning
-    outb(0x3C0, 0x14); outb(0x3C0, 0x00); // color select
-    outb(0x3C0, 0x20);                     // unblank
-
-    volatile uint8_t* vga = (volatile uint8_t*)0xB8000;
-    const char* msg = "Hello world!";
-    for (int i = 0; msg[i]; i++) {
-        vga[i*2] = msg[i];   // character
-        vga[i*2+1] = 0xe0;   // white on black
-    }
-}
-
-void vga_init_minimal() {
-    // 1. Misc Output Register: select color mode, enable screen
-    outb(0x3C2, 0x67);
-
-    // 2. Sequencer: reset + basic text setup
-    outb(0x3C4, 0x00); outb(0x3C5, 0x01); // async reset
-    outb(0x3C4, 0x01); outb(0x3C5, 0x00); // clocking mode
-    outb(0x3C4, 0x02); outb(0x3C5, 0x0F); // map mask (enable planes 0+1)
-    outb(0x3C4, 0x03); outb(0x3C5, 0x00); // char map
-    outb(0x3C4, 0x04); outb(0x3C5, 0x02); // memory mode (odd/even, text)
-    outb(0x3C4, 0x00); outb(0x3C5, 0x03); // end reset
-
-    // 3. Unlock CRTC
-    outb(0x3D4, 0x11); outb(0x3D5, 0x00);
-
-    // 4. CRTC registers for 80x25 text mode
     uint8_t crtc[25] = {
         0x5F, // 0: Horizontal Total (number of character clocks per line - 5Fh = 95)
         0x4F, // 1: Horizontal Display End (last displayed character column - 4Fh = 79)
@@ -481,7 +355,7 @@ void vga_init_minimal() {
         0x00, // 10: Cursor Start (scan line where cursor appears)
         0x0F, // 11: Cursor End (scan line where cursor disappears)
         0x00, // 12: Start Address High (high byte of start of display memory)
-        0x00, // 13: Start Address Low  (low byte of start of display memory, usually 0xB8000)
+        0x00, // 13: Start Address Low  (low byte of start of display memory)
         0x00, // 14: Cursor Address High (high byte of cursor offset)
         0x00, // 15: Cursor Address Low  (low byte of cursor offset)
         0x9C, // 16: Vertical Retrace Start (line where V-sync starts)
@@ -495,39 +369,64 @@ void vga_init_minimal() {
         0xFF  // 24: Line Compare (used to detect split-screen effects, usually 0xFF)
     };
 
-    for (int i = 0; i < 25; i++) {
+    for(int i = 0; i < 25; i++) {
         outb(0x3D4, i);
         outb(0x3D5, crtc[i]);
     }
-
-    // 5. Graphics Controller: text/odd-even addressing
-    uint8_t gc[9] = {0x00,0x00,0x00,0x00,0x00,0x10,0x0E,0x0F,0xFF};
-    for (int i = 0; i < 9; i++) {
+    
+    // Graphics Controller
+    uint8_t gc_regs[] = {
+        0x00,  // 00: Set/reset
+        0x00,  // 01: Enable set/reset
+        0x00,  // 02: Color compare
+        0x00,  // 03: Data rotate
+        0x00,  // 04: Read map select
+        0x10,  // 05: Graphics mode (FIXED: text mode, even/odd)
+        0x0E,  // 06: Memory map select (0xB8000-0xBFFFF)
+        0x00,  // 07: Color don't care
+        0xFF   // 08: Bit mask
+    };
+    
+    for(int i = 0; i < 9; i++) {
         outb(0x3CE, i);
-        outb(0x3CF, gc[i]);
+        outb(0x3CF, gc_regs[i]);
     }
 
-    inb(0x3DA);
-    // 6. Attribute Controller: text mode + unblank
-    for (int i = 0; i < 16; i++) {
-        outb(0x3C0, i);
-        outb(0x3C0, i);
+    vga_load_font();
+
+    // Attribute controller
+    inb(0x3DA);  // Reset flip-flop
+    for(int i = 0; i < 16; i++) {
+        outb(0x3C0, i);      // Select palette register i
+        outb(0x3C0, i);      // Map to color i (identity mapping)
     }
-    outb(0x3C0, 0x10); outb(0x3C0, 0x0C);
-    outb(0x3C0, 0x12); outb(0x3C0, 0x0F);
-    outb(0x3C0, 0x13); outb(0x3C0, 0x00);
-    outb(0x3C0, 0x14); outb(0x3C0, 0x00);
+    outb(0x3C0, 0x10); outb(0x3C0, 0x0C);  // Mode: text, enable line graphics
+    outb(0x3C0, 0x11); outb(0x3C0, 0x00);  // Overscan: black
+    outb(0x3C0, 0x12); outb(0x3C0, 0x0F);  // Color plane enable: all planes
+    outb(0x3C0, 0x13); outb(0x3C0, 0x08);
     outb(0x3C0, 0x20); // unblank 
 
-    // 7. Test: clear and print message
+    // DAC
+    uint8_t colors[16][3] = {
+        {0,0,0}, {0,0,42}, {0,42,0}, {0,42,42},
+        {42,0,0}, {42,0,42}, {42,21,0}, {42,42,42},
+        {21,21,21}, {21,21,63}, {21,63,21}, {21,63,63},
+        {63,21,21}, {63,21,63}, {63,63,21}, {63,63,63}
+    };
+    for(int i = 0; i < 16; i++) {
+        outb(0x3C8, i);           // Select DAC register
+        outb(0x3C9, colors[i][0]); // Red
+        outb(0x3C9, colors[i][1]); // Green  
+        outb(0x3C9, colors[i][2]); // Blue
+    }
+
+    inb(0x3DA);  // Reset flip-flop
+    outb(0x3C0, 0x20);  // Enable palette and video output
+
     volatile uint8_t* vga = (volatile uint8_t*)0xB8000;
-    for (int i = 0; i < 80*25*2; i++) vga[i] = 0;
-
-    for (int i = 0; i < 80*25; i++) {
-        vga[i*2]   = 'A' + (i % 26);    // char
-        vga[i*2+1] = 0x1F;      // white on blue
+    for(int i = 0; i < 80*25; i++) {
+        vga[i*2] = 0x20 + (i % 96);
+        vga[i*2 + 1] = 0x1F;  // Bright white on black
     }
 
-    inb(0x3DA);
-    outb(0x3C0, 0x20); // unblank 
 }

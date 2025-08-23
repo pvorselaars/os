@@ -41,11 +41,14 @@ OBJ := $(OBJ:.S=.o)
 gdb: bin/os
 	tmux new-session -d -s os
 	tmux send-keys -t os "$(QEMU) -S -d cpu_reset,guest_errors -gdb tcp::1235" Enter
-	tmux split-window -t os -v
-	tmux send-keys -t os "tail -f lpt.log" Enter
+	#tmux split-window -t os -v
+	#tmux send-keys -t os "tail -f lpt.log" Enter
 	tmux split-window -t os -h
 	tmux send-keys -t os "gdb bin/os.elf -q -ex 'target remote :1235'" Enter
 	tmux attach-session -t os
+
+stop:
+	tmux kill-session -t os
 
 run: bin/os
 	$(QEMU)

@@ -79,7 +79,5 @@
 #define VGA_COLOR_WHITE         0xF
 
 void vga_init();
-void vga_init_basic();
-void vga_init_minimal();
 
 #endif
