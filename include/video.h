@@ -36,16 +36,47 @@
 // 2            Shift/load rate
 // 0            9/8 dot mode
 
-#define VGA_MISC_WRITE      0x3C2
-#define VGA_SEQUENCER_INDEX 0x3C4
-#define VGA_SEQUENCER_DATA  0x3C5
-#define VGA_CRTC_INDEX      0x3D4
-#define VGA_CRTC_DATA       0x3D5
-#define VGA_GRAPHICS_INDEX  0x3CE
-#define VGA_GRAPHICS_DATA   0x3CF
-#define VGA_ATTR_INDEX      0x3C0
-#define VGA_ATTR_READ       0x3C1
-#define VGA_INPUT_STATUS    0x3DA
+// General
+#define VGA_MISC_WRITE          0x3C2
+#define VGA_MISC_READ           0x3CC
+#define VGA_INPUT_STATUS        0x3DA
+#define VGA_FEATURE_WRITE       0x3DA
+#define VGA_FEATURE_READ        0x3CA
+
+// Sequencer
+#define VGA_SEQ_INDEX           0x3C4
+#define VGA_SEQ_DATA            0x3C5
+
+// CRTC (CRT Controller)
+#define VGA_CRTC_INDEX          0x3D4
+#define VGA_CRTC_DATA           0x3D5
+
+// Graphics Controller
+#define VGA_GRAPHICS_INDEX      0x3CE
+#define VGA_GRAPHICS_DATA       0x3CF
+
+// Attribute Controller
+#define VGA_ATTR_INDEX          0x3C0
+#define VGA_ATTR_DATA_WRITE     0x3C0
+#define VGA_ATTR_DATA_READ      0x3C1
+
+// Color definitions for text mode
+#define VGA_COLOR_BLACK         0x0
+#define VGA_COLOR_BLUE          0x1
+#define VGA_COLOR_GREEN         0x2
+#define VGA_COLOR_CYAN          0x3
+#define VGA_COLOR_RED           0x4
+#define VGA_COLOR_MAGENTA       0x5
+#define VGA_COLOR_BROWN         0x6
+#define VGA_COLOR_LIGHT_GREY    0x7
+#define VGA_COLOR_DARK_GREY     0x8
+#define VGA_COLOR_LIGHT_BLUE    0x9
+#define VGA_COLOR_LIGHT_GREEN   0xA
+#define VGA_COLOR_LIGHT_CYAN    0xB
+#define VGA_COLOR_LIGHT_RED     0xC
+#define VGA_COLOR_LIGHT_MAGENTA 0xD
+#define VGA_COLOR_LIGHT_BROWN   0xE
+#define VGA_COLOR_WHITE         0xF
 
 void vga_init();
 
