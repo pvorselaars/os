@@ -3,8 +3,6 @@ SECTIONS {
 
 	. = 0xF0000;
 
-	BEGIN = .;
-
 	.text : {
 		obj/boot.o(.text)
 		*(.text)
@@ -12,20 +10,24 @@ SECTIONS {
 
 	.data : {
 		*(.data)
-		*(.bss)
 	}
 
 	.rodata : {
 		*(.rodata)
 	}
+	
+	/* Do not exceed 64KB - 16 */
+	ASSERT(. <= 0xffff0, "code section too large")
 
-	END = .;
-
-	. += 0xfff0 - (END - BEGIN);
+	. = 0xffff0;
 	.reset : {
 		*(.reset)
 		. = ALIGN(16);
 	} = 0x0
+
+	.bss : {
+		*(.bss)
+	}
 	
 	/DISCARD/ : {
         *(.note.gnu.property)
