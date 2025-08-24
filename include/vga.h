@@ -2,6 +2,7 @@
 #define VGA_H
 
 #include "io.h"
+#include "memory.h"
 #include "utils.h"
 
 // TODO: add bit descriptions for each register

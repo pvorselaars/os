@@ -56,15 +56,15 @@ typedef uint64_t pml4e;
 typedef uint64_t page;
 typedef uint64_t address;
 
-void memsetb(const void *ptr, const int8_t value, const uint32_t num);
-void memsetw(const void *ptr, const int16_t value, const uint32_t num);
-void memsetl(const void *ptr, const int32_t value, const uint32_t num);
-void memsetq(const void *ptr, const int64_t value, const uint32_t num);
+void memsetb(void *ptr, const int8_t value, const uint64_t num);
+void memsetw(void *ptr, const int16_t value, const uint64_t num);
+void memsetl(void *ptr, const int32_t value, const uint64_t num);
+void memsetq(void *ptr, const int64_t value, const uint64_t num);
 
 int memcmp(const void *ptr1, const void *ptr2, const uint32_t num);
 
-void memmove(const void *dst, const void *src, const uint32_t num);
-void memcpy(const void *dst, const void *src, const uint32_t num);
+void memmove(void *dst, const void *src, const uint32_t num);
+void memcpy(void *dst, const void *src, const uint32_t num);
 
 int map(address va, address pa, int32_t flags);
 int unmap(address va);

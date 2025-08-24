@@ -270,58 +270,42 @@ void vga_load_font(void) {
     uint8_t seq2, seq4, gc5, gc6;
     
     // Read current sequencer register 2 and 4
-    outb(0x3C4, 0x02);
-    seq2 = inb(0x3C5);
-    outb(0x3C4, 0x04);
-    seq4 = inb(0x3C5);
+    outb(0x3C4, 0x02); seq2 = inb(0x3C5);
+    outb(0x3C4, 0x04); seq4 = inb(0x3C5);
     
     // Read current graphics controller register 5 and 6
-    outb(0x3CE, 0x05);
-    gc5 = inb(0x3CF);
-    outb(0x3CE, 0x06);
-    gc6 = inb(0x3CF);
+    outb(0x3CE, 0x05); gc5 = inb(0x3CF);
+    outb(0x3CE, 0x06); gc6 = inb(0x3CF);
     
     // Set up sequencer for font loading
     // Turn off even/odd (allow access to full memory)
-    outb(0x3C4, 0x02);
-    outb(0x3C5, 0x04); // Select plane 2
-    outb(0x3C4, 0x04);
-    outb(0x3C5, 0x07); // Sequential mode
+    outb(0x3C4, 0x02); outb(0x3C5, 0x04); // Select plane 2
+    outb(0x3C4, 0x04); outb(0x3C5, 0x07); // Sequential mode
     
     // Set up graphics controller for font loading
-    outb(0x3CE, 0x05);
-    outb(0x3CF, 0x00); // Disable odd/even, enable all planes
-    outb(0x3CE, 0x06);
-    outb(0x3CF, 0x00); // Map to A0000-AFFFF
+    outb(0x3CE, 0x05); outb(0x3CF, 0x00); // Disable odd/even, enable all planes
+    outb(0x3CE, 0x06); outb(0x3CF, 0x00); // Map to A0000-AFFFF
     
     // Load font data into video memory plane 2
-    volatile uint8_t* font_mem = (volatile uint8_t*)0xA0000;
+    uint8_t* font_mem = (uint8_t*)0xA0000;
     
     // Clear font memory first
-    for (int i = 0; i < 256 * 32; i++) {
-        font_mem[i] = 0;
-    }
-    
+    memsetq(font_mem, 0, 1024);
+
     // Load our font data (characters 0x20-0x7F)
     for (int char_index = 0; char_index < 96; char_index++) {
         int char_code = char_index + 0x20; // Start from space character
         uint8_t* char_ptr = (uint8_t*)(font_mem + char_code * 32);
         
         // Copy 16 bytes of font data for this character
-        for (int row = 0; row < 16; row++) {
-            char_ptr[row] = vga_font[char_index][row];
-        }
+        memcpy(char_ptr, vga_font[char_index], 16);
     }
     
     // Restore original state
-    outb(0x3C4, 0x02);
-    outb(0x3C5, seq2);
-    outb(0x3C4, 0x04);
-    outb(0x3C5, seq4);
-    outb(0x3CE, 0x05);
-    outb(0x3CF, gc5);
-    outb(0x3CE, 0x06);
-    outb(0x3CF, gc6);
+    outb(0x3C4, 0x02); outb(0x3C5, seq2);
+    outb(0x3C4, 0x04); outb(0x3C5, seq4);
+    outb(0x3CE, 0x05); outb(0x3CF, gc5);
+    outb(0x3CE, 0x06); outb(0x3CF, gc6);
 }
 
 void vga_init()
@@ -423,10 +407,10 @@ void vga_init()
     inb(0x3DA);  // Reset flip-flop
     outb(0x3C0, 0x20);  // Enable palette and video output
 
-    volatile uint8_t* vga = (volatile uint8_t*)0xB8000;
+    uint8_t* vga = (uint8_t*)0xB8000;
     for(int i = 0; i < 80*25; i++) {
         vga[i*2] = 0x20 + (i % 96);
-        vga[i*2 + 1] = 0x1F;  // Bright white on black
+        vga[i*2 + 1] = 0x0F;  // Bright white on black
     }
 
 }
