@@ -16,5 +16,6 @@ void kernel()
 	interrupt_init();
 	vga_init();
 
-	while (1);
+	while (1)
+		halt();
 }
