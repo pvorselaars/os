@@ -1,6 +1,5 @@
 #include "interrupt.h"
 
-interrupt_descriptor idt[MAX_INTERRUPTS];
 idt_descriptor idtr;
 
 uint64_t ticks = 0;
@@ -91,6 +90,8 @@ void interrupt_init()
 {
 	remap_PIC();
 	pit_init();
+
+	interrupt_descriptor *idt = (interrupt_descriptor*)0x0;
 
 	idtr.size = MAX_INTERRUPTS * sizeof(interrupt_descriptor) - 1;
 	idtr.offset = idt;
