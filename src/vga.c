@@ -1,4 +1,4 @@
-#include "video.h"
+#include "vga.h"
 
 // Basic 8x16 font data for ASCII characters 0x20-0x7F
 // Each character is 16 bytes (16 rows of 8 pixels each)
@@ -1998,7 +1998,7 @@ void vga_init()
         0x00,  // 02: Color compare
         0x00,  // 03: Data rotate
         0x00,  // 04: Read map select
-        0x10,  // 05: Graphics mode (FIXED: text mode, even/odd)
+        0x10,  // 05: Graphics mode
         0x0E,  // 06: Memory map select (0xB8000-0xBFFFF)
         0x00,  // 07: Color don't care
         0xFF   // 08: Bit mask
@@ -2039,11 +2039,5 @@ void vga_init()
 
     inb(0x3DA);  // Reset flip-flop
     outb(0x3C0, 0x20);  // Enable palette and video output
-
-    uint8_t* vga = (uint8_t*)0xB8000;
-    for(int i = 0; i < 80*25; i++) {
-        vga[i*2] = 0x20 + (i % 96);
-        vga[i*2 + 1] = 0x00 + (i % 0xF);
-    }
 
 }

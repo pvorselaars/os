@@ -13,6 +13,7 @@ extern void interrupt4();
 extern void interrupt13();
 extern void interrupt14();
 extern void interrupt20();
+extern void interrupt21();
 extern void interrupt24();
 
 void zero()
@@ -54,9 +55,8 @@ void remap_PIC()
 	outb(PIC1_DATA, PIC_8086);
 	outb(PIC2_DATA, PIC_8086);
 
-	outb(PIC1_DATA, (uint8_t)0b11101110);
+	outb(PIC1_DATA, (uint8_t)0b11101100);
 	outb(PIC2_DATA, (uint8_t)0xff);
-
 }
 
 void pit_init()
@@ -90,7 +90,6 @@ void register_interrupt(interrupt_descriptor * idt, unsigned int number, int sel
 void interrupt_init()
 {
 	remap_PIC();
-	pit_init();
 
 	idtr.size = MAX_INTERRUPTS * sizeof(interrupt_descriptor) - 1;
 	idtr.offset = idt;
@@ -101,8 +100,11 @@ void interrupt_init()
 	register_interrupt(idt, 0xD,  CODE_SEG, interrupt13, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0xE,  CODE_SEG, interrupt14, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0x20, CODE_SEG, interrupt20, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x21, CODE_SEG, interrupt21, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0x24, CODE_SEG, interrupt24, KERNEL, INTERRUPT_GATE, 0);
 
 	load_idt(&idtr);
+
+	pit_init();
 	enable_interrupts();
 }

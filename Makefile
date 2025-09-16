@@ -51,7 +51,7 @@ stop:
 	tmux kill-session -t os
 
 run: bin/os
-	$(QEMU)
+	$(QEMU) 
 
 bin/os: $(OBJ) | dir
 	ld -Tlink.ld $(LFLAGS) -o bin/os.elf $^

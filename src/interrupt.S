@@ -9,6 +9,7 @@
 .globl interrupt13
 .globl interrupt14
 .globl interrupt20
+.globl interrupt21
 .globl interrupt24
 
 .globl halt
@@ -69,6 +70,12 @@ interrupt14:
 
 interrupt20:
 	incq ticks(%rip)
+	mov $0x20, %al
+	out %al, $0x20
+	iretq
+
+interrupt21:
+	call ps2_keyboard_interrupt
 	mov $0x20, %al
 	out %al, $0x20
 	iretq

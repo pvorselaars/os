@@ -7,6 +7,7 @@
 #include "serial.h"
 #include "parallel.h"
 #include "video.h"
+#include "ps2.h"
 
 void kernel()
 {
@@ -15,6 +16,8 @@ void kernel()
 	serial_init();
 	interrupt_init();
 	vga_init();
+	console_init();
+	ps2_init();
 
 	while (1)
 		halt();
