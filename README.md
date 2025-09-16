@@ -12,8 +12,8 @@ A minimal operating system for x86_64. Designed for learning and experimenting w
 - [x] Basic audio driver
 - [x] RS232 support
 - [x] Parallel port support
-- [ ] VGA support
-- [ ] PS/2 keyboard support
+- [x] VGA support
+- [x] PS/2 keyboard support
 - [ ] Process management
 - [ ] Bootable on real hardware
 - [ ] Mouse support
