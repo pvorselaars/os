@@ -13,35 +13,28 @@ void console_init()
 	outb(0x3d5, (cursor / 2 >> 8) & 0xff);
 }
 
-void print(const char *str)
+void put(const char c)
 {
+	switch (c) {
+	case '\n':
+		cursor = (cursor / 160 + 1) * 160;
+		break;
 
-	while (*str) {
+	case '\t':
+		cursor += 8;
+		break;
 
-		switch (*str) {
-		case '\n':
-			cursor = (cursor / 160 + 1) * 160;
-			break;
+	default:
+		vga[cursor] = c;
+		cursor += 2;
+		break;
+	}
 
-		case '\t':
-			cursor += 8;
-			break;
-
-		default:
-			vga[cursor] = *str;
-			cursor += 2;
-			break;
-		}
-
-		// scroll screen up
-		if (cursor > 4000) {
-			memcpy(vga, vga + 160, 3840);
-			memsetw(vga + 3840, 0x0f20, 160);
-			cursor = 3840;
-		} else {
-			str++;
-		}
-
+	// scroll screen up
+	if (cursor > 4000) {
+		memcpy(vga, vga + 160, 3840);
+		memsetw(vga + 3840, 0x0f20, 160);
+		cursor = 3840;
 	}
 
 	// update cursor
@@ -49,7 +42,13 @@ void print(const char *str)
 	outb(0x3d5, cursor / 2 & 0xff);
 	outb(0x3d4, 0x0e);
 	outb(0x3d5, (cursor / 2 >> 8) & 0xff);
+}
 
+void print(const char *str)
+{
+	while (*str) {
+		put(*str++);
+	}
 }
 
 int printf(const char *format, ...)
