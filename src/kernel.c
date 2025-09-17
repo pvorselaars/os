@@ -1,6 +1,7 @@
-#include "console.h"
 #include "memory.h"
 #include "interrupt.h"
+#include "process.h"
+#include "console.h"
 #include "disk.h"
 #include "utils.h"
 #include "audio.h"
@@ -13,8 +14,11 @@ void kernel()
 {
 
 	memory_init();
-	serial_init();
 	interrupt_init();
+	process_init();
+
+	// TOOD: move these to loadable driver processes
+	serial_init();
 	vga_init();
 	console_init();
 	ps2_init();

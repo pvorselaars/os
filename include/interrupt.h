@@ -12,6 +12,24 @@
 
 #pragma pack(1)
 typedef struct {
+    uint32_t reserved0;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
+    uint64_t reserved1;
+    uint64_t ist1;
+    uint64_t ist2;
+    uint64_t ist3;
+    uint64_t ist4;
+    uint64_t ist5;
+    uint64_t ist6;
+    uint64_t ist7;
+    uint64_t reserved2;
+    uint16_t reserved3;
+    uint16_t iomap_base;
+} tss64;
+
+typedef struct {
 	uint16_t offset_low;
 	uint16_t selector;
 	uint8_t ist;
@@ -20,9 +38,7 @@ typedef struct {
 	uint32_t offset_high;
 	uint32_t reserved;
 } interrupt_descriptor;
-#pragma pack()
 
-#pragma pack(1)
 typedef struct {
 	unsigned short size;
 	interrupt_descriptor *offset;

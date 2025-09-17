@@ -2,14 +2,21 @@
 
 interrupt_descriptor idt[MAX_INTERRUPTS];
 idt_descriptor idtr;
+tss64 tss;
+
+uint64_t kernel_stack[512];
+uint64_t gp_stack[512];
+uint64_t df_stack[512];
 
 uint64_t ticks = 0;
 
 extern void load_idt(idt_descriptor * idtr);
+extern void load_tss(uint32_t selector);
 
 extern void interrupt0();
 extern void interrupt2();
 extern void interrupt4();
+extern void interrupt8();
 extern void interrupt13();
 extern void interrupt14();
 extern void interrupt20();
@@ -29,6 +36,11 @@ void nmi()
 void overflow()
 {
 	fatal("Overflow!");
+}
+
+void double_fault()
+{
+	fatal("Double fault!");
 }
 
 void general_protection_fault(address instruction, unsigned long selector)
@@ -91,13 +103,19 @@ void interrupt_init()
 {
 	remap_PIC();
 
+	tss.rsp0 = (uint64_t) &kernel_stack[511];
+	tss.ist1 = (uint64_t) &df_stack[511];
+	tss.ist2 = (uint64_t) &gp_stack[511];
+	load_tss(0x28);
+
 	idtr.size = MAX_INTERRUPTS * sizeof(interrupt_descriptor) - 1;
 	idtr.offset = idt;
 
 	register_interrupt(idt, 0x0,  CODE_SEG, interrupt0, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0x2,  CODE_SEG, interrupt2, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0x4,  CODE_SEG, interrupt4, KERNEL, INTERRUPT_GATE, 0);
-	register_interrupt(idt, 0xD,  CODE_SEG, interrupt13, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x8,  CODE_SEG, interrupt8, KERNEL, INTERRUPT_GATE, 1);
+	register_interrupt(idt, 0xD,  CODE_SEG, interrupt13, KERNEL, INTERRUPT_GATE, 2);
 	register_interrupt(idt, 0xE,  CODE_SEG, interrupt14, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0x20, CODE_SEG, interrupt20, KERNEL, INTERRUPT_GATE, 0);
 	register_interrupt(idt, 0x21, CODE_SEG, interrupt21, KERNEL, INTERRUPT_GATE, 0);

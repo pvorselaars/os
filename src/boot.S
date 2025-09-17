@@ -103,6 +103,9 @@ gdt:
   # 64-bit data segment (0x20)
   SEGMENT(SDA_P | SDA_S | SDA_W, SDF_L, 0x0, 0x0)
 
+  # 64-bit TSS segment, placeholder (0x28)
+  SEGMENT(0, 0, 0, 0)
+
 gdt_descriptor:
   .word gdt_descriptor - gdt - 1    # size of GDT - 1
   .long gdt                         # GDT address

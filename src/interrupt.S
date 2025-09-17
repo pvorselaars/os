@@ -1,4 +1,5 @@
 .globl load_idt
+.globl load_tss
 .globl enable_interrupts
 .globl disable_interrupts
 .globl interrupt
@@ -6,6 +7,7 @@
 .globl interrupt0
 .globl interrupt2
 .globl interrupt4
+.globl interrupt8
 .globl interrupt13
 .globl interrupt14
 .globl interrupt20
@@ -29,6 +31,10 @@ halt:
 
 load_idt:
 	lidt (%rdi)
+	ret
+
+load_tss:
+	ltr (%rdi)
 	ret
 
 enable_interrupts:
@@ -55,10 +61,21 @@ interrupt4:
 	call overflow
 	iretq
 
+interrupt8:
+	call double_fault
+	iretq
+
 interrupt13:
+	push %rsi
+	push %rdi
+
+	mov 8(%rsp), %rsi  # Get error code
+	mov 16(%rsp), %rdi # Get RIP
+	call general_protection_fault
+
 	pop %rsi
 	pop %rdi
-	call general_protection_fault
+	add $8, %rsp
 	iretq
 
 interrupt14:

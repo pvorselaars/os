@@ -40,7 +40,7 @@ OBJ := $(OBJ:.S=.o)
 
 gdb: bin/os
 	tmux new-session -d -s os
-	tmux send-keys -t os "$(QEMU) -S -d cpu_reset,guest_errors -gdb tcp::1235" Enter
+	tmux send-keys -t os "$(QEMU) -S -d cpu_reset,int,guest_errors -no-reboot -gdb tcp::1235" Enter
 	#tmux split-window -t os -v
 	#tmux send-keys -t os "tail -f lpt.log" Enter
 	tmux split-window -t os -h
@@ -51,7 +51,7 @@ stop:
 	tmux kill-session -t os
 
 run: bin/os
-	$(QEMU) 
+	$(QEMU)
 
 bin/os: $(OBJ) | dir
 	ld -Tlink.ld $(LFLAGS) -o bin/os.elf $^
