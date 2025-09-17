@@ -20,7 +20,7 @@ LFLAGS = --no-relax
 QEMU = qemu-system-x86_64 \
 						-monitor telnet:127.0.01:1234,server,nowait\
 						-nodefaults \
-						-no-acpi \
+						-machine acpi=off \
 						-bios bin/os \
 						-M isapc \
 						-cpu qemu64,-apic,-x2apic \
