@@ -24,7 +24,7 @@ QEMU = qemu-system-x86_64 \
 						-bios bin/os \
 						-M isapc \
 						-cpu qemu64,-apic,-x2apic \
-						-m 64M \
+						-m 4M \
 						-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 						-serial stdio \
 						-parallel file:lpt.log \
@@ -55,6 +55,7 @@ run: bin/os
 
 bin/os: $(OBJ) | dir
 	ld -Tlink.ld $(LFLAGS) -o bin/os.elf $^
+	objdump -d bin/os.elf > os.l
 	objcopy -X -O binary bin/os.elf $@
 
 obj/%.o: src/%.c src/%.S include/%.h | dir

@@ -1,5 +1,6 @@
 #include "interrupt.h"
 
+extern uint64_t gdt[7];
 interrupt_descriptor idt[MAX_INTERRUPTS];
 idt_descriptor idtr;
 tss64 tss;
@@ -19,9 +20,9 @@ extern void interrupt4();
 extern void interrupt8();
 extern void interrupt13();
 extern void interrupt14();
-extern void interrupt20();
-extern void interrupt21();
-extern void interrupt24();
+extern void interrupt32();
+extern void interrupt33();
+extern void interrupt36();
 
 void zero()
 {
@@ -67,7 +68,7 @@ void remap_PIC()
 	outb(PIC1_DATA, PIC_8086);
 	outb(PIC2_DATA, PIC_8086);
 
-	outb(PIC1_DATA, (uint8_t)0b11101100);
+	outb(PIC1_DATA, (uint8_t)0b11101000);
 	outb(PIC2_DATA, (uint8_t)0xff);
 }
 
@@ -79,6 +80,30 @@ void pit_init()
     outb(PIT_CHANNEL_0, (uint8_t) (divisor >> 8));
 
 	return;
+}
+
+void set_gdt_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags)
+{
+	assert(index <= 5);
+
+	gdt[index] = 0;
+
+	gdt[index] |= (limit & 0xffff);            		// Limit bits 0-15
+	gdt[index] |= (base & 0xffffff) << 16;     		// Base bits 0-23
+	gdt[index] |= (uint64_t)(access & 0xff) << 40;  // Access byte
+	gdt[index] |= ((limit >> 16) & 0xf) << 48; 		// Limit bits 16-19
+	gdt[index] |= (uint64_t)(flags & 0xf) << 52;    // Flags
+	gdt[index] |= ((base >> 24) & 0xff) << 56; 		// Base bits 24-31
+}
+
+void set_tss_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags)
+{
+	gdt[index] = 0;
+	gdt[index+1] = 0;
+
+	set_gdt_entry(index, base, limit, access, flags);
+
+	gdt[index+1] |= (base >> 32) & 0xffffffff;   // Base bits 32-63
 }
 
 void register_interrupt(interrupt_descriptor * idt, unsigned int number, int selector, void (*function)(void),
@@ -106,7 +131,10 @@ void interrupt_init()
 	tss.rsp0 = (uint64_t) &kernel_stack[511];
 	tss.ist1 = (uint64_t) &df_stack[511];
 	tss.ist2 = (uint64_t) &gp_stack[511];
-	load_tss(0x28);
+	tss.iomap_base = sizeof(tss64);
+
+	set_tss_entry(5, (uint64_t)&tss, sizeof(tss64)-1, 0x89, 0);
+	load_tss(5*8);
 
 	idtr.size = MAX_INTERRUPTS * sizeof(interrupt_descriptor) - 1;
 	idtr.offset = idt;
@@ -117,9 +145,9 @@ void interrupt_init()
 	register_interrupt(idt, 0x8,  CODE_SEG, interrupt8, KERNEL, INTERRUPT_GATE, 1);
 	register_interrupt(idt, 0xD,  CODE_SEG, interrupt13, KERNEL, INTERRUPT_GATE, 2);
 	register_interrupt(idt, 0xE,  CODE_SEG, interrupt14, KERNEL, INTERRUPT_GATE, 0);
-	register_interrupt(idt, 0x20, CODE_SEG, interrupt20, KERNEL, INTERRUPT_GATE, 0);
-	register_interrupt(idt, 0x21, CODE_SEG, interrupt21, KERNEL, INTERRUPT_GATE, 0);
-	register_interrupt(idt, 0x24, CODE_SEG, interrupt24, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x20, CODE_SEG, interrupt32, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x21, CODE_SEG, interrupt33, KERNEL, INTERRUPT_GATE, 0);
+	register_interrupt(idt, 0x24, CODE_SEG, interrupt36, KERNEL, INTERRUPT_GATE, 0);
 
 	load_idt(&idtr);
 

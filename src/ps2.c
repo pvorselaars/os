@@ -31,10 +31,21 @@ void ps2_keyboard_interrupt() {
     }
 }
 
+static inline void ps2_wait_write() {
+    while (inb(PS2_STATUS_PORT) & 0x02) { /* wait until input buffer empty */ }
+}
+
+static inline void ps2_wait_read() {
+    while (!(inb(PS2_STATUS_PORT) & 0x01)) { /* wait until output buffer full */ }
+}
+
+
 void ps2_init() {
 
     // Disable devices
+    ps2_wait_write();
     outb(PS2_COMMAND_PORT, 0xAD); // Disable first PS/2 port (keyboard)
+    ps2_wait_write();
     outb(PS2_COMMAND_PORT, 0xA7); // Disable second PS/2 port (mouse)
 
     // Flush output buffer
@@ -43,57 +54,40 @@ void ps2_init() {
     }
 
     // Set controller configuration byte
+    ps2_wait_write();
     outb(PS2_COMMAND_PORT, 0x20);
+
+    ps2_wait_read();
     uint8_t config = inb(PS2_DATA_PORT);
+
+    ps2_wait_write();
     outb(PS2_COMMAND_PORT, 0x60);
+    ps2_wait_write();
     outb(PS2_DATA_PORT, 0b01010101);
 
-    // Determine if second PS/2 port is present
-    outb(PS2_COMMAND_PORT, 0xA8);
-    outb(PS2_COMMAND_PORT, 0x20);
-    config = inb(PS2_DATA_PORT);
-    bool second_port_present = config & 0x20;
-    if (second_port_present) {
-        outb(PS2_COMMAND_PORT, 0xA7);
-    }
-
     // Perform controller self-test
+    ps2_wait_write();
     outb(PS2_COMMAND_PORT, 0xAA);
     uint8_t self_test_result = inb(PS2_DATA_PORT);
     if (self_test_result != 0x55) {
         // Self-test failed, TODO: handle error
-    }
+    } else {
+        // Enable interrupts for devices
+        ps2_wait_write();
+        outb(PS2_COMMAND_PORT, 0x20);
 
-    if (second_port_present) {
-        // Test second PS/2 port
-        outb(PS2_COMMAND_PORT, 0xA9);
-        uint8_t port_test_result = inb(PS2_DATA_PORT);
-        if (port_test_result != 0x00) {
-            // Second port test failed, TODO: handle error
-        }
-    }
+        ps2_wait_read();
+        config = inb(PS2_DATA_PORT);
+        config |= 0x01;
+        ps2_wait_write();
+        outb(PS2_COMMAND_PORT, 0x60);
+        ps2_wait_write();
+        outb(PS2_DATA_PORT, config);    
 
-    // Enable devices
-    outb(PS2_COMMAND_PORT, 0xAE);
-    if (second_port_present) {
-        outb(PS2_COMMAND_PORT, 0xA8);
-    }
+        // Enable devices
+        ps2_wait_write();
+        outb(PS2_COMMAND_PORT, 0xAE);
 
-    // Enable interrupts for devices
-    outb(PS2_COMMAND_PORT, 0x20);
-    config = inb(PS2_DATA_PORT);
-    config |= 0x01;
-    if (second_port_present) {
-        config |= 0x02;
-    }
-    outb(PS2_COMMAND_PORT, 0x60);
-    outb(PS2_DATA_PORT, config);    
-
-    // Reset devices
-    outb(PS2_DATA_PORT, 0xFF);
-    if (second_port_present) {
-        outb(PS2_COMMAND_PORT, 0xD4);
-        outb(PS2_DATA_PORT, 0xFF); 
     }
 
 }

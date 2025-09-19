@@ -16,18 +16,6 @@ static unsigned long total_memory_reserved;
 
 pml4e *pml4 = (pml4e *) PML4_ADDRESS;
 
-void memory_init()
-{
-	free_regions[0].start = 0x100000;
-	free_regions[0].size = (0x100000)*63;
-
-	total_regions = 1;
-	total_memory = (0x10000)*64;
-	total_memory_free = free_regions[0].size;
-	total_memory_reserved = total_memory - total_memory_free;
-
-}
-
 // TODO: more efficient sorting algorithm
 static void sort(region r[], int size)
 {
@@ -85,6 +73,11 @@ int map(address va, address pa, int flags)
 	}
 
 	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
+
+	if (pd[pd_offset] & PAGE_PS & PAGE_PRESENT) {
+		pd[pd_offset] = flags | PAGE_PS;
+		return 0;
+	}
 
 	if (!(pd[pd_offset] & PAGE_PRESENT)) {
 		page *p = alloc();
@@ -177,7 +170,7 @@ page *alloc()
 
 		sort(free_regions, total_regions);
 
-		memsetq((void *)p, 0, PAGE_SIZE / 8);
+		//memsetq((void *)p, 0, PAGE_SIZE / 8);
 	}
 
 	return p;
@@ -309,4 +302,17 @@ void examine(void* ptr, unsigned long bytes)
 		printf("%02x ", *mem++);
 	}
 	printf("\n");
+}
+
+void memory_init()
+{
+	total_regions = 1;
+	total_memory = 0x400000;
+
+	free_regions[0].start = 0x200000;
+	free_regions[0].size = total_memory - free_regions[0].start;
+
+	total_memory_free = total_memory - free_regions[0].size;
+	total_memory_reserved = total_memory - total_memory_free;
+
 }

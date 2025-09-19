@@ -15,12 +15,11 @@ void kernel()
 
 	memory_init();
 	interrupt_init();
-	process_init();
-
-	// TOOD: move these to loadable driver processes
-	serial_init();
 	vga_init();
 	console_init();
+	process_init();
+
+	serial_init();
 	ps2_init();
 
 	while (1)
