@@ -1,3 +1,5 @@
+#include "memory.h"
+
 .globl load_idt
 .globl load_tss
 .globl enable_interrupts
@@ -153,5 +155,3 @@ interrupt36:
 	mov $0x20, %al
 	out %al, $0x20
 	iretq
-
-
