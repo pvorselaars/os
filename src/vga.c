@@ -1920,7 +1920,7 @@ void vga_load_font(void) {
     outb(0x3CE, 0x06); outb(0x3CF, 0x00); // Map to A0000-AFFFF
     
     // Load font data into video memory plane 2
-    uint8_t* font_mem = (uint8_t*)0xA0000;
+    uint8_t* font_mem = (uint8_t*)virtual_address(0xA0000);
     
     // Clear font memory first
     memsetq(font_mem, 0, 1024);

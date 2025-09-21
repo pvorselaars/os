@@ -7,6 +7,7 @@
 .globl memcmp
 .globl memory_move
 .globl memory_copy
+.globl flush_tlb
 
 .section .text
 
@@ -65,4 +66,9 @@ memory_copy:
   1:
   mov %rdx, %rcx
   rep movsb
+  ret
+
+flush_tlb:
+  mov %cr3, %rax
+  mov %rax, %cr3
   ret

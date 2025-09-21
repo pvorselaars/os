@@ -57,7 +57,8 @@ typedef enum {
 	USER = 3
 } privilege_level;
 
-void interrupt_init(void *gdt_address);
+void interrupt_init();
+void interrupt_set_stack_pointer(uint64_t stack_pointer);
 
 void enable_interrupts();
 void disable_interrupts();

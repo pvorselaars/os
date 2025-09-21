@@ -1,6 +1,6 @@
 #include "console.h"
 
-static char *vga = (char *)0xb8000;
+static char *vga = (char *)virtual_address(0xb8000);
 static int cursor = 0;
 
 void console_init()

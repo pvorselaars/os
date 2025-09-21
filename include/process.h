@@ -14,13 +14,15 @@ typedef enum {
 typedef struct process process;
 
 struct process {
-    process *parent;
-    process_state state;
-    void *memory;
+    void *entry;
+    uint64_t stack_base;
+    uint64_t stack_pointer;
+    uint64_t pagetable;
     uint64_t size;
+    process_state state;
 };
 
 void process_init();
-void schedule();
+uint64_t schedule(uint64_t stack_pointer);
 
 #endif

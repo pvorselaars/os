@@ -1,6 +1,5 @@
 #include "interrupt.h"
 
-uint64_t *gdt;
 interrupt_descriptor idt[MAX_INTERRUPTS];
 idt_descriptor idtr;
 tss64 tss;
@@ -11,6 +10,7 @@ uint64_t df_stack[512];
 
 uint64_t ticks = 0;
 
+extern uint64_t *gdt;
 extern void load_idt(idt_descriptor * idtr);
 extern void load_tss(uint32_t selector);
 
@@ -98,12 +98,10 @@ void set_gdt_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uin
 
 void set_tss_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags)
 {
-	gdt[index] = 0;
-	gdt[index+1] = 0;
 
 	set_gdt_entry(index, base, limit, access, flags);
 
-	gdt[index+1] |= (base >> 32) & 0xffffffff;   // Base bits 32-63
+	gdt[index+1] = (base >> 32) & 0xffffffff;   // Base bits 32-63
 }
 
 void register_interrupt(interrupt_descriptor * idt, unsigned int number, int selector, void (*function)(void),
@@ -124,10 +122,13 @@ void register_interrupt(interrupt_descriptor * idt, unsigned int number, int sel
 
 }
 
-void interrupt_init(void *gdt_address)
+void interrupt_set_stack_pointer(uint64_t stack_pointer)
 {
-	gdt = gdt_address;
+	tss.rsp0 = stack_pointer;
+}
 
+void interrupt_init()
+{
 	remap_PIC();
 
 	tss.rsp0 = (uint64_t) &kernel_stack[511];

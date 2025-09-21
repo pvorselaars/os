@@ -115,15 +115,20 @@ switch:
 	push %r13
 	push %r14
 	push %r15
+	push %rbp
 
-	mov DATA_SEG, %rax
+	mov $DATA_SEG, %rax
 	mov %rax, %ds
 	mov %rax, %es
 	mov %rax, %fs
 	mov %rax, %gs
 	mov %rax, %ss
 
+	mov %rsp, %rdi
 	call schedule
+
+	mov %rax, %rsp
+	pop %rbp
 
 	pop %r15
 	pop %r14

@@ -24,7 +24,7 @@ QEMU = qemu-system-x86_64 \
 						-bios bin/os \
 						-M isapc \
 						-cpu qemu64,-apic,-x2apic,+pdpe1gb \
-						-m 4M \
+						-m 2M \
 						-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 						-serial stdio \
 						-parallel file:lpt.log \
@@ -40,7 +40,7 @@ OBJ := $(OBJ:.S=.o)
 
 gdb: bin/os
 	tmux new-session -d -s os
-	tmux send-keys -t os "$(QEMU) -S -d cpu_reset,int,guest_errors -no-reboot -gdb tcp::1235" Enter
+	tmux send-keys -t os "$(QEMU) -S -d cpu_reset,int,guest_errors -no-reboot -gdb tcp::1235 -D qemu.log" Enter
 	#tmux split-window -t os -v
 	#tmux send-keys -t os "tail -f lpt.log" Enter
 	tmux split-window -t os -h

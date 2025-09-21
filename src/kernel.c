@@ -1,3 +1,4 @@
+#include "gdt.h"
 #include "memory.h"
 #include "interrupt.h"
 #include "process.h"
@@ -10,15 +11,14 @@
 #include "video.h"
 #include "ps2.h"
 
-void kernel(uint64_t *gdt_address)
+void kernel(gdt_descriptor *gdt_descriptor)
 {
 
 	memory_init();
-	interrupt_init(gdt_address); // TODO: setup kernel GDT
+	gdt_init(virtual_address(gdt_descriptor));
+	interrupt_init(); // TODO: setup kernel GDT
 	vga_init();
 	console_init();
-
-	print_regions();
 
 	process_init(); // IDEA: 1 page for kernel stack and proc info, 1 page for PDPT
 

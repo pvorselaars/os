@@ -32,12 +32,13 @@
 #define CODE_SEG 0x18 // Kernel code segment index
 #define DATA_SEG 0x20 // Kernel data segment index
 
-#define PML4_ADDRESS 0xEB000
+#define PML4_ADDRESS 0x1000
 #define BOOT_SEGMENT 0xF000
 
 #define PAGE_SIZE 0x1000
 
-#define KERNEL_BASE 0xFFFFFFFF80000000
+#define KERNEL_BASE  0xFFFFFF8000000000
+#define KERNEL_STACK KERNEL_BASE + 0x200000 - 1
 
 #define physical_address(va) ((uint64_t)(va)-KERNEL_BASE)
 #define virtual_address(pa) ((void *)((uint64_t)(pa) + KERNEL_BASE))
@@ -75,7 +76,8 @@ int memcmp(const void *ptr1, const void *ptr2, const uint64_t num);
 void memory_move(void *dst, const void *src, const uint64_t num);
 void memory_copy(void *dst, const void *src, const uint64_t num);
 
-int memory_map(uint64_t va, uint64_t pa, int32_t flags);
+uint64_t memory_map(uint64_t va, uint64_t pa, int32_t flags);
+void memory_map_userpages(uint64_t pdpt);
 int memory_unmap(address va);
 void *memory_allocate(void);
 void memory_deallocate(void *page);
@@ -84,6 +86,8 @@ void memory_init();
 void print_regions();
 void print_pagetable_entries(address a);
 void examine(void *ptr, uint64_t bytes);
+
+extern void flush_tlb();
 
 #endif
 

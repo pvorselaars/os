@@ -75,9 +75,10 @@ long_mode:
   mov %rax, %fs
   mov %rax, %gs
   mov %rax, %ss
-  mov $0xF0000, %rsp
+  mov $KERNEL_STACK, %rsp
+  mov %rsp, %rbp
 
-  movabs $gdt, %rdi
+  movabs $gdt_descriptor, %rdi
   movabs $kernel, %rax
   jmp *%rax
 
@@ -110,7 +111,7 @@ gdt:
 
 gdt_descriptor:
   .word gdt_descriptor - gdt - 1    # size of GDT - 1
-  .long gdt                         # GDT address
+  .quad KERNEL_BASE + gdt           # GDT virtual address
 
 .section .reset,"ax"
 .code16

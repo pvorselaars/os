@@ -6,14 +6,14 @@ typedef struct region
 	unsigned long size;
 } region;
 
-region *free_regions = (region *)0xA000;
+region *free_regions = (region *)virtual_address(0x0);
 
 static unsigned long total_regions;
 static unsigned long total_memory;
 static unsigned long total_memory_free;
 static unsigned long total_memory_reserved;
 
-pml4e *pml4 = (pml4e *)PML4_ADDRESS;
+pml4e *pml4 = (pml4e *)virtual_address(PML4_ADDRESS);
 
 // TODO: more efficient sorting algorithm
 static void sort(region r[], int size)
@@ -37,9 +37,10 @@ static void sort(region r[], int size)
 	}
 }
 
-int memory_map(uint64_t va, uint64_t pa, int flags)
+uint64_t memory_map(uint64_t va, uint64_t pa, int flags)
 {
-	assert(pa == ALIGN(pa, PAGE_SIZE));
+	assert(IS_ALIGNED(pa, PAGE_SIZE));
+	assert(IS_ALIGNED(va, PAGE_SIZE));
 
 	pdpte *pdpt;
 	pde *pd;
@@ -62,7 +63,7 @@ int memory_map(uint64_t va, uint64_t pa, int flags)
 		pml4[pml4_offset] = (pml4e)p | flags;
 	}
 
-	pdpt = (pdpte *)((pml4[pml4_offset] >> 12) << 12);
+	pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 	{
@@ -76,12 +77,12 @@ int memory_map(uint64_t va, uint64_t pa, int flags)
 		pdpt[pdpt_offset] = (pdpte)p | flags;
 	}
 
-	pd = (pde *)((pdpt[pdpt_offset] >> 12) << 12);
+	pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (pd[pd_offset] & (PAGE_PS | PAGE_PRESENT))
 	{
 		pd[pd_offset] = flags | PAGE_PS;
-		return 0;
+		return pml4[pml4_offset];
 	}
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
@@ -96,20 +97,21 @@ int memory_map(uint64_t va, uint64_t pa, int flags)
 		pd[pd_offset] = (pde)p | flags;
 	}
 
-	pt = (pte *)((pd[pd_offset] >> 12) << 12);
+	pt = (pte *)virtual_address((pd[pd_offset] >> 12) << 12);
 
 	if (pt[pt_offset] & PAGE_PRESENT)
 	{
-		return -1;
+		return 0;
 	}
 	else
 	{
 		pt[pt_offset] = (pte)pa | flags;
 	}
 
-	return 0;
+	return pml4[pml4_offset];
 }
 
+/*
 static bool empty(unsigned long *table)
 {
 	for (int i = 0; i < 512; i++)
@@ -120,6 +122,7 @@ static bool empty(unsigned long *table)
 
 	return true;
 }
+*/
 
 int memory_unmap(address va)
 {
@@ -135,38 +138,34 @@ int memory_unmap(address va)
 	if (!(pml4[pml4_offset] & PAGE_PRESENT))
 		return -1;
 
-	pdpt = (pdpte *)((pml4[pml4_offset] >> 12) << 12);
+	pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 		return -1;
 
-	pd = (pde *)((pdpt[pdpt_offset] >> 12) << 12);
+	if (pdpt[pdpt_offset] & PAGE_PS)
+	{
+		pdpt[pdpt_offset] = 0;
+		return 0;
+	}
+
+	pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
 		return -1;
 
-	pt = (pte *)((pd[pd_offset] >> 12) << 12);
-
-	pt[pt_offset] ^= PAGE_PRESENT;
-
-	// Cascade free pages in page table structure
-	if (empty(pt))
+	if (pd[pd_offset] & PAGE_PS)
 	{
-		pd[pd_offset] ^= PAGE_PRESENT;
-		memory_deallocate(pt);
-
-		if (empty(pd))
-		{
-			pdpt[pdpt_offset] ^= PAGE_PRESENT;
-			memory_deallocate(pd);
-
-			if (empty(pdpt))
-			{
-				pml4[pml4_offset] ^= PAGE_PRESENT;
-				memory_deallocate(pdpt);
-			}
-		}
+		pd[pd_offset] = 0;
+		return 0;
 	}
+
+	pt = (pte *)virtual_address((pd[pd_offset] >> 12) << 12);
+
+	if (!(pt[pt_offset] & PAGE_PRESENT))
+		return -1;
+
+	pt[pt_offset] = 0;
 
 	return 0;
 }
@@ -244,6 +243,11 @@ void memory_deallocate(void *page)
 	sort(free_regions, total_regions);
 }
 
+void memory_map_userpages(uint64_t pdpt)
+{
+	pml4[0] = pdpt;
+}
+
 void print_pagetable_entries(address a)
 {
 	pdpte *pdpt;
@@ -263,7 +267,7 @@ void print_pagetable_entries(address a)
 	}
 
 	printf("PML4: %016lx\n", pml4[pml4_offset]);
-	pdpt = (pdpte *)((pml4[pml4_offset] >> 12) << 12);
+	pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 	{
@@ -272,7 +276,7 @@ void print_pagetable_entries(address a)
 	}
 
 	printf("PDPT: %016lx\n", pdpt[pdpt_offset]);
-	pd = (pde *)((pdpt[pdpt_offset] >> 12) << 12);
+	pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
 	{
@@ -287,7 +291,7 @@ void print_pagetable_entries(address a)
 		return;
 	}
 
-	pt = (pte *)((pd[pd_offset] >> 12) << 12);
+	pt = (pte *)virtual_address((pd[pd_offset] >> 12) << 12);
 
 	if (!(pt[pt_offset] & PAGE_PRESENT))
 	{
@@ -328,21 +332,24 @@ void examine(void *ptr, unsigned long bytes)
 void memory_init()
 {
 	total_regions = 4;
-	total_memory = 0x400000;
+	total_memory = 0x200000;
 
-	free_regions[0].start = PAGE_SIZE;
-	free_regions[0].size = 0x9FFFF;
+	free_regions[0].start = PAGE_SIZE * 6;
+	free_regions[0].size = 0xA0000 - free_regions[0].start;
 
 	free_regions[1].start = 0xC0000;
-	free_regions[1].size = 0xEB000 - 0xC0000;
+	free_regions[1].size = 0xF0000 - 0xC0000;
 
-	free_regions[2].start = 0xF0000 + ALIGN((uint64_t)KERNEL_END - (uint64_t)KERNEL_VMA, PAGE_SIZE);
+	free_regions[2].start = 0xF0000 + ALIGN_UP((uint64_t)KERNEL_END - (uint64_t)KERNEL_VMA, PAGE_SIZE);
 	free_regions[2].size = 0x100000 - free_regions[2].start;
 
 	free_regions[3].start = 0x100000;
-	free_regions[3].size = 0x400000 - 0x100000;
+	free_regions[3].size = total_memory - 0x100000;
 
 	total_memory_free = free_regions[0].size + free_regions[1].size + free_regions[2].size + free_regions[3].size;
 	total_memory_reserved = total_memory - total_memory_free;
 
+	// Remove bootstrap identity mapping
+	pml4[0] = 0;
+	flush_tlb();
 }
