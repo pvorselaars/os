@@ -1,6 +1,6 @@
 #include "interrupt.h"
 
-extern uint64_t gdt[7];
+uint64_t *gdt;
 interrupt_descriptor idt[MAX_INTERRUPTS];
 idt_descriptor idtr;
 tss64 tss;
@@ -124,8 +124,10 @@ void register_interrupt(interrupt_descriptor * idt, unsigned int number, int sel
 
 }
 
-void interrupt_init()
+void interrupt_init(void *gdt_address)
 {
+	gdt = gdt_address;
+
 	remap_PIC();
 
 	tss.rsp0 = (uint64_t) &kernel_stack[511];

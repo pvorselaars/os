@@ -1,18 +1,9 @@
-# boot.S
-#
-# A very simple x64 bootloader which has 2 tasks:
-#
-# 1. Initialize the processor from 16-bit real mode to 64-bit long mode
-# 2. Hand control to the kernel
-#
-
 #include "memory.h"
 
 .set gdt_offset, gdt_descriptor - _start
 .set start_offset, 0x0
-.globl gdt
 
-.globl _start
+.globl reset_vector
 .code16
 _start:
   # Disable interrupts until kernel can setup interrupt routines
@@ -31,30 +22,31 @@ protected_mode:
   mov $0x10, %ax
   mov %ax, %ds
   # In order to enable long mode some simple paging data structures need to be
-  # present. So we identity map the first 2MiB of memory
+  # present. So we identity map the first 2MiB of memory and map the higher half of memory to the lower half.
 
-  # Clearing a buffer for PML4, PDPT, PD and PT
+  # Clearing a buffer for page tables
   mov $PML4_ADDRESS, %edi
-  mov $(PAGE_SIZE*4), %ecx
+  mov $(PAGE_SIZE*5), %ecx
   xor %eax, %eax
   cld
   rep stosl
   
   # Setup PML4
   mov $PML4_ADDRESS, %edi
-  mov $(PML4_ADDRESS + PAGE_SIZE + 0x7), %eax       # Point to PDPT, present + writable
+  mov $(PML4_ADDRESS + PAGE_SIZE + (PAGE_PRESENT | PAGE_WRITE)), %eax       # Point to PDPT, present + writable
   mov %eax, (%edi)
+  mov %eax, 511*8(%edi)
   
   # Setup Page Directory Pointer Table
   mov $(PML4_ADDRESS + PAGE_SIZE), %edi
-  mov $(PML4_ADDRESS + PAGE_SIZE * 2 + 0x7), %eax   # Point to PD, present + writable
+  mov $(PML4_ADDRESS + PAGE_SIZE * 2 + (PAGE_PRESENT | PAGE_WRITE)), %eax   # Point to PD, present + writable
   mov %eax, (%edi)
   
   # Setup Page Directory
   mov $(PML4_ADDRESS + PAGE_SIZE * 2), %edi
-  mov $0x9F, %eax                                   # 2MB page, present + writable + large
+  mov $(0x0 | PAGE_PRESENT | PAGE_PS | PAGE_WRITE), %eax                    # 2MB page, present + writable + large
   mov %eax, (%edi)
-  
+
   # Load PML4
   mov $PML4_ADDRESS, %eax
   mov %eax, %cr3
@@ -83,9 +75,11 @@ long_mode:
   mov %rax, %fs
   mov %rax, %gs
   mov %rax, %ss
-  mov $0x1000, %rsp
+  mov $0xF0000, %rsp
 
-  jmp kernel
+  movabs $gdt, %rdi
+  movabs $kernel, %rax
+  jmp *%rax
 
 .align 8
 gdt:

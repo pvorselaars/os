@@ -10,14 +10,17 @@
 #include "video.h"
 #include "ps2.h"
 
-void kernel()
+void kernel(uint64_t *gdt_address)
 {
 
 	memory_init();
-	interrupt_init();
+	interrupt_init(gdt_address); // TODO: setup kernel GDT
 	vga_init();
 	console_init();
-	process_init();
+
+	print_regions();
+
+	process_init(); // IDEA: 1 page for kernel stack and proc info, 1 page for PDPT
 
 	serial_init();
 	ps2_init();

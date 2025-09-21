@@ -23,7 +23,7 @@ QEMU = qemu-system-x86_64 \
 						-machine acpi=off \
 						-bios bin/os \
 						-M isapc \
-						-cpu qemu64,-apic,-x2apic \
+						-cpu qemu64,-apic,-x2apic,+pdpe1gb \
 						-m 4M \
 						-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 						-serial stdio \
@@ -53,7 +53,7 @@ stop:
 run: bin/os
 	$(QEMU)
 
-bin/os: $(OBJ) | dir
+bin/os: $(OBJ) | link.ld dir
 	ld -Tlink.ld $(LFLAGS) -o bin/os.elf $^
 	objdump -d bin/os.elf > os.l
 	objcopy -X -O binary bin/os.elf $@

@@ -1931,7 +1931,7 @@ void vga_load_font(void) {
         uint8_t* char_ptr = (uint8_t*)(font_mem + char_code * 32);
         
         // Copy 16 bytes of font data for this character
-        memcpy(char_ptr, vga_font[char_index], 16);
+        memory_copy(char_ptr, vga_font[char_index], 16);
     }
     
     // Restore original state

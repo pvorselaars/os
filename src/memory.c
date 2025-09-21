@@ -1,29 +1,31 @@
 #include "memory.h"
 
-typedef struct region {
+typedef struct region
+{
 	unsigned long start;
 	unsigned long size;
 } region;
 
-#define ALIGN(x, size) ((((x) + (size)) & ~(size - 1)))
-
-region *free_regions = (region *) 0xA000;
+region *free_regions = (region *)0xA000;
 
 static unsigned long total_regions;
 static unsigned long total_memory;
 static unsigned long total_memory_free;
 static unsigned long total_memory_reserved;
 
-pml4e *pml4 = (pml4e *) PML4_ADDRESS;
+pml4e *pml4 = (pml4e *)PML4_ADDRESS;
 
 // TODO: more efficient sorting algorithm
 static void sort(region r[], int size)
 {
 	region temp;
 	bool swapped = false;
-	for (int i = 0; i < size - 1; i++) {
-		for (int j = 0; j < size - i - 1; j++) {
-			if (r[j].start > r[j + 1].start) {
+	for (int i = 0; i < size - 1; i++)
+	{
+		for (int j = 0; j < size - i - 1; j++)
+		{
+			if (r[j].start > r[j + 1].start)
+			{
 				temp = r[j];
 				r[j] = r[j + 1];
 				r[j + 1] = temp;
@@ -35,9 +37,9 @@ static void sort(region r[], int size)
 	}
 }
 
-int map(address va, address pa, int flags)
+int memory_map(uint64_t va, uint64_t pa, int flags)
 {
-	assert(pa = ALIGN(pa, PAGE_SIZE));
+	assert(pa == ALIGN(pa, PAGE_SIZE));
 
 	pdpte *pdpt;
 	pde *pd;
@@ -48,53 +50,61 @@ int map(address va, address pa, int flags)
 	unsigned short pd_offset = (va >> 21) & 0x1FF;
 	unsigned short pt_offset = (va >> 12) & 0x1FF;
 
-	flags |= PAGE_PRESENT;
+	if (!(pml4[pml4_offset] & PAGE_PRESENT))
+	{
+		void *p = memory_allocate();
 
-	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
-		page *p = alloc();
-
-		if (p == NULL) {
+		if (p == NULL)
+		{
 			fatal("Unable to get page for PDPT\n");
 		}
 
-		pml4[pml4_offset] = (pml4e) p | flags;
+		pml4[pml4_offset] = (pml4e)p | flags;
 	}
 
-	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
+	pdpt = (pdpte *)((pml4[pml4_offset] >> 12) << 12);
 
-	if (!(pdpt[pdpt_offset] & PAGE_PRESENT)) {
-		page *p = alloc();
+	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
+	{
+		void *p = memory_allocate();
 
-		if (p == NULL) {
+		if (p == NULL)
+		{
 			fatal("Unable to get page for PD\n");
 		}
 
-		pdpt[pdpt_offset] = (pdpte) p | flags;
+		pdpt[pdpt_offset] = (pdpte)p | flags;
 	}
 
-	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
+	pd = (pde *)((pdpt[pdpt_offset] >> 12) << 12);
 
-	if (pd[pd_offset] & PAGE_PS & PAGE_PRESENT) {
+	if (pd[pd_offset] & (PAGE_PS | PAGE_PRESENT))
+	{
 		pd[pd_offset] = flags | PAGE_PS;
 		return 0;
 	}
 
-	if (!(pd[pd_offset] & PAGE_PRESENT)) {
-		page *p = alloc();
+	if (!(pd[pd_offset] & PAGE_PRESENT))
+	{
+		void *p = memory_allocate();
 
-		if (p == NULL) {
+		if (p == NULL)
+		{
 			fatal("Unable to get page for PT\n");
 		}
 
-		pd[pd_offset] = (pde) p | flags;
+		pd[pd_offset] = (pde)p | flags;
 	}
 
-	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
+	pt = (pte *)((pd[pd_offset] >> 12) << 12);
 
-	if (pt[pt_offset] & PAGE_PRESENT) {
+	if (pt[pt_offset] & PAGE_PRESENT)
+	{
 		return -1;
-	} else {
-		pt[pt_offset] = (pte) pa | flags;
+	}
+	else
+	{
+		pt[pt_offset] = (pte)pa | flags;
 	}
 
 	return 0;
@@ -102,7 +112,8 @@ int map(address va, address pa, int flags)
 
 static bool empty(unsigned long *table)
 {
-	for (int i = 0; i < 512; i++) {
+	for (int i = 0; i < 512; i++)
+	{
 		if (table[i] & PAGE_PRESENT)
 			return false;
 	}
@@ -110,7 +121,7 @@ static bool empty(unsigned long *table)
 	return true;
 }
 
-int unmap(address va)
+int memory_unmap(address va)
 {
 	pdpte *pdpt;
 	pde *pd;
@@ -124,88 +135,93 @@ int unmap(address va)
 	if (!(pml4[pml4_offset] & PAGE_PRESENT))
 		return -1;
 
-	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
+	pdpt = (pdpte *)((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 		return -1;
 
-	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
+	pd = (pde *)((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
 		return -1;
 
-	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
+	pt = (pte *)((pd[pd_offset] >> 12) << 12);
 
 	pt[pt_offset] ^= PAGE_PRESENT;
 
 	// Cascade free pages in page table structure
-	if (empty(pt)) {
+	if (empty(pt))
+	{
 		pd[pd_offset] ^= PAGE_PRESENT;
-		dealloc(pt);
+		memory_deallocate(pt);
 
-		if (empty(pd)) {
+		if (empty(pd))
+		{
 			pdpt[pdpt_offset] ^= PAGE_PRESENT;
-			dealloc(pd);
+			memory_deallocate(pd);
 
-			if (empty(pdpt)) {
+			if (empty(pdpt))
+			{
 				pml4[pml4_offset] ^= PAGE_PRESENT;
-				dealloc(pdpt);
+				memory_deallocate(pdpt);
 			}
-
 		}
-
 	}
 
 	return 0;
 }
 
-page *alloc()
+void *memory_allocate()
 {
-	page *p = NULL;
+	void *page = NULL;
 
-	if (free_regions[0].size > 0) {
-		p = (page *) free_regions[0].start;
+	if (free_regions[0].size > 0)
+	{
+		page = (void *)free_regions[0].start;
 		free_regions[0].start += PAGE_SIZE;
 		free_regions[0].size--;
 
 		sort(free_regions, total_regions);
-
-		//memsetq((void *)p, 0, PAGE_SIZE / 8);
 	}
 
-	return p;
+	return page;
 }
 
-void dealloc(page * p)
+void memory_deallocate(void *page)
 {
-	address a = (address) p;
 	region *current;
+	uint64_t address = (uint64_t)page;
 
-	for (int r = 0; r < total_regions; r++) {
+	for (int r = 0; r < total_regions; r++)
+	{
 		current = &free_regions[r];
 
 		// Page is located before start of free regions
-		if (current->start > (a + PAGE_SIZE)) {
+		if (current->start > (address + PAGE_SIZE))
+		{
 			assert(total_regions < 256);
-			free_regions[total_regions].start = a;
+			free_regions[total_regions].start = address;
 			free_regions[total_regions].size = 1;
 			total_regions++;
 			break;
 		}
 		// Page fits at start of free region
-		if (current->start == (a + PAGE_SIZE)) {
+		if (current->start == (address + PAGE_SIZE))
+		{
 
 			current->start -= PAGE_SIZE;
 			current->size++;
 			break;
 		}
 		// Page fits at end of free region
-		if (current->start + current->size * PAGE_SIZE == a) {
+		if (current->start + current->size * PAGE_SIZE == address)
+		{
 
 			current->size++;
 
 			// Page joins two free regions
-			if (free_regions[r + 1].start == (a + PAGE_SIZE)) {
+			if (free_regions[r + 1].start == (address + PAGE_SIZE))
+			{
 				current->size += free_regions[r + 1].size;
 				free_regions[r + 1].start = -1;
 				free_regions[r + 1].size = 0;
@@ -216,14 +232,13 @@ void dealloc(page * p)
 			break;
 		}
 		// Page is the new last region
-		if (r == total_regions - 1) {
-			assert(total_regions < 256);
-			free_regions[total_regions].start = a;
+		if (r == total_regions - 1)
+		{
+			assert(total_regions < 512);
+			free_regions[total_regions].start = address;
 			free_regions[total_regions].size = 1;
 			total_regions++;
-
 		}
-
 	}
 
 	sort(free_regions, total_regions);
@@ -241,42 +256,46 @@ void print_pagetable_entries(address a)
 	unsigned short pt_offset = (a >> 12) & 0x1FF;
 
 	printf("Addr: %016lx\n", a);
-	if (!(pml4[pml4_offset] & PAGE_PRESENT)) {
+	if (!(pml4[pml4_offset] & PAGE_PRESENT))
+	{
 		printf("Page not present %x\n", pml4_offset * 8);
 		return;
 	}
 
 	printf("PML4: %016lx\n", pml4[pml4_offset]);
-	pdpt = (pdpte *) ((pml4[pml4_offset] >> 12) << 12);
+	pdpt = (pdpte *)((pml4[pml4_offset] >> 12) << 12);
 
-	if (!(pdpt[pdpt_offset] & PAGE_PRESENT)) {
+	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
+	{
 		printf("Page not present\n");
 		return;
 	}
 
 	printf("PDPT: %016lx\n", pdpt[pdpt_offset]);
-	pd = (pde *) ((pdpt[pdpt_offset] >> 12) << 12);
+	pd = (pde *)((pdpt[pdpt_offset] >> 12) << 12);
 
-	if (!(pd[pd_offset] & PAGE_PRESENT)) {
+	if (!(pd[pd_offset] & PAGE_PRESENT))
+	{
 		printf("Page not present\n");
 		return;
 	}
 
 	printf("PD:   %016lx\n", pd[pd_offset]);
 
-	if (pd[pd_offset] & PAGE_PS) {
+	if (pd[pd_offset] & PAGE_PS)
+	{
 		return;
 	}
 
-	pt = (pte *) ((pd[pd_offset] >> 12) << 12);
+	pt = (pte *)((pd[pd_offset] >> 12) << 12);
 
-	if (!(pt[pt_offset] & PAGE_PRESENT)) {
+	if (!(pt[pt_offset] & PAGE_PRESENT))
+	{
 		printf("Page not present\n");
 		return;
 	}
 
 	printf("PT:   %016lx\n", pt[pt_offset]);
-
 }
 
 void print_regions()
@@ -285,20 +304,22 @@ void print_regions()
 	printf("Free memory regions:\n");
 	printf("%-16s %-16s\n", "address", "size");
 
-	for (int r = 0; r < total_regions; r++) {
+	for (int r = 0; r < total_regions; r++)
+	{
 		printf("%-16lx %-16lx\n", free_regions[r].start, free_regions[r].size);
 	}
 
-	printf("%ld/%ld KiB\n", total_memory_free / 0x400, total_memory / 0x400);
-
+	printf("%ld/%ld KiB free\n", total_memory_free / 0x400, total_memory / 0x400);
+	printf("%ld/%ld KiB used\n", total_memory_reserved / 0x400, total_memory / 0x400);
 }
 
-void examine(void* ptr, unsigned long bytes)
+void examine(void *ptr, unsigned long bytes)
 {
 
-	unsigned char *mem = (unsigned char*)ptr;
+	unsigned char *mem = (unsigned char *)ptr;
 
-	for (int i = 0; i < bytes; i++) {
+	for (int i = 0; i < bytes; i++)
+	{
 		printf("%02x ", *mem++);
 	}
 	printf("\n");
@@ -306,13 +327,22 @@ void examine(void* ptr, unsigned long bytes)
 
 void memory_init()
 {
-	total_regions = 1;
+	total_regions = 4;
 	total_memory = 0x400000;
 
-	free_regions[0].start = 0x200000;
-	free_regions[0].size = total_memory - free_regions[0].start;
+	free_regions[0].start = PAGE_SIZE;
+	free_regions[0].size = 0x9FFFF;
 
-	total_memory_free = total_memory - free_regions[0].size;
+	free_regions[1].start = 0xC0000;
+	free_regions[1].size = 0xEB000 - 0xC0000;
+
+	free_regions[2].start = 0xF0000 + ALIGN((uint64_t)KERNEL_END - (uint64_t)KERNEL_VMA, PAGE_SIZE);
+	free_regions[2].size = 0x100000 - free_regions[2].start;
+
+	free_regions[3].start = 0x100000;
+	free_regions[3].size = 0x400000 - 0x100000;
+
+	total_memory_free = free_regions[0].size + free_regions[1].size + free_regions[2].size + free_regions[3].size;
 	total_memory_reserved = total_memory - total_memory_free;
 
 }

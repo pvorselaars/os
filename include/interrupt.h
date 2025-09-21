@@ -57,7 +57,7 @@ typedef enum {
 	USER = 3
 } privilege_level;
 
-void interrupt_init();
+void interrupt_init(void *gdt_address);
 
 void enable_interrupts();
 void disable_interrupts();

@@ -5,8 +5,8 @@
 .globl memsetl
 .globl memsetq
 .globl memcmp
-.globl memmove
-.globl memcpy
+.globl memory_move
+.globl memory_copy
 
 .section .text
 
@@ -46,8 +46,8 @@ memcmp:
   setnz %al
   ret
 
-memmove:
-memcpy:
+memory_move:
+memory_copy:
   cld
   cmp %rdi, %rsi
   jae 1f

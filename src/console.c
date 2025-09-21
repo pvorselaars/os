@@ -32,7 +32,7 @@ void put(const char c)
 
 	// scroll screen up
 	if (cursor > 4000) {
-		memcpy(vga, vga + 160, 3840);
+		memory_copy(vga, vga + 160, 3840);
 		memsetw(vga + 3840, 0x0f20, 160);
 		cursor = 3840;
 	}

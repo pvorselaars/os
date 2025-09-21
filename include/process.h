@@ -16,7 +16,7 @@ typedef struct process process;
 struct process {
     process *parent;
     process_state state;
-    void (*memory)();
+    void *memory;
     uint64_t size;
 };
 
