@@ -95,9 +95,11 @@ interrupt32:
 	out %al, $0x20
 
 switch:
-	mov 8(%rsp), %rax
+	push %rax
+	mov 16(%rsp), %rax
 	and $3, %rax
 	cmp $0, %rax
+	pop %rax
 
 	je .skip # TODO: mark current process for reschedule 
 

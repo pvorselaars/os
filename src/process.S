@@ -24,4 +24,11 @@ process_start:
     mov (%rdi), %rax   # entry
     push %rax          # RIP
 
+    xor %rax, %rax     # clear registers
+    xor %rbx, %rbx
+    xor %rcx, %rcx
+    xor %rdx, %rdx
+    xor %rdi, %rdi
+    xor %rsi, %rsi
+
     iretq              # pop into user mode
