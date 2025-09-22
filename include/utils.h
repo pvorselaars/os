@@ -10,5 +10,8 @@ void fatal(const int8_t *format, ...);
 void sleep(uint64_t ms);
 
 #define assert(e) if (!(e)) { fatal("%s:%u assertion failed\n",__FILE__, __LINE__); };
+#define ALIGN_UP(x, size)   (((x) + (size) - 1) & ~((size) - 1))
+#define ALIGN_DOWN(x, size) ((x) & ~((size) - 1))
+#define IS_ALIGNED(x, size) (((x) & ((size) - 1)) == 0)
 
 #endif

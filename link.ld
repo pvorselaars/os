@@ -1,35 +1,43 @@
-ENTRY(_start)
-SECTIONS {
+ENTRY(reset_vector)
 
-	. = 0xF0000;
+RESET_VECTOR = 0xFFFF0;
+BOOT_BASE    = 0xF0000;
+KERNEL_VMA   = 0xFFFFFF8000000000 + BOOT_END;
 
-	.text : {
-		obj/boot.o(.text)
-		*(.text)
-	}
-
-	.data : {
-		*(.data)
-	}
-
-	.rodata : {
-		*(.rodata)
-	}
-	
-	/* Do not exceed 64KB - 16 */
-	ASSERT(. <= 0xffff0, "code section too large")
-
-	. = 0xffff0;
-	.reset : {
-		*(.reset)
+SECTIONS
+{
+    .reset RESET_VECTOR : {
+        *(.reset)
 		. = ALIGN(16);
-	} = 0x0
+    } = 0x0
 
-	.bss : {
-		*(.bss)
-	}
-	
-	/DISCARD/ : {
+    .boot BOOT_BASE : {
+        obj/boot.o(.text)
+		BOOT_END = .;
+    }
+
+    .text KERNEL_VMA : AT(BOOT_END) {
+        *(.text)
+    }
+
+    .rodata : {
+        *(.rodata)
+        *(.rodata.*)
+    }
+
+    .data : {
+        *(.data)
+        *(.data.*)
+    }
+
+    .bss : {
+        *(.bss)
+        *(.bss.*)
+    }
+
+    KERNEL_END = .;
+
+    /DISCARD/ : {
         *(.note.gnu.property)
         *(.gnu.property)
         *(.note.gnu.build-id)
@@ -39,7 +47,7 @@ SECTIONS {
         *(.eh_frame_hdr)
     }
 
-	.debug_info     0 : { *(.debug_info) }
+    .debug_info     0 : { *(.debug_info) }
     .debug_abbrev   0 : { *(.debug_abbrev) }
     .debug_line     0 : { *(.debug_line) }
     .debug_str      0 : { *(.debug_str) }
