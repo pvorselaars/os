@@ -12,7 +12,7 @@ SECTIONS
     } = 0x0
 
     .boot BOOT_BASE : {
-        obj/boot.o(.text)
+        obj/arch/x86_64/boot.s.o(.text)
 		BOOT_END = .;
     }
 

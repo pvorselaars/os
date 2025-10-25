@@ -1,50 +1,84 @@
 # OS
 
-A minimal operating system for x86_64. Designed for learning and experimenting with low-level OS concepts such as process management, memory management, and hardware interaction.
+A minimal, multi-platform operating system for learning and experimenting with low-level OS concepts. Supports x86_64 PC and ARM64 Raspberry Pi 4 architectures.
+
+## Structure
+
+```
+├── kernel/           # Core kernel functionality
+├── lib/              # Library functions
+├── arch/x86_64/      # Architecture-specific code
+├── arch/aarch64/
+├── platform/pc/      # Platform-specific drivers
+├── platform/raspberrypi4
+└── include/          # Header files
+```
+
 
 ## Features
 
+### Core Features
 - [x] 64-bit kernel
+- [x] Multi-platform build system
 - [x] Bootable and debuggable via QEMU
 - [x] Virtual memory management
-- [x] PIT support
-- [x] PIC support
-- [x] Basic audio driver
-- [x] RS232 support
-- [x] Parallel port support
-- [x] VGA support
-- [x] PS/2 keyboard support
-- [ ] Process management
-- [ ] Bootable on real hardware
-- [ ] Mouse support
-- [ ] Floppy support
-- [ ] ATA/IDE support
-- [ ] Ethernet support
-- [ ] PCI support
-- [ ] SATA support
-- [ ] ACPI support
-- [ ] USB support
+- [x] Basic process management
 
-## Getting started
+### PC Platform Features
+- [x] x86_64 boot sequence
+- [x] PIT (Programmable Interval Timer) support
+- [x] PIC (Programmable Interrupt Controller) support
+- [x] PC speaker audio driver
+- [x] RS232 serial communication
+- [x] Parallel port support
+- [x] VGA text mode support
+- [x] PS/2 keyboard support
+- [x] ATA/IDE disk controller
+
+### Planned Features
+- [ ] ARM64/AArch64 support for Raspberry Pi 4
+- [ ] Advanced process management and scheduling
+- [ ] Bootable on real hardware
+- [ ] File system support
+- [ ] Network stack
+- [ ] USB support
+- [ ] ACPI support
+
+## Getting Started
 
 ### Requirements
 
-* QEMU for virtualization
+* QEMU
 * GCC
 * GDB
 * Make
+* TMux (optional) - For debug session management
 
-1. Clone
+### Quick Start
 
+1. **Clone the repository**
    ```bash
    git clone https://github.com/pvorselaars/os
    cd os
    ```
-2. Build & run
 
+
+3. **Build and run (PC platform - default)**
    ```bash
    make run
    ```
+
+### Build Commands
+
+| Command | Description |
+|---------|-------------|
+| `make` | Build for default platform (PC) |
+| `make PLATFORM=<platform>` | Build for specific platform |
+| `make pc` | Build for PC (shortcut) |
+| `make raspberrypi4` | Build for Raspberry Pi 4 (shortcut) |
+| `make run` | Run the OS in QEMU |
+| `make gdb` | Start debug session with GDB |
+| `make clean` | Clean build artifacts |
 
 ## License
 
