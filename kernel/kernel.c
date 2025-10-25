@@ -6,23 +6,14 @@
 #include "disk.h"
 #include "utils.h"
 #include "audio.h"
-#include "serial.h"
+#include "platform/init.h"
 #include "parallel.h"
 #include "video.h"
 #include "ps2.h"
 
 void kernel(void)
 {
-	serial_init();
-	memory_init();
-
-	interrupt_init();
-
-	vga_init();
-	console_init();
-
-	process_init();
-	ps2_init();
+	platform_init();
 
 	while (1)
 		halt();

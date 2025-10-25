@@ -43,7 +43,7 @@ uint64_t schedule(uint64_t stack_pointer)
     memory_map_userpages(new->pagetable);
     flush_tlb();
 
-    interrupt_set_stack_pointer(new->kstack_base + PAGE_SIZE);
+    arch_set_interrupt_stack_pointer(new->kstack_base + PAGE_SIZE);
 
     return new->kstack_pointer;
 }
@@ -124,7 +124,7 @@ void process_init()
     memory_map_userpages(p1_pagetable);
     flush_tlb();
 
-    interrupt_set_stack_pointer(p1->kstack_base + PAGE_SIZE);
+    arch_set_interrupt_stack_pointer(p1->kstack_base + PAGE_SIZE);
 
     process_start(p1);
 }

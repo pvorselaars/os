@@ -3,6 +3,7 @@
 
 #include "definitions.h"
 #include "memory.h"
+#include "interrupt.h"
 
 typedef enum
 {

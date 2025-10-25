@@ -2,8 +2,8 @@
 
 .globl load_idt
 .globl load_tss
-.globl enable_interrupts
-.globl disable_interrupts
+.globl arch_irq_enable
+.globl arch_irq_disable
 .globl interrupt
 
 .globl interrupt0
@@ -41,53 +41,17 @@ load_tss:
 	ltr %di
 	ret
 
-enable_interrupts:
+arch_irq_enable:
 	sti
 	ret
 
-disable_interrupts:
+arch_irq_disable:
 	cli
 	ret
 
 interrupt:
 	int $0x80
 	ret
-
-interrupt0:
-	call zero
-	iretq
-
-interrupt2:
-	call nmi
-	iretq
-
-interrupt4:
-	call overflow
-	iretq
-
-interrupt8:
-	call double_fault
-	iretq
-
-interrupt13:
-	push %rsi
-	push %rdi
-
-	mov 8(%rsp), %rsi  # Get error code
-	mov 16(%rsp), %rdi # Get RIP
-	call general_protection_fault
-
-	pop %rsi
-	pop %rdi
-	add $8, %rsp
-	iretq
-
-interrupt14:
-	pop %rdx
-	mov %cr2, %rsi
-	pop %rdi
-	call page_fault
-	iretq
 
 interrupt32:
 	incq ticks(%rip)

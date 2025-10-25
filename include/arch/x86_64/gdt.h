@@ -13,6 +13,10 @@ typedef struct
 } gdt_descriptor;
 #pragma pack()
 
-void gdt_init(gdt_descriptor *gdt_descriptor);
+void arch_gdt_set(gdt_descriptor *gdt_descriptor);
+
+void arch_gdt_set_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags);
+
+void arch_gdt_init(void);
 
 #endif

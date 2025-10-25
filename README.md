@@ -21,6 +21,29 @@ A minimal, multi-platform operating system for learning and experimenting with l
 - [x] Multi-platform build system
 - [x] Bootable and debuggable via QEMU
 - [x] Virtual memory management
+# OS
+
+A minimal, multi-platform operating system for learning and experimenting with low-level OS concepts. Supports x86_64 PC and ARM64 Raspberry Pi 4 architectures.
+
+## Structure
+
+```
+├── kernel/           # Core kernel functionality
+├── lib/              # Library functions
+├── arch/x86_64/      # Architecture-specific code
+├── arch/aarch64/
+├── platform/pc/      # Platform-specific drivers
+├── platform/raspberrypi4
+└── include/          # Header files
+```
+
+## Features
+
+### Core Features
+- [x] 64-bit kernel
+- [x] Multi-platform build system
+- [x] Bootable and debuggable via QEMU
+- [x] Virtual memory management
 - [x] Basic process management
 
 ### PC Platform Features
@@ -56,8 +79,8 @@ A minimal, multi-platform operating system for learning and experimenting with l
 ### Quick Start
 
 1. **Clone the repository**
-   ```bash
-   git clone https://github.com/pvorselaars/os
+    ```bash
+    git clone https://github.com/pvorselaars/os
    cd os
    ```
 

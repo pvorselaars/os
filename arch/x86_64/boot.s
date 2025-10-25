@@ -40,7 +40,7 @@ protected_mode:
   mov %ax, %fs
   mov %ax, %gs
   mov %ax, %ss
-  mov $0x90000, %esp
+  mov $0x7c00, %esp
   
   # In order to enable long mode some simple paging data structures need to be
   # present. So we identity map the first 2MiB of memory and map the higher half of memory to the lower half.
