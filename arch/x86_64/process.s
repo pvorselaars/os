@@ -4,7 +4,7 @@
 .section .text
 
 process_start:
-    mov $0x43, %rcx    # user data segment selector
+    mov $0x23, %rcx    # user data segment selector (index 4, RPL=3)
     mov %rcx, %ds
     mov %rcx, %es
     mov %rcx, %fs
@@ -18,7 +18,7 @@ process_start:
     push %rbx          # RSP
 
     pushfq             # RFLAGS
-    mov $0x3B, %rcx    # user code segment selector
+    mov $0x1B, %rcx    # user code segment selector (index 3, RPL=3)
     push %rcx          # CS
 
     mov (%rdi), %rax   # entry

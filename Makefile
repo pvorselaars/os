@@ -51,7 +51,7 @@ QEMU = qemu-system-x86_64 \
 						-monitor telnet:127.0.01:1234,server,nowait\
 						-nodefaults \
 						-machine acpi=off \
-						-bios bin/os \
+						-hda bin/os \
 						-M isapc \
 						-cpu qemu64,-apic,-x2apic,+pdpe1gb \
 						-m 2M \
@@ -95,7 +95,7 @@ OBJ := $(OBJ_KERNEL_C) $(OBJ_KERNEL_S) $(OBJ_LIB_C) $(OBJ_LIB_S) $(OBJ_ARCH_C) $
 gdb: bin/os
 	tmux new-session -d -s os
 	tmux send-keys -t os "$(QEMU) -S -d cpu_reset,int,guest_errors -no-reboot -gdb tcp::1235 " Enter
-	tmux new-window -t os
+	tmux split-window -h -t os
 	tmux send-keys -t os "gdb bin/os.elf -q -ex 'target remote :1235'" Enter
 	tmux attach-session -t os
 
@@ -108,7 +108,9 @@ run: bin/os
 bin/os: $(OBJ) | platform/$(PLATFORM)/link.ld dir
 	ld -Tplatform/$(PLATFORM)/link.ld $(LFLAGS) -o bin/os.elf $^
 	objdump -d bin/os.elf > os.l
-	objcopy -X -O binary bin/os.elf $@
+	objcopy -X -O binary --only-section=.boot bin/os.elf bin/boot.bin
+	objcopy -X -O binary --remove-section=.boot bin/os.elf bin/kernel.bin
+	cat bin/boot.bin bin/kernel.bin > $@
 
 obj/kernel/%.o: kernel/%.c | dir
 	@mkdir -p $(dir $@)

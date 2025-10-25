@@ -29,8 +29,8 @@
 #define MSR_EFER 0xC0000080 // EFER model specific register
 #define EFER_LME (1 << 8)   // Long mode bit
 
-#define CODE_SEG 0x18 // Kernel code segment index
-#define DATA_SEG 0x20 // Kernel data segment index
+#define CODE_SEG 0x08 // Kernel code segment selector
+#define DATA_SEG 0x10 // Kernel data segment selector
 
 #define PML4_ADDRESS 0x1000
 #define BOOT_SEGMENT 0xF000

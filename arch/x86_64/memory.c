@@ -6,7 +6,7 @@ typedef struct region
 	unsigned long size;
 } region;
 
-region *free_regions = (region *)virtual_address(0x0);
+static region free_regions[32]; /* Static array in kernel .bss section */
 
 static unsigned long total_regions;
 static unsigned long total_memory;

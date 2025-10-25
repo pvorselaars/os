@@ -1,22 +1,21 @@
-ENTRY(reset_vector)
+ENTRY(kernel)
 
-RESET_VECTOR = 0xFFFF0;
-BOOT_BASE    = 0xF0000;
-KERNEL_VMA   = 0xFFFFFF8000000000 + BOOT_END;
+BOOT_BASE    = 0x7c00;
+KERNEL_PHYS  = 0x10000;
+KERNEL_BASE  = 0xFFFFFF8000000000;
+KERNEL_VMA   = KERNEL_BASE + KERNEL_PHYS;
 
 SECTIONS
 {
-    .reset RESET_VECTOR : {
-        *(.reset)
-		. = ALIGN(16);
-    } = 0x0
-
     .boot BOOT_BASE : {
         obj/arch/x86_64/boot.s.o(.text)
 		BOOT_END = .;
+		BOOT_GDT_PHYS = BOOT_BASE + 0x108;  /* GDT physical address */
+		BOOT_GDT_VIRT = KERNEL_BASE + BOOT_GDT_PHYS;  /* GDT virtual address */
     }
 
-    .text KERNEL_VMA : AT(BOOT_END) {
+    .text KERNEL_VMA : AT(KERNEL_PHYS) {
+        kernel_start = .;
         *(.text)
     }
 
@@ -30,15 +29,28 @@ SECTIONS
         *(.data.*)
     }
 
+    .got : {
+        *(.got)
+    }
+
+    .got.plt : {
+        *(.got.plt)
+    }
+    
+    KERNEL_LOAD_END = .;  /* End of sections that need to be loaded from disk */
+
     .bss : {
         *(.bss)
         *(.bss.*)
     }
 
     KERNEL_END = .;
+    
+    /* Calculate kernel size in bytes and sectors (only loaded sections) */
+    KERNEL_SIZE = KERNEL_LOAD_END - kernel_start;
+    KERNEL_SECTORS = (KERNEL_SIZE + 511) / 512;  /* Round up to next sector */
 
-    /DISCARD/ : {
-        *(.note.gnu.property)
+    /DISCARD/ : {        *(.note.gnu.property)
         *(.gnu.property)
         *(.note.gnu.build-id)
         *(.gnu.hash)

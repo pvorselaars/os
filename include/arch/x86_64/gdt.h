@@ -3,10 +3,11 @@
 
 #include "definitions.h"
 
-uint64_t *gdt;
+extern uint64_t *gdt;
 
 #pragma pack(1)
-typedef struct {
+typedef struct
+{
     uint16_t limit;
     uint64_t base;
 } gdt_descriptor;
