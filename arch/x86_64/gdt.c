@@ -1,7 +1,14 @@
-#include "../../include/arch/x86_64/gdt.h"
-#include "../../include/arch/x86_64/memory.h"
+#include "arch/x86_64/gdt.h"
+#include "arch/x86_64/memory.h"
 
-/* Kernel-owned GDT (page aligned). Keep 16 entries. */
+#pragma pack(1)
+typedef struct
+{
+    uint16_t limit;
+    uint64_t base;
+} gdt_descriptor;
+#pragma pack()
+
 static uint64_t kernel_gdt[16] __attribute__((aligned(4096)));
 
 void arch_gdt_set_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags)

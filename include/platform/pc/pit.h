@@ -1,6 +1,5 @@
 #ifndef PIT_H
 #define PIT_H
-
 // Programmable Interval Timer (PIT) (Intel 8253/8254)
 
 // I/O port     Usage
@@ -36,5 +35,4 @@
 #define PIT_CHANNEL_2 0x42
 
 #define PIT_COMMAND   0x43
-
 #endif

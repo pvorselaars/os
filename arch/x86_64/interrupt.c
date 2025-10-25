@@ -1,5 +1,5 @@
-#include "../../include/arch/x86_64/gdt.h"
-#include "../../include/arch/x86_64/memory.h"
+#include "arch/x86_64/gdt.h"
+#include "arch/x86_64/memory.h"
 
 #pragma pack(1)
 typedef struct

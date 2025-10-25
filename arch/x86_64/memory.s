@@ -1,48 +1,48 @@
 .code64
 
-.globl memsetb
-.globl memsetw
-.globl memsetl
-.globl memsetq
-.globl memcmp
+.globl memory_set_byte
+.globl memory_set_word
+.globl memory_set_dword
+.globl memory_set_qword
+.globl memory_compare
 .globl memory_move
 .globl memory_copy
 .globl flush_tlb
 
 .section .text
 
-memsetb:
+memory_set_byte:
   cld
   mov %rsi, %rax
   mov %rdx, %rcx
   rep stosb
   ret
 
-memsetw:
+memory_set_word:
   cld
   mov %rsi, %rax
   mov %rdx, %rcx
   rep stosw
   ret
 
-memsetl:
+memory_set_dword:
   cld
   mov %rsi, %rax
   mov %rdx, %rcx
   rep stosl
   ret
 
-memsetq:
+memory_set_qword:
   cld
   mov %rsi, %rax
   mov %rdx, %rcx
   rep stosq
   ret
 
-memcmp:
+memory_compare:
   cld
   xor %rax, %rax
-  mov %rcx, %rdx
+  mov %rdx, %rcx
   repe cmpsb
   setnz %al
   ret

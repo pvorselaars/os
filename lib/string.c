@@ -1,8 +1,8 @@
-#include "string.h"
+#include "lib/string.h"
 
-static unsigned int strlen(const char *str)
+uint64_t strlen(const char *str)
 {
-	unsigned int length = 0;
+	uint64_t length = 0;
 	while (*str++ != 0) {
 		length++;
 	}

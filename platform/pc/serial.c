@@ -1,4 +1,4 @@
-#include "serial.h"
+#include "platform/pc/serial.h"
 
 static uint8_t buffer[SERIAL_BUFFER_SIZE];
 static uint8_t buffer_index = 0;
@@ -29,7 +29,7 @@ uint8_t serial_read()
 {
     // wait for buffer content
     while(!buffer_index)
-        halt();
+        platform_halt();
 
     return buffer[--buffer_index];
 }
@@ -49,7 +49,7 @@ static void write_buffer(uint8_t data)
         buffer_index = 0;
 }
 
-void serial_receive()
+void serial_receive_interrupt()
 {
     uint8_t iir = inb(SERIAL_PORT_0 + 2);
 
@@ -64,5 +64,12 @@ void serial_receive()
         }
 
         iir = inb(SERIAL_PORT_0 + 2);
+    }
+}
+
+void serial_output_func(const char *str, uint64_t len)
+{
+    for (uint64_t i = 0; i < len; i++) {
+        serial_write(SERIAL_PORT_0, (uint8_t)str[i]);
     }
 }

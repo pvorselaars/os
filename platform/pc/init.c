@@ -1,11 +1,16 @@
 #include "platform/init.h"
-#include "platform/console.h"
+#include "platform/timer.h"
 #include "platform/pc/pit.h"
 #include "platform/pc/pic.h"
+#include "platform/pc/serial.h"
 #include "arch/x86_64/io.h"
-#include "arch/x86_64/interrupt.h"
 #include "arch/x86_64/gdt.h"
 #include "arch/interrupt.h"
+#include "lib/printf.h"
+
+extern void timer_interrupt_handler(void);
+extern void ps2_keyboard_interrupt_handler(void);
+extern void serial_receive_interrupt_handler(void);
 
 void platform_halt()
 {
@@ -31,18 +36,6 @@ void platform_pic_remap()
     outb(PIC2_DATA, (uint8_t)0xff);
 }
 
-uint64_t ticks = 0;
-
-void platform_pit_init()
-{
-    uint16_t divisor = 1193180 / 1000;
-    outb(PIT_COMMAND, 0x34);
-    outb(PIT_CHANNEL_0, (uint8_t)(divisor));
-    outb(PIT_CHANNEL_0, (uint8_t)(divisor >> 8));
-
-    return;
-}
-
 void platform_pic_eoi(unsigned vector)
 {
     /* If slave PIC (IRQ >= 8) send EOI to slave first */
@@ -56,49 +49,56 @@ void platform_pic_eoi(unsigned vector)
 
 void divide_by_zero_handler()
 {
-    platform_console_write("Divide by zero!", 16);
+    printf("Divide by zero!\n");
     platform_halt();
 }
 
 void nmi_handler()
 {
-    platform_console_write("Non-maskable interrupt!", 24);
+    printf("Non-maskable interrupt!\n");
     platform_halt();
 }
 
 void overflow_handler()
 {
-    platform_console_write("Overflow!", 9);
+    printf("Overflow!\n");
     platform_halt();
 }
 
 void double_fault_handler()
 {
-    platform_console_write("Double fault!", 13);
+    printf("Double fault!\n");
     platform_halt();
 }
 
 void general_protection_fault_handler()
 {
-    platform_console_write("General protection fault!", 25);
+    printf("General protection fault!\n");
     platform_halt();
 }
 
 void page_fault_handler()
 {
-    platform_console_write("Page fault!", 11);
+    printf("Page fault!\n");
     platform_halt();
 }
 
-void timer_interrupt_handler()
+static unsigned long timer_ticks = 0;
+
+void timer_interrupt()
 {
-    platform_console_write("Timer interrupt!", 16);
-    platform_halt();
+    timer_ticks++;
+    
+    if (timer_ticks % 1000 == 0) {
+        printf("Timer: %lu seconds\n", timer_ticks / 1000);
+    }
+    
 }
 
 void platform_init(void)
 {
-    platform_console_init();
+    serial_init();
+    printf_set_output(serial_output_func);
 
     arch_gdt_init();
     arch_interrupt_init();
@@ -110,10 +110,12 @@ void platform_init(void)
     arch_register_interrupt(13, (addr_t)general_protection_fault_handler);
     arch_register_interrupt(14, (addr_t)page_fault_handler);
     arch_register_interrupt(0x20, (addr_t)timer_interrupt_handler);
+    arch_register_interrupt(0x21, (addr_t)ps2_keyboard_interrupt_handler);
+    arch_register_interrupt(0x24, (addr_t)serial_receive_interrupt_handler);
 
     platform_pic_remap();
 
     arch_irq_enable();
 
-    platform_pit_init();
+    platform_timer_init(1000); // 1000 Hz
 }

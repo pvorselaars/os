@@ -1,4 +1,4 @@
-#include "audio.h"
+#include "platform/pc/audio.h"
 
 static void play_sound(uint32_t frequency)
 {

@@ -1,4 +1,4 @@
-#include "parallel.h"
+#include "platform/pc/parallel.h"
 
 void parallel_write(parallel_port port, uint8_t data)
 {

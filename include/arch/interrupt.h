@@ -1,7 +1,7 @@
 #ifndef ARCH_INTERRUPT_H
 #define ARCH_INTERRUPT_H
 
-#include "definitions.h"
+#include "kernel/definitions.h"
 
 /* Architecture-level interrupt API
 

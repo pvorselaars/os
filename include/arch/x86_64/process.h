@@ -1,31 +1,15 @@
-#ifndef PROCESS_H
-#define PROCESS_H
+#ifndef ARCH_X86_64_PROCESS_H
+#define ARCH_X86_64_PROCESS_H
 
-#include "definitions.h"
-#include "memory.h"
+/* x86_64-specific process definitions
+ * 
+ * This file is deprecated - use arch/process.h for the
+ * architecture-agnostic interface instead.
+ */
 
-typedef enum
-{
-    READY,
-    RUNNING,
-    BLOCKED,
-    DONE
-} process_state;
+#include "../../arch/process.h"
 
-typedef struct process process;
-
-struct process
-{
-    void *entry;
-    uint64_t kstack_base;
-    uint64_t kstack_pointer;
-    uint64_t ustack_base;
-    uint64_t pagetable;
-    uint64_t size;
-    process_state state;
-};
-
-void process_init();
-uint64_t schedule(uint64_t stack_pointer);
+/* Legacy compatibility - redirect to new interface */
+#define process_init() process_subsystem_init()
 
 #endif

@@ -1,77 +1,31 @@
-#include "console.h"
+#include "platform/pc/console.h"
+#include "platform/pc/vga_console.h"
+#include "lib/printf.h"
 
-static char *vga = (char *)virtual_address(0xb8000);
-static int cursor = 0;
+/* Console Bridge - connects printf system to VGA console */
+
+/* Output function for printf - routes to VGA console */
+static void console_output_func(const char *str, uint64_t len)
+{
+	vga_console_write(str, len);
+}
 
 void console_init()
 {
-	memsetw(vga, 0x0f20, 4000);
-	// update cursor
-	outb(0x3d4, 0x0f);
-	outb(0x3d5, cursor / 2 & 0xff);
-	outb(0x3d4, 0x0e);
-	outb(0x3d5, (cursor / 2 >> 8) & 0xff);
+	/* Initialize VGA console driver */
+	vga_console_init();
+	
+	/* Set printf to use VGA console as output */
+	printf_set_output(console_output_func);
 }
 
+/* Legacy compatibility functions */
 void put(const char c)
 {
-	switch (c) {
-	case '\n':
-		cursor = (cursor / 160 + 1) * 160;
-		break;
-
-	case '\t':
-		cursor += 8;
-		break;
-
-	default:
-		vga[cursor] = c;
-		cursor += 2;
-		break;
-	}
-
-	// scroll screen up
-	if (cursor > 4000) {
-		memory_copy(vga, vga + 160, 3840);
-		memsetw(vga + 3840, 0x0f20, 160);
-		cursor = 3840;
-	}
-
-	// update cursor
-	outb(0x3d4, 0x0f);
-	outb(0x3d5, cursor / 2 & 0xff);
-	outb(0x3d4, 0x0e);
-	outb(0x3d5, (cursor / 2 >> 8) & 0xff);
+	vga_console_putchar(c);
 }
 
 void print(const char *str)
 {
-	while (*str) {
-		put(*str++);
-	}
-}
-
-int printf(const char *format, ...)
-{
-	va_list args;
-	char buffer[128];
-	va_start(args, format);
-
-	int i = vsnprintf(buffer, 128, format, args);
-	buffer[i] = 0;
-	print(buffer);
-
-	va_end(args);
-
-	return i;
-}
-
-int vprintf(const char *format, va_list args)
-{
-	char buffer[128];
-	int i = vsnprintf(buffer, 128, format, args);
-	buffer[i] = 0;
-	print(buffer);
-
-	return i;
+	vga_console_puts(str);
 }

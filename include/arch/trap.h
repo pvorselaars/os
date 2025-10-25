@@ -1,7 +1,7 @@
 #ifndef ARCH_TRAP_H
 #define ARCH_TRAP_H
 
-#include "definitions.h"
+#include "kernel/definitions.h"
 
 struct fault_info
 {

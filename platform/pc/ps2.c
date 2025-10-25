@@ -1,4 +1,5 @@
-#include "ps2.h"
+#include "platform/pc/ps2.h"
+#include "lib/printf.h"
 
 static const char scancode_table[128] = {
     // 0x00-0x0F
@@ -27,7 +28,7 @@ void ps2_keyboard_interrupt() {
     } else {
         uint8_t key_pressed = scan_code;
         char c = scancode_table[key_pressed];
-        put(c);
+        putchar(c);
     }
 }
 

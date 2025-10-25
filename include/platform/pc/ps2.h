@@ -1,9 +1,8 @@
 #ifndef PS2_H
 #define PS2_H
 
-#include "definitions.h"
-#include "console.h"
-#include "io.h"
+#include "kernel/definitions.h"
+#include "arch/x86_64/io.h"
 
 #define PS2_DATA_PORT       0x60
 #define PS2_STATUS_PORT     0x64

@@ -1,7 +1,9 @@
 #ifndef PLATFORM_TIMER_H
 #define PLATFORM_TIMER_H
 
-#include "definitions.h"
+#include "kernel/definitions.h"
+#include "platform/pc/pit.h"
+#include "arch/x86_64/io.h"
 
 /* Platform timer interface used by the scheduler and timekeeping code. */
 
@@ -10,8 +12,5 @@ void platform_timer_init(unsigned hz);
 
 /* Read a monotonic nanosecond-resolution counter (if available) */
 uint64_t platform_time_ns(void);
-
-/* Set a one-shot timer to fire after ns nanoseconds (used for sleep/wakeup) */
-void platform_timer_set_oneshot(uint64_t ns);
 
 #endif

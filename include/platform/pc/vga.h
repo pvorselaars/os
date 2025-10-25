@@ -1,9 +1,8 @@
 #ifndef VGA_H
 #define VGA_H
 
-#include "io.h"
-#include "memory.h"
-#include "utils.h"
+#include "arch/x86_64/io.h"
+#include "arch/x86_64/memory.h"
 
 // TODO: add bit descriptions for each register
 

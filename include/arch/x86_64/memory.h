@@ -52,9 +52,9 @@
 
 #else
 
-#include "definitions.h"
-#include "console.h"
-#include "utils.h"
+#include "kernel/definitions.h"
+#include "lib/utils.h"
+#include "arch/memory.h"
 
 extern char KERNEL_VMA[];
 extern char KERNEL_END[];
@@ -66,15 +66,23 @@ typedef uint64_t pml4e;
 
 typedef uint64_t address;
 
+/* x86_64 optimized memory utility functions (implemented in assembly) */
 void memsetb(void *ptr, const int8_t value, const uint64_t num);
 void memsetw(void *ptr, const int16_t value, const uint64_t num);
 void memsetl(void *ptr, const int32_t value, const uint64_t num);
 void memsetq(void *ptr, const int64_t value, const uint64_t num);
 
-int memcmp(const void *ptr1, const void *ptr2, const uint64_t num);
+int memcmp(void *ptr1, void *ptr2, const uint64_t num);
 
-void memory_move(void *dst, const void *src, const uint64_t num);
-void memory_copy(void *dst, const void *src, const uint64_t num);
+/* x86_64 implementations of platform-agnostic memory API */
+void memory_set_byte(void *ptr, const uint8_t value, const uint64_t count);
+void memory_set_word(void *ptr, const uint16_t value, const uint64_t count);
+void memory_set_dword(void *ptr, const uint32_t value, const uint64_t count);
+void memory_set_qword(void *ptr, const uint64_t value, const uint64_t count);
+int memory_compare(const void *ptr1, const void *ptr2, const uint64_t count);
+
+void memory_move(void *dst, const void *src, const uint64_t count);
+void memory_copy(void *dst, const void *src, const uint64_t count);
 
 uint64_t memory_map(uint64_t va, uint64_t pa, int32_t flags);
 void memory_map_userpages(uint64_t pdpt);
@@ -83,9 +91,6 @@ void *memory_allocate(void);
 void memory_deallocate(void *page);
 
 void memory_init();
-void print_regions();
-void print_pagetable_entries(address a);
-void examine(void *ptr, uint64_t bytes);
 
 extern void flush_tlb();
 

@@ -2,6 +2,16 @@
     "files.associations": {
         "memory.h": "c",
         "definitions.h": "c",
-        "interrupt.h": "c"
+        "interrupt.h": "c",
+        "console.h": "c",
+        "string.h": "c",
+        "process.h": "c",
+        "io.h": "c",
+        "gdt.h": "c",
+        "parallel.h": "c",
+        "serial.h": "c",
+        "disk.h": "c",
+        "ps2.h": "c",
+        "vga.h": "c"
     }
 }

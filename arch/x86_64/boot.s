@@ -1,4 +1,4 @@
-#include "memory.h"
+#include "arch/x86_64/memory.h"
 
 .set gdt_offset_16, gdt_descriptor_16 - _start
 .set start_offset, 0x0

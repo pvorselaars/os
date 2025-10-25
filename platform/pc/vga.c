@@ -1,4 +1,4 @@
-#include "vga.h"
+#include "platform/pc/vga.h"
 
 // Basic 8x16 font data for ASCII characters 0x20-0x7F
 // Each character is 16 bytes (16 rows of 8 pixels each)
@@ -1923,7 +1923,7 @@ void vga_load_font(void) {
     uint8_t* font_mem = (uint8_t*)virtual_address(0xA0000);
     
     // Clear font memory first
-    memsetq(font_mem, 0, 1024);
+    memory_set_qword(font_mem, 0, 1024);
 
     // Load our font data (characters 0x20-0x7F)
     for (int char_index = 0; char_index < 96; char_index++) {

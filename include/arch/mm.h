@@ -1,7 +1,7 @@
 #ifndef ARCH_MM_H
 #define ARCH_MM_H
 
-#include "definitions.h"
+#include "kernel/definitions.h"
 
 typedef uint64_t vaddr_t;
 typedef uint64_t paddr_t;

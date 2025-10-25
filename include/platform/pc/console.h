@@ -1,15 +1,20 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include "definitions.h"
-#include "memory.h"
-#include "io.h"
-#include "string.h"
+#include "kernel/definitions.h"
+#include "platform/pc/vga_console.h"
+#include "lib/printf.h"
 
-void console_init();
-void print(const int8_t *str);
-void put(const int8_t c);
-int printf(const int8_t *format, ...);
-int vprintf(const int8_t *format, va_list args);
+/* Console Interface - High-level console operations */
+
+/* Initialize console system (VGA + printf) */
+void console_init(void);
+
+/* Legacy compatibility functions */
+void print(const char *str);
+void put(const char c);
+
+/* Printf functions are now provided by lib/printf.h */
+/* Include lib/printf.h to use printf(), vprintf(), etc. */
 
 #endif

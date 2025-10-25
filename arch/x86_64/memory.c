@@ -1,5 +1,5 @@
-#include "../../include/arch/x86_64/memory.h"
-#include "../../include/arch/x86_64/gdt.h"
+#include "arch/x86_64/memory.h"
+#include "arch/x86_64/gdt.h"
 
 typedef struct region
 {
@@ -260,32 +260,32 @@ void print_pagetable_entries(address a)
 	unsigned short pd_offset = (a >> 21) & 0x1FF;
 	unsigned short pt_offset = (a >> 12) & 0x1FF;
 
-	printf("Addr: %016lx\n", a);
+	//printf("Addr: %016lx\n", a);
 	if (!(pml4[pml4_offset] & PAGE_PRESENT))
 	{
-		printf("Page not present %x\n", pml4_offset * 8);
+		//printf("Page not present %x\n", pml4_offset * 8);
 		return;
 	}
 
-	printf("PML4: %016lx\n", pml4[pml4_offset]);
+	//printf("PML4: %016lx\n", pml4[pml4_offset]);
 	pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 	{
-		printf("Page not present\n");
+		//printf("Page not present\n");
 		return;
 	}
 
-	printf("PDPT: %016lx\n", pdpt[pdpt_offset]);
+	//printf("PDPT: %016lx\n", pdpt[pdpt_offset]);
 	pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
 	{
-		printf("Page not present\n");
+		//printf("Page not present\n");
 		return;
 	}
 
-	printf("PD:   %016lx\n", pd[pd_offset]);
+	//printf("PD:   %016lx\n", pd[pd_offset]);
 
 	if (pd[pd_offset] & PAGE_PS)
 	{
@@ -296,12 +296,13 @@ void print_pagetable_entries(address a)
 
 	if (!(pt[pt_offset] & PAGE_PRESENT))
 	{
-		printf("Page not present\n");
+		//printf("Page not present\n");
 		return;
 	}
 
-	printf("PT:   %016lx\n", pt[pt_offset]);
+	//printf("PT:   %016lx\n", pt[pt_offset]);
 }
+/*
 
 void print_regions()
 {
@@ -329,6 +330,8 @@ void examine(void *ptr, unsigned long bytes)
 	}
 	printf("\n");
 }
+
+*/
 
 void memory_init()
 {

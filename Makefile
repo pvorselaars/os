@@ -44,7 +44,7 @@ QEMU = qemu-system-x86_64 \
 						-monitor telnet:127.0.01:1234,server,nowait\
 						-nodefaults \
 						-machine acpi=off \
-						-hda bin/os \
+						-drive file=bin/os,format=raw \
 						-M isapc \
 						-cpu qemu64,-apic,-x2apic,+pdpe1gb \
 						-m 2M \

@@ -1,8 +1,8 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include "definitions.h"
-#include "memory.h"
+#include "kernel/definitions.h"
+#include "arch/x86_64/memory.h"
 
 #define FLAGS_ZERO      (1 << 0)
 #define FLAGS_LEFT      (1 << 1)
@@ -15,5 +15,6 @@
 #define FLAGS_CHAR      (1 << 8)
 
 int vsnprintf(int8_t *s, uint32_t n, const int8_t *format, va_list arg);
+uint64_t strlen(const char *str);
 
 #endif
