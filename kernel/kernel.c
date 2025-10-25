@@ -1,6 +1,5 @@
 #include "gdt.h"
 #include "memory.h"
-#include "interrupt.h"
 #include "process.h"
 #include "console.h"
 #include "disk.h"
@@ -16,5 +15,5 @@ void kernel(void)
 	platform_init();
 
 	while (1)
-		halt();
+		platform_halt();
 }

@@ -9,9 +9,9 @@ typedef uint64_t paddr_t;
 /* Abstract page mapping flags used by kernel core; architecture layer
    translates these to hardware-specific PTE bits. */
 #define MMAP_PRESENT (1 << 0)
-#define MMAP_WRITE   (1 << 1)
-#define MMAP_USER    (1 << 2)
-#define MMAP_PS      (1 << 3) /* large page */
+#define MMAP_WRITE (1 << 1)
+#define MMAP_USER (1 << 2)
+#define MMAP_PS (1 << 3) /* large page */
 
 /* Opaque page-table handle for the arch implementation */
 typedef struct arch_pagetable arch_pagetable_t;
