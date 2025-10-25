@@ -433,6 +433,6 @@ void memory_init()
 	}
 
 	/* Remove bootstrap identity mapping */
-	// pml4[0] = 0;
-	// flush_tlb();
+	pml4[0] = 0;
+	flush_tlb();
 }

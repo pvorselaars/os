@@ -39,13 +39,6 @@ CFLAGS = -Wall -s -pedantic \
 
 LFLAGS = --no-relax $(PLATFORM_LFLAGS)
 
-# Project Structure:
-# kernel/           - Main kernel code
-# lib/              - Library functions (string, utils, etc.)
-# arch/$(ARCH)/     - Architecture-specific code (assembly + C)
-# platform/$(PLATFORM)/ - Platform-specific hardware drivers
-# include/          - Header files
-
 ifeq ($(PLATFORM),pc)
 QEMU = qemu-system-x86_64 \
 						-monitor telnet:127.0.01:1234,server,nowait\

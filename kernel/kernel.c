@@ -14,13 +14,6 @@
 void kernel(void)
 {
 	serial_init();
-
-	{
-		const char *banner = "[kernel] serial initialized\n";
-		const char *p = banner;
-		while (*p)
-			serial_write(SERIAL_PORT_0, (uint8_t)*p++);
-	}
 	memory_init();
 
 	interrupt_init();
@@ -28,7 +21,7 @@ void kernel(void)
 	vga_init();
 	console_init();
 
-	process_init(); // IDEA: 1 page for kernel stack and proc info, 1 page for PDPT
+	process_init();
 	ps2_init();
 
 	while (1)

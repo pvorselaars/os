@@ -4,7 +4,8 @@
 #include "definitions.h"
 #include "memory.h"
 
-typedef enum {
+typedef enum
+{
     READY,
     RUNNING,
     BLOCKED,
@@ -13,10 +14,12 @@ typedef enum {
 
 typedef struct process process;
 
-struct process {
+struct process
+{
     void *entry;
-    uint64_t stack_base;
-    uint64_t stack_pointer;
+    uint64_t kstack_base;
+    uint64_t kstack_pointer;
+    uint64_t ustack_base;
     uint64_t pagetable;
     uint64_t size;
     process_state state;
