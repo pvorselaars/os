@@ -3,7 +3,6 @@
 .set gdt_offset_16, gdt_descriptor_16 - _start
 .set start_offset, 0x0
 
-.globl reset_vector
 .code16
 _start:
   # Disable interrupts until kernel can setup interrupt routines
@@ -122,8 +121,6 @@ dap:
 
 .align 8
 gdt:
-.globl gdt_boot_table
-gdt_boot_table = gdt
   # null segment (0x00)
   SEGMENT(0, 0, 0, 0)
 

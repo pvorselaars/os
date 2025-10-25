@@ -14,7 +14,6 @@ A minimal, multi-platform operating system for learning and experimenting with l
 └── include/          # Header files
 ```
 
-
 ## Features
 
 ### Core Features

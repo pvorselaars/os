@@ -1,4 +1,46 @@
-#include "memory.h"
+#include "../../include/arch/x86_64/memory.h"
+#include "../../include/arch/x86_64/gdt.h"
+#include "../../include/platform/pc/serial.h"
+
+/* Small serial helpers for early boot debug (avoid pulling printf). */
+static void mem_serial_print(const char *s)
+{
+	while (*s)
+		serial_write(SERIAL_PORT_0, (uint8_t)*s++);
+}
+
+static void mem_serial_print_hex64(uint64_t v)
+{
+	const char hex[] = "0123456789abcdef";
+	mem_serial_print("0x");
+	for (int i = 15; i >= 0; --i)
+	{
+		uint8_t nib = (v >> (i * 4)) & 0xF;
+		serial_write(SERIAL_PORT_0, hex[nib]);
+	}
+}
+
+/* Define the runtime gdt pointer expected by gdt_init (assembly). We own
+	this symbol here so the kernel can update/load a kernel-owned GDT. */
+uint64_t *gdt;
+
+/* Kernel-owned GDT (page aligned). We keep 16 entries like before. */
+static uint64_t kernel_gdt[16] __attribute__((aligned(4096)));
+
+/* Helper to build a GDT entry (first 8 bytes). For system descriptors like
+	TSS the high base (bits 32-63) must be placed in the following entry. */
+static void build_gdt_entry_at(uint64_t *table, int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags)
+{
+	uint64_t v = 0;
+	v |= (limit & 0xffffULL);					// limit 0:15
+	v |= (base & 0xffffffULL) << 16;			// base 0:23
+	v |= (uint64_t)(access & 0xff) << 40;		// access
+	v |= (uint64_t)((limit >> 16) & 0xf) << 48; // limit 16:19
+	v |= (uint64_t)(flags & 0xf) << 52;			// flags
+	v |= (uint64_t)((base >> 24) & 0xff) << 56; // base 24:31
+
+	table[index] = v;
+}
 
 typedef struct region
 {
@@ -349,7 +391,48 @@ void memory_init()
 	total_memory_free = free_regions[0].size + free_regions[1].size + free_regions[2].size + free_regions[3].size;
 	total_memory_reserved = total_memory - total_memory_free;
 
-	// Remove bootstrap identity mapping
-	pml4[0] = 0;
-	flush_tlb();
+	/* Build and load a kernel-owned GDT here (moved from kernel.c). This
+	   avoids referencing boot-time GDT symbols and keeps one writable
+	   `gdt` symbol in the kernel data segment for gdt_init to update. */
+	{
+		/* Null entry */
+		kernel_gdt[0] = 0;
+
+		/* 32-bit code segment (index 1, selector 0x08) */
+		build_gdt_entry_at(kernel_gdt, 1, 0x0, 0xFFFFF, SDA_P | SDA_S | SDA_E | SDA_R, SDF_DB | SDF_G);
+
+		/* 32-bit data segment (index 2, selector 0x10) */
+		build_gdt_entry_at(kernel_gdt, 2, 0x0, 0xFFFFF, SDA_P | SDA_S | SDA_W, SDF_DB | SDF_G);
+
+		/* 64-bit kernel code segment (index 3, selector 0x18) */
+		build_gdt_entry_at(kernel_gdt, 3, 0x0, 0x0, SDA_P | SDA_S | SDA_E | SDA_R, SDF_L);
+
+		/* 64-bit kernel data segment (index 4, selector 0x20) */
+		build_gdt_entry_at(kernel_gdt, 4, 0x0, 0x0, SDA_P | SDA_S | SDA_W, 0x0);
+
+		/* TSS slots (index 5 and 6) left zeroed; interrupt_init() will set them */
+		kernel_gdt[5] = 0;
+		kernel_gdt[6] = 0;
+
+		/* 64-bit user code segment (index 7, selector 0x38) */
+		build_gdt_entry_at(kernel_gdt, 7, 0x0, 0x0, SDA_P | SDA_S | SDA_E | SDA_R | SDA_U, SDF_L);
+
+		/* 64-bit user data segment (index 8, selector 0x40) */
+		build_gdt_entry_at(kernel_gdt, 8, 0x0, 0xFFFFF, SDA_P | SDA_S | SDA_W | SDA_U, SDF_DB | SDF_G);
+
+		gdt_descriptor desc = {
+			.limit = sizeof(kernel_gdt) - 1,
+			.base = (uint64_t)kernel_gdt,
+		};
+		gdt_init(&desc);
+
+		/* Debug: report that GDT was loaded and show base */
+		mem_serial_print("[mem] gdt_loaded base=");
+		mem_serial_print_hex64((uint64_t)kernel_gdt);
+		mem_serial_print("\n");
+	}
+
+	/* Remove bootstrap identity mapping */
+	// pml4[0] = 0;
+	// flush_tlb();
 }

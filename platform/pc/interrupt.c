@@ -1,4 +1,5 @@
 #include "interrupt.h"
+#include "serial.h"
 
 interrupt_descriptor idt[MAX_INTERRUPTS] = {0}; // Initialize to ensure loaded from disk
 idt_descriptor idtr;
@@ -10,7 +11,26 @@ uint64_t df_stack[512] = {[0] = 0x3};
 
 uint64_t ticks = 0;
 
-extern uint64_t *gdt;
+/* Small serial helpers for debug printing (file-scope to avoid nested functions).
+   Keep them minimal to avoid pulling in printf/VGA. */
+static void serial_print(const char *s)
+{
+	while (*s)
+		serial_write(SERIAL_PORT_0, (uint8_t)*s++);
+}
+
+static void serial_print_hex64(uint64_t v)
+{
+	const char hex[] = "0123456789abcdef";
+	serial_print("0x");
+	for (int i = 15; i >= 0; --i)
+	{
+		uint8_t nib = (v >> (i * 4)) & 0xF;
+		serial_write(SERIAL_PORT_0, hex[nib]);
+	}
+}
+
+extern uint64_t *gdt; /* pointer to active GDT (set by gdt_init) */
 extern void load_idt(idt_descriptor *idtr);
 extern void load_tss(uint32_t selector);
 
@@ -130,12 +150,30 @@ void interrupt_init()
 {
 	remap_PIC();
 
+	/* Signal entry into interrupt_init for debugging */
+	serial_print("[int] enter\n");
+
 	tss.rsp0 = (uint64_t)&kernel_stack[511];
 	tss.ist1 = (uint64_t)&df_stack[511];
 	tss.ist2 = (uint64_t)&gp_stack[511];
 	tss.iomap_base = sizeof(tss64);
 
+	/* Debug: print GDT pointer and TSS address before installing TSS via serial */
+
+	serial_print("[GDT] gdt=");
+	serial_print_hex64((uint64_t)gdt);
+	serial_print(" tss=");
+	serial_print_hex64((uint64_t)&tss);
+	serial_print("\n");
+
 	set_tss_entry(5, (uint64_t)&tss, sizeof(tss64) - 1, 0x89, 0);
+
+	/* Debug: dump the two GDT entries reserved for the TSS via serial */
+	serial_print("[GDT] tss entry low=");
+	serial_print_hex64((uint64_t)gdt[5]);
+	serial_print(" high=");
+	serial_print_hex64((uint64_t)gdt[6]);
+	serial_print("\n");
 
 	idtr.size = MAX_INTERRUPTS * sizeof(interrupt_descriptor) - 1;
 	idtr.offset = idt;
@@ -153,7 +191,11 @@ void interrupt_init()
 	load_idt(&idtr);
 
 	// Load TSS after IDT is set up
+	serial_print("[GDT] loading TSS selector=0x");
+	serial_print_hex64((uint64_t)(5 * 8));
+	serial_print("\n");
 	load_tss(5 * 8);
+	serial_print("[GDT] load_tss returned\n");
 
 	pit_init();
 	enable_interrupts();
