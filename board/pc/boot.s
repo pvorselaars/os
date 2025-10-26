@@ -6,8 +6,20 @@ _start:
   # Disable interrupts until kernel can setup interrupt routines
   cli
 
-  # Load kernel sectors from disk using LBA addressing (BIOS int 13h, function 42h)
-  # First check if LBA extensions are available
+  mov $0x7c00, %esp
+
+  call memory_map
+  call load_kernel
+
+  lgdt gdt_descriptor_16
+  
+  # Enable protected mode
+  mov %cr0, %eax
+  or $0x1, %eax
+  mov %eax, %cr0
+  ljmp $0x08, $protected_mode
+
+load_kernel:
   mov $0x41, %ah       # Check extensions present
   mov $0x55aa, %bx     # Magic number
   mov $0x80, %dl       # Drive 0x80 (first hard disk)
@@ -21,14 +33,32 @@ _start:
   mov $0x80, %dl       # Drive 0x80 (first hard disk)
   int $0x13
   jc disk_error
-    
-  lgdt gdt_descriptor_16
-  
-  # Enable protected mode
-  mov %cr0, %eax
-  or $0x1, %eax
-  mov %eax, %cr0
-  ljmp $0x08, $protected_mode
+  ret
+
+memory_map:
+  xor %ebx, %ebx
+  xor %esi, %esi
+  xor %ax, %ax
+  mov %ax, %es
+  mov $MEMORY_MAP, %di
+.loop:
+  mov $24, %ecx
+  mov $0x534D4150, %edx     # 'SMAP' signature
+  mov $0xE820, %eax
+  int $0x15
+  jc .done
+  inc %esi
+  add %cx, %di            # advance by the size returned in CX (low 16 of ECX)
+  mov %si, %ax
+  cmp $32, %ax
+  jae .done
+  test %ebx, %ebx
+  jne .loop
+.done:
+  mov $MEMORY_MAP_ENTRIES, %di
+  movw %si, %es:(%di)
+  movw %cx, %es:4(%di)
+  ret
 
 .code32
 protected_mode:

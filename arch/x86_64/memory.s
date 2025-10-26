@@ -7,7 +7,8 @@
 .globl arch_memory_compare
 .globl arch_memory_move
 .globl arch_memory_copy
-.globl arch_memory_flush_tlb
+
+.globl flush_tlb
 
 .section .text
 
@@ -68,7 +69,7 @@ arch_memory_copy:
   rep movsb
   ret
 
-arch_memory_flush_tlb:
+flush_tlb:
   mov %cr3, %rax
   mov %rax, %cr3
   ret

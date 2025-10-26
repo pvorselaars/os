@@ -21,6 +21,6 @@ arch_result arch_timer_init(uint32_t frequency_hz)
 uint64_t arch_time_ns(void) 
 {
     // TODO: handle case where timer_frequency_hz is variable
-    return (uint64_t)timer_ticks * 1000000ULL / timer_frequency_hz;
+    return (uint64_t)timer_ticks * 1000000ULL / timer_frequency_hz * 1000ULL;
 }
 

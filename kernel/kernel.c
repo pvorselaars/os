@@ -30,7 +30,7 @@ void kernel(void)
 		arch_halt();
 	}
 	
-	arch_debug_printf("🧪 Running device tests...\n");
+	arch_debug_printf("🧪 Running tests...\n");
 	
 	// Test 1: Console device
 	device_t *console = device_find_by_name("console0");
@@ -39,6 +39,15 @@ void kernel(void)
 		console->close(console);
 	} else {
 		arch_debug_printf("❌ Console test failed\n");
+		arch_halt();
+	}
+
+	device_t *parallel = device_find_by_name("parallel0");
+	if (parallel && parallel->open(parallel) == ARCH_OK) {
+		parallel->char_ops.write(parallel, "Parallel: Test message\n", 22);
+		parallel->close(parallel);
+	} else {
+		arch_debug_printf("❌ Parallel test failed\n");
 		arch_halt();
 	}
 	
@@ -51,9 +60,10 @@ void kernel(void)
 		arch_halt();
 	}
 	
-	device_list_all();
 	
 	arch_debug_printf("🎉 Tests complete!\n");
+
+	device_list_all();
 
 	while (1) {
 		arch_halt();
