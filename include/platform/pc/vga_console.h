@@ -1,7 +1,7 @@
 #ifndef VGA_CONSOLE_H
 #define VGA_CONSOLE_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 #include "arch/x86_64/memory.h"
 #include "arch/x86_64/io.h"
 

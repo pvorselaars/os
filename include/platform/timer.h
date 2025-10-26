@@ -1,7 +1,7 @@
 #ifndef PLATFORM_TIMER_H
 #define PLATFORM_TIMER_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 #include "platform/pc/pit.h"
 #include "arch/x86_64/io.h"
 

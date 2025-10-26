@@ -1,7 +1,7 @@
 #ifndef IO_H
 #define IO_H
 
-#include "../../kernel/definitions.h"
+#include "definitions.h"
 
 uint8_t inb(uint32_t port);
 uint16_t inw(uint32_t port);

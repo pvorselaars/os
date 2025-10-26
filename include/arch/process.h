@@ -1,7 +1,7 @@
 #ifndef ARCH_PROCESS_H
 #define ARCH_PROCESS_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 #include "kernel/process.h"
 
 /* Architecture-specific process context management

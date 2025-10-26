@@ -7,7 +7,7 @@
  * architecture-agnostic interface instead.
  */
 
-#include "../../arch/process.h"
+#include "arch/process.h"
 
 /* Legacy compatibility - redirect to new interface */
 #define process_init() process_subsystem_init()

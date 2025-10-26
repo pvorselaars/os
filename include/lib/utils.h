@@ -1,9 +1,9 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "../kernel/definitions.h"
-#include "../platform/timer.h"
-#include "../platform/init.h"
+#include "definitions.h"
+#include "platform/timer.h"
+#include "platform/init.h"
 
 void fatal(const int8_t *format, ...);
 void sleep(uint64_t ms);

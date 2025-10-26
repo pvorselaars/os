@@ -1,7 +1,7 @@
 #ifndef PS2_H
 #define PS2_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 #include "arch/x86_64/io.h"
 
 #define PS2_DATA_PORT       0x60

@@ -1,7 +1,7 @@
 #ifndef KERNEL_PROCESS_H
 #define KERNEL_PROCESS_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 
 /* Platform-agnostic process management interface */
 

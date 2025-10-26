@@ -1,7 +1,7 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 #include "platform/pc/vga_console.h"
 #include "lib/printf.h"
 

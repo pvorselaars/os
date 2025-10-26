@@ -1,7 +1,7 @@
 #ifndef LIB_MEMORY_H
 #define LIB_MEMORY_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 
 /* Platform-agnostic memory utility interface
  * 

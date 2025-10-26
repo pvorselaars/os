@@ -1,7 +1,7 @@
 #ifndef ARCH_MEMORY_H
 #define ARCH_MEMORY_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 
 /* Architecture Memory Interface
  * 

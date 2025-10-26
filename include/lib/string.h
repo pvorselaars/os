@@ -1,7 +1,7 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 #include "arch/x86_64/memory.h"
 
 #define FLAGS_ZERO      (1 << 0)

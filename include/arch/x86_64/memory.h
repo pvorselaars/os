@@ -52,7 +52,7 @@
 
 #else
 
-#include "kernel/definitions.h"
+#include "definitions.h"
 #include "lib/utils.h"
 #include "arch/memory.h"
 
