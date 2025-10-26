@@ -30,6 +30,7 @@ CFLAGS = -Wall -s -pedantic \
 						-Iinclude \
 						-Iinclude/kernel \
 						-Iinclude/lib \
+						-Iinclude/drivers \
 						-Iinclude/arch/$(ARCH) \
 						-Iinclude/platform/$(PLATFORM) \
 						-Werror \

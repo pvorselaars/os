@@ -1,6 +1,8 @@
 #include "kernel/device.h"
 #include "lib/string.h"
 #include "arch/arch.h"
+#include "drivers/parallel.h"
+#include "drivers/serial.h"
 
 /* Device subsystem state */
 static device_t *device_list_head = NULL;
@@ -30,6 +32,18 @@ arch_result device_init(void)
     device_list_head = NULL;
     device_count = 0;
     device_subsystem_initialized = true;
+
+	arch_result result = serial_driver_init();
+	if (result != ARCH_OK) {
+		arch_debug_printf("Serial driver initialization failed\n");
+		arch_halt();
+	}
+
+	result = parallel_driver_init();
+	if (result != ARCH_OK) {
+		arch_debug_printf("Parallel driver initialization failed\n");
+		arch_halt();
+	}
     
     arch_debug_printf("Device subsystem initialized\n");
     return ARCH_OK;

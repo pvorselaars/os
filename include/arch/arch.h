@@ -24,13 +24,33 @@ arch_result arch_timer_init(unsigned int frequency_hz);
 uint64_t arch_time_ns(void);
 arch_result arch_register_default_handlers(void);
 
-// Memory management API
+// Serial interface - arch-specific implementations  
+typedef struct arch_serial_device arch_serial_device_t;  // Opaque handle
 
-// Serial interface - arch-specific implementations
-arch_result arch_serial_init(void);
-int arch_serial_write(const void *buf, size_t len);
-int arch_serial_read(void *buf, size_t len);
-bool arch_serial_data_available(void);
+typedef struct {
+    arch_serial_device_t *device;  // Opaque arch-specific device handle
+    const char *name;               // Suggested device name (e.g., "serial0")
+} arch_serial_info_t;
+
+int arch_serial_get_count(void);                                         // How many devices exist?
+arch_result arch_serial_get_info(int index, arch_serial_info_t *info);   // Get info for device N
+arch_result arch_serial_init(arch_serial_device_t *device);             // Initialize specific device
+int arch_serial_write(arch_serial_device_t *device, const void *buf, size_t len);  // Write to device
+int arch_serial_read(arch_serial_device_t *device, void *buf, size_t len);         // Read from device
+bool arch_serial_data_available(arch_serial_device_t *device);                     // Check if data available
+
+// Parallel interface - arch-specific implementations
+typedef struct arch_parallel_device arch_parallel_device_t;  // Opaque handle
+
+typedef struct {
+    arch_parallel_device_t *device;  // Opaque arch-specific device handle
+    const char *name;                 // Suggested device name (e.g., "parallel0")
+} arch_parallel_info_t;
+
+int arch_parallel_get_count(void);                                           // How many devices exist?
+arch_result arch_parallel_get_info(int index, arch_parallel_info_t *info);  // Get info for device N
+arch_result arch_parallel_init(arch_parallel_device_t *device);             // Initialize specific device
+int arch_parallel_write(arch_parallel_device_t *device, const void *buf, size_t len);  // Write to device
 
 arch_result arch_memory_init(void);
 void *arch_memory_allocate_page(void);

@@ -28,7 +28,6 @@ arch_result arch_interrupt_init(void)
     return ARCH_OK;
 }
 
-// Default exception handlers - can be overridden by kernel
 static void default_exception_handler(const char *name)
 {
     arch_debug_printf("Exception: %s\n", name);
@@ -45,7 +44,6 @@ extern void timer_handler(void);
 
 arch_result arch_register_default_handlers(void)
 {
-    // Register default exception handlers
     arch_register_interrupt(0, divide_by_zero_handler);
     arch_register_interrupt(2, nmi_handler);
     arch_register_interrupt(4, overflow_handler);

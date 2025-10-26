@@ -16,14 +16,6 @@ void kernel(void)
 		arch_halt();
 	}
 	
-	// Initialize drivers
-	extern arch_result serial_driver_init(void);
-	result = serial_driver_init();
-	if (result != ARCH_OK) {
-		arch_debug_printf("Serial driver initialization failed\n");
-		arch_halt();
-	}
-	
 	// List all registered devices
 	device_list_all();
 	
@@ -38,6 +30,19 @@ void kernel(void)
 		arch_debug_printf("Wrote %d bytes to serial device\n", bytes_written);
 	} else {
 		arch_debug_printf("Serial device not found!\n");
+	}
+
+	// Test the device API with parallel device
+	device_t *parallel = device_find_by_name("parallel0");
+	if (parallel) {
+		arch_debug_printf("Found parallel device: %s\n", parallel->name);
+		
+		// Test writing to the device
+		const char *test_msg = "Hello from device API!\n";
+		int bytes_written = parallel->char_ops.write(parallel, test_msg, strlen(test_msg));
+		arch_debug_printf("Wrote %d bytes to parallel device\n", bytes_written);
+	} else {
+		arch_debug_printf("Parallel device not found!\n");
 	}
 
 	while (1) {

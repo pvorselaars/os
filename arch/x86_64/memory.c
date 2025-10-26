@@ -7,7 +7,7 @@ typedef struct region
 	unsigned long size;
 } region;
 
-static region free_regions[32]; /* Static array in kernel .bss section */
+static region free_regions[32];
 
 static unsigned long total_regions;
 static unsigned long total_memory;
@@ -268,9 +268,6 @@ arch_result arch_memory_init(void)
 
 	total_memory_free = free_regions[0].size + free_regions[1].size + free_regions[2].size + free_regions[3].size;
 	total_memory_reserved = total_memory - total_memory_free;
-
-	/* GDT construction moved to arch/x86_64/gdt.c; call arch_gdt_init from
-	 * arch initialization instead. */
 
 	/* Remove bootstrap identity mapping */
 	pml4[0] = 0;

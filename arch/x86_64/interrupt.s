@@ -1,7 +1,6 @@
 .code64
 .section .text
 
-# Exception handlers (no error code)
 .macro EXCEPTION_HANDLER_NOERR vector
 .globl exception_\vector
 exception_\vector:
@@ -10,7 +9,6 @@ exception_\vector:
     jmp common_interrupt_handler
 .endm
 
-# Exception handlers (with error code)  
 .macro EXCEPTION_HANDLER_ERR vector
 .globl exception_\vector
 exception_\vector:
@@ -18,7 +16,6 @@ exception_\vector:
     jmp common_interrupt_handler
 .endm
 
-# Hardware interrupt handlers
 .macro IRQ_HANDLER vector
 .globl irq_\vector
 irq_\vector:
@@ -27,7 +24,6 @@ irq_\vector:
     jmp common_interrupt_handler
 .endm
 
-# Common interrupt handler
 common_interrupt_handler:
     pushq %rax
     pushq %rbx
