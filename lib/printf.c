@@ -1,94 +1,242 @@
 #include "lib/printf.h"
 
-/* Platform-agnostic printf implementation */
+#define FLAGS_ZERO      (1 << 0)
+#define FLAGS_LEFT      (1 << 1)
+#define FLAGS_PLUS      (1 << 2)
+#define FLAGS_SPACE     (1 << 3)
+#define FLAGS_HASH      (1 << 4)
+#define FLAGS_UPPERCASE (1 << 5)
+#define FLAGS_LONG      (1 << 6)
+#define FLAGS_SHORT     (1 << 7)
+#define FLAGS_CHAR      (1 << 8)
 
-/* Function pointer for output method - can be set to different backends */
-static printf_output_func_t output_func = NULL;
-
-void printf_set_output(printf_output_func_t func)
+static bool is_digit(const char c)
 {
-	output_func = func;
+	return (c >= '0' && c <= '9');
 }
 
-printf_output_func_t printf_get_output(void)
+static int atoi(const char *str)
 {
-	return output_func;
-}
+	int i = 0;
 
-int printf(const char *format, ...)
-{
-	if (!output_func) {
-		return -1; // No output function set
+	while (is_digit(*str)) {
+		i = i * 10 + *(str++) - '0';
 	}
 
-	va_list args;
-	char buffer[PRINTF_BUFFER_SIZE];
-	
-	va_start(args, format);
-	int len = vsnprintf(buffer, PRINTF_BUFFER_SIZE, format, args);
-	va_end(args);
-
-	if (len > 0 && len < PRINTF_BUFFER_SIZE) {
-		output_func(buffer, len);
-	}
-
-	return len;
+	return i;
 }
 
-int vprintf(const char *format, va_list args)
+static int ntoar(unsigned long value, char *str, unsigned int base)
 {
-	if (!output_func) {
-		return -1; // No output function set
-	}
+	int length = 0;
+	int n = 0;
 
-	char buffer[PRINTF_BUFFER_SIZE];
-	int len = vsnprintf(buffer, PRINTF_BUFFER_SIZE, format, args);
+	do {
+		char digit = (char)(value % base);
+		str[n++] = digit < 10 ? '0' + digit : 'a' + digit - 10;
+		value /= base;
+	} while (value && n < 32);
 
-	if (len > 0 && len < PRINTF_BUFFER_SIZE) {
-		output_func(buffer, len);
-	}
+	length = n;
 
-	return len;
+	return length;
 }
 
-int snprintf(char *str, uint64_t size, const char *format, ...)
+int vsnprintf(int8_t *str, unsigned int n, const int8_t *format, va_list args)
 {
-	va_list args;
-	va_start(args, format);
-	int len = vsnprintf(str, size, format, args);
-	va_end(args);
-	return len;
-}
+	unsigned int characters, length, width, base, flags;
+	bool negative = false;
 
-/* Helper function to calculate string length */
-static uint64_t printf_strlen(const char *str)
-{
-	uint64_t len = 0;
-	while (*str++) len++;
-	return len;
-}
+	length = 0;
 
-/* Convenience functions */
-int puts(const char *str)
-{
-	if (!output_func) {
-		return -1;
+	char buffer[64];
+
+	while (*format != 0 && length < n - 1) {
+
+		width = 0;
+		negative = false;
+		flags = 0;
+
+		// Format specifier: %[flags][width][.precision][length]specifier
+		if (*format != '%') {
+			length++;
+			*(str++) = *format++;
+			continue;
+		}
+		// Flags
+		format++;
+		for (bool done = false; !done;) {
+			switch (*format) {
+			case '0':
+				flags |= FLAGS_ZERO;
+				format++;
+				break;
+			case '-':
+				flags |= FLAGS_LEFT;
+				format++;
+				break;
+			case '+':
+				flags |= FLAGS_PLUS;
+				format++;
+				break;
+			case ' ':
+				flags |= FLAGS_SPACE;
+				format++;
+				break;
+			case '#':
+				flags |= FLAGS_HASH;
+				format++;
+				break;
+			default:
+				done = true;
+				break;
+			}
+		}
+
+		// Width
+		if (is_digit(*format)) {
+			width = atoi(format);
+			while (is_digit(*format)) {
+				format++;
+			}
+		} else if (*format == '*') {
+			const int w = va_arg(args, int);
+			if (w < 0) {
+				flags |= FLAGS_LEFT;
+				width = -w;
+			} else {
+				width = w;
+			}
+			format++;
+		}
+		// TODO: Precision
+
+		// Length
+		switch (*format) {
+		case 'l':
+			flags |= FLAGS_LONG;
+			format++;
+			break;
+
+		default:
+			break;
+		}
+
+		// Specifier
+
+		switch (*format) {
+		case 'i':
+		case 'd':
+			base = 10;
+
+			if (flags & FLAGS_LONG) {
+				const long value = va_arg(args, long);
+				negative = value < 0;
+				characters = ntoar((unsigned long)(negative ? 0 - value : value), buffer, base);
+			} else {
+				const int value = va_arg(args, int);
+				negative = value < 0;
+				characters = ntoar((unsigned long)(negative ? 0 - value : value), buffer, base);
+			}
+
+			break;
+		case 'u':
+			base = 10;
+
+			if (flags & FLAGS_LONG) {
+				const unsigned long value = va_arg(args, long);
+				characters = ntoar((unsigned long)(value > 0 ? value : 0 - value), buffer, base);
+			} else {
+				const unsigned int value = va_arg(args, int);
+				characters = ntoar((unsigned long)(value > 0 ? value : 0 - value), buffer, base);
+			}
+
+			break;
+
+		case 'o':
+			base = 8;
+
+			if (flags & FLAGS_LONG) {
+				const unsigned long value = va_arg(args, long);
+				characters = ntoar((unsigned long)(value > 0 ? value : 0 - value), buffer, base);
+			} else {
+				const unsigned int value = va_arg(args, int);
+				characters = ntoar((unsigned long)(value > 0 ? value : 0 - value), buffer, base);
+			}
+
+			break;
+
+		case 'p':
+		case 'x':
+		case 'X':
+			base = 16;
+
+			if (flags & FLAGS_LONG) {
+				const unsigned long value = va_arg(args, long);
+				characters = ntoar((unsigned long)(value > 0 ? value : 0 - value), buffer, base);
+			} else {
+				const unsigned int value = va_arg(args, int);
+				characters = ntoar((unsigned long)(value > 0 ? value : 0 - value), buffer, base);
+			}
+
+			break;
+
+		case 'c':
+			buffer[0] = (char)va_arg(args, int);
+			characters = 1;
+
+			break;
+
+		case 's':
+			const char *c = va_arg(args, const char *);
+			characters = strlen(c);
+			for (int i = characters - 1; i >= 0; i--) {
+				buffer[i] = *(c++);
+			}
+			break;
+
+			// TODO: f,F,e,E,g,G
+		default:
+			continue;
+		}
+
+		format++;
+
+		// Left padding
+		if ((flags & FLAGS_ZERO) && !(flags & FLAGS_LEFT)) {
+
+			while (characters < width) {
+				buffer[characters++] = '0';
+			}
+
+		}
+
+		if (negative || (flags & FLAGS_PLUS)) {
+			buffer[characters++] = negative ? '-' : '+';
+		}
+
+		if (!(flags & FLAGS_ZERO) && !(flags & FLAGS_LEFT)) {
+
+			while (characters < width) {
+				buffer[characters++] = ' ';
+			}
+
+		}
+
+		for (int i = characters - 1; i >= 0; i--) {
+			*(str++) = buffer[i];
+		}
+
+		// Right padding
+		if (flags & FLAGS_LEFT) {
+			while (characters < width) {
+				*(str++) = ' ';
+				characters++;
+			}
+		}
+
+		length += characters;
 	}
 
-	uint64_t len = printf_strlen(str);
-	output_func(str, len);
-	output_func("\n", 1); // puts adds newline
-
-	return len + 1;
-}
-
-int putchar(int c)
-{
-	if (!output_func) {
-		return -1;
-	}
-
-	char ch = (char)c;
-	output_func(&ch, 1);
-	return c;
+	return length;
 }

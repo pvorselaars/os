@@ -5,7 +5,8 @@
 #include "arch/arch.h"
 
 typedef enum {
-    DEVICE_CLASS_CHAR = 0,      // Character devices (serial, keyboard)
+    DEVICE_CLASS_CHAR = 0,
+    DEVICE_CLASS_BLOCK,
     DEVICE_CLASS_MAX
 } device_class_t;
 
@@ -17,7 +18,6 @@ typedef enum {
     DEVICE_STATE_REMOVED
 } device_state_t;
 
-/* Forward declaration */
 struct device;
 
 /* Character device operations */
@@ -26,6 +26,15 @@ typedef struct {
     int (*write)(struct device *dev, const void *buf, size_t len);
     arch_result (*flush)(struct device *dev);
 } char_device_ops_t;
+
+/* Block device operations */
+typedef struct {
+    int (*read_blocks)(struct device *dev, void *buf, uint64_t start_block, uint32_t block_count);
+    int (*write_blocks)(struct device *dev, const void *buf, uint64_t start_block, uint32_t block_count);
+    arch_result (*sync)(struct device *dev);
+    uint32_t (*get_block_size)(struct device *dev);
+    uint64_t (*get_block_count)(struct device *dev);
+} block_device_ops_t;
 
 
 /* Display device operations 
@@ -51,6 +60,7 @@ typedef struct device {
     
     union {
         char_device_ops_t char_ops;
+        block_device_ops_t block_ops;
     };
     
     void *driver_data;          // Private driver state
@@ -65,7 +75,6 @@ device_t* device_find_by_name(const char *name);
 device_t* device_find_by_class(device_class_t class, uint32_t index);
 void device_list_all(void);
 
-/* Helper functions */
 const char* device_class_name(device_class_t class);
 const char* device_state_name(device_state_t state);
 
