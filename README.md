@@ -1,6 +1,6 @@
 # OS
 
-A minimal operating system for learning and experimenting with low-level OS concepts. Currently supports x86_64 PC architecture.
+A minimal operating system for learning and experimenting with low-level OS concepts. Currently supports the PC platform with a x86_64 CPU architecture.
 
 ## Structure
 
@@ -22,7 +22,7 @@ A minimal operating system for learning and experimenting with low-level OS conc
 - [x] Virtual memory management
 
 ### PC Platform Features
-- [x] x86_64 boot sequence
+- [x] x86_64 PC BIOS boot sequence
 - [x] PIT (Programmable Interval Timer) support
 - [x] PIC (Programmable Interrupt Controller) support
 - [x] PC speaker audio driver
@@ -30,7 +30,7 @@ A minimal operating system for learning and experimenting with low-level OS conc
 - [x] Parallel port support
 - [x] VGA text mode support
 - [x] PS/2 keyboard support
-- [x] ATA/IDE disk controller
+- [x] ATA/IDE disk support
 
 ### Planned Features
 - [ ] Process management and scheduling
