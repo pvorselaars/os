@@ -16,8 +16,6 @@ typedef short int16_t;
 typedef int int32_t;
 typedef long int64_t;
 
-typedef uint64_t addr_t;
-
 typedef __builtin_va_list va_list;
 
 #define va_start(v, l) __builtin_va_start(v, l)

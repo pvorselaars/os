@@ -1,6 +1,7 @@
-#include "../include/lib/utils.h"
-#include "../include/lib/string.h"
-#include "../include/lib/printf.h"
+#include "arch/arch.h"
+#include "lib/utils.h"
+#include "lib/string.h"
+#include "lib/printf.h"
 
 void fatal(const int8_t *format, ...)
 {
@@ -11,13 +12,13 @@ void fatal(const int8_t *format, ...)
 
 	va_end(args);
 
-	platform_halt();
+	arch_halt();
 }
 
 
 void sleep(uint64_t milliseconds)
 {
-	uint64_t start = platform_time_ns();
-	while (platform_time_ns() - start < milliseconds * 1000000)
-		platform_halt();
+	uint64_t start = arch_time_ns();
+	while (arch_time_ns() - start < milliseconds * 1000000)
+		arch_halt();
 }

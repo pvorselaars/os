@@ -1,7 +1,6 @@
 #include "lib/memory.h"
 #include "arch/x86_64/memory.h"
 #include "arch/process.h"
-#include "arch/interrupt.h"
 
 /* x86_64-specific process context */
 struct arch_context {
