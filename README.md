@@ -1,50 +1,78 @@
 # OS
 
-A minimal operating system for x86_64. Designed for learning and experimenting with low-level OS concepts such as process management, memory management, and hardware interaction.
+A minimal operating system for learning and experimenting with low-level OS concepts. Currently supports the PC platform with a x86_64 CPU architecture.
+
+## Structure
+
+```
+├── kernel/           # Core kernel functionality
+├── lib/              # Library functions
+├── drivers/          # Generic device drivers
+├── arch/x86_64/      # CPU architecture specific code
+├── board/pc/         # Board specific code
+└── include/          # Header files
+```
 
 ## Features
 
+### Core Features
 - [x] 64-bit kernel
+- [x] Architecture and board separation
 - [x] Bootable and debuggable via QEMU
 - [x] Virtual memory management
-- [x] PIT support
-- [x] PIC support
-- [x] Basic audio driver
-- [x] RS232 support
-- [x] Parallel port support
-- [x] VGA support
-- [x] PS/2 keyboard support
-- [ ] Process management
-- [ ] Bootable on real hardware
-- [ ] Mouse support
-- [ ] Floppy support
-- [ ] ATA/IDE support
-- [ ] Ethernet support
-- [ ] PCI support
-- [ ] SATA support
-- [ ] ACPI support
-- [ ] USB support
 
-## Getting started
+### PC Platform Features
+- [x] x86_64 PC BIOS boot sequence
+- [x] PIT (Programmable Interval Timer) support
+- [x] PIC (Programmable Interrupt Controller) support
+- [x] PC speaker audio driver
+- [x] RS232 serial communication
+- [x] Parallel port support
+- [x] VGA text mode support
+- [x] PS/2 keyboard support
+- [x] ATA/IDE disk support
+
+### Planned Features
+- [ ] Process management and scheduling
+- [ ] Bootable on real hardware
+- [ ] File system support
+- [ ] Network stack
+- [ ] USB support
+- [ ] ACPI support
+
+## Getting Started
 
 ### Requirements
 
-* QEMU for virtualization
+* QEMU
 * GCC
 * GDB
 * Make
+* TMux (optional) - For debug session management
 
-1. Clone
+### Quick Start
 
-   ```bash
-   git clone https://github.com/pvorselaars/os
-   cd os
-   ```
-2. Build & run
+1. **Clone the repository**
+    ```bash
+    git clone https://github.com/pvorselaars/os
+    cd os
+    ```
 
+2. **Build and run**
    ```bash
    make run
    ```
+
+### Build Commands
+
+| Command | Description |
+|---------|-------------|
+| `make` | Build for default configuration (x86_64/PC) |
+| `make ARCH=x86_64 BOARD=pc` | Build for specific arch/board |
+| `make pc` | Build for PC (shortcut) |
+| `make run` | Run the OS in QEMU |
+| `make gdb` | Start debug session with GDB |
+| `make clean` | Clean build artifacts |
 
 ## License
 
