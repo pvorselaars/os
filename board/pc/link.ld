@@ -8,7 +8,7 @@ KERNEL_VMA   = KERNEL_BASE + KERNEL_PHYS;
 SECTIONS
 {
     .boot BOOT_BASE : {
-        obj/arch/x86_64/internal/boot.s.o(.text)
+        obj/board/pc/boot.s.o(.text)
 		BOOT_END = .;
 		BOOT_GDT_PHYS = BOOT_BASE + 0x108;  /* GDT physical address */
 		BOOT_GDT_VIRT = KERNEL_BASE + BOOT_GDT_PHYS;  /* GDT virtual address */

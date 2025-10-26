@@ -1,47 +1,51 @@
 #include "arch/arch.h"
-#include "arch/x86_64/serial.h"
+#include "board/pc/serial.h"
 
-/* x86_64 Serial Implementation
- * 
- * Implements the arch serial interface using x86_64-specific hardware.
- * Detects available COM ports and provides opaque handle interface.
- */
-
-/* x86_64-specific serial device structure */
 struct arch_serial_device {
-    serial_port port;      // x86_64 serial port enum (COM1, COM2, etc.)
-    bool initialized;      // Whether this device is initialized
+    serial_port port;
+    bool initialized;
 };
 
 typedef struct {
-    struct arch_serial_device device;  // The actual device structure
-    const char *name;                   // Device name
-    bool detected;                      // Whether hardware was detected
+    struct arch_serial_device device;
+    const char *name;
+    bool detected;
 } x86_serial_port_t;
 
 static x86_serial_port_t x86_serial_ports[] = {
     { .device = {SERIAL_PORT_0, false}, .name = "serial0", .detected = false }
-    // Only SERIAL_PORT_0 is defined in the header currently
-    // Could add more COM ports here when they're defined
+    // TODO: add more ports
 };
 
 #define X86_SERIAL_PORT_COUNT (sizeof(x86_serial_ports) / sizeof(x86_serial_ports[0]))
 
 static bool serial_ports_detected = false;
+static uint8_t buffer[SERIAL_BUFFER_SIZE];
+static uint8_t buffer_index = 0;
 
-/* Detect which serial ports actually exist */
 static void detect_serial_ports(void)
 {
     if (serial_ports_detected) return;
     
-    // Initialize x86_64 serial subsystem first
-    x86_64_serial_init();
+    outb(SERIAL_PORT_0 + 1, 0x00); // Disable interrupts
+
+    outb(SERIAL_PORT_0 + 3, 0x80); // Set DLAB
+    outb(SERIAL_PORT_0 + 0, 0x03); // Set divisor low byte (115200 / 3 = 38400 baud)
+    outb(SERIAL_PORT_0 + 1, 0x00); // Set divisor high byte
+
+    outb(SERIAL_PORT_0 + 3, 0x03); // 8 bits, one stop bit, no parity
+    outb(SERIAL_PORT_0 + 2, 0xC7); // Enable and clear 14 byte FIFO
+    outb(SERIAL_PORT_0 + 4, 0x1E); // Set in loopback mode for testing
+
+    outb(SERIAL_PORT_0 + 0, 0xAE); // Send test byte
+
+    while (!(inb(SERIAL_PORT_0+5) & 0x01));
+    assert(inb(SERIAL_PORT_0) == 0xAE);
+
+    outb(SERIAL_PORT_0 + 4, 0x0F); // Disable loopback mode
+    outb(SERIAL_PORT_0 + 1, 0x01); // Enable interrupts
     
-    // For now, assume COM1 (SERIAL_PORT_0) always exists
-    // In a full implementation, we'd probe each port
     x86_serial_ports[0].detected = true;
-    
-    // Could add detection logic for COM2, COM3, COM4 here
     
     serial_ports_detected = true;
 }
@@ -77,15 +81,13 @@ arch_result arch_serial_get_info(int index, arch_serial_info_t *info)
         }
     }
     
-    return ARCH_ERROR; // Index out of range
+    return ARCH_ERROR;
 }
 
 arch_result arch_serial_init(arch_serial_device_t *device)
 {
     if (!device) return ARCH_ERROR;
     
-    // The x86_64_serial_init() was already called in detect_serial_ports()
-    // Just mark this device as initialized
     device->initialized = true;
     return ARCH_OK;
 }
@@ -97,7 +99,10 @@ int arch_serial_write(arch_serial_device_t *device, const void *buf, size_t len)
     const char *str = (const char *)buf;
     
     for (size_t i = 0; i < len; i++) {
-        x86_64_serial_write(device->port, str[i]);
+        // wait for transmit buffer to be empty
+        while (!(inb(device->port+5) & 0x40));
+
+        outb(device->port, str[i]);
     }
     
     return (int)len;
@@ -105,18 +110,18 @@ int arch_serial_write(arch_serial_device_t *device, const void *buf, size_t len)
 
 int arch_serial_read(arch_serial_device_t *device, void *buf, size_t len)
 {
-    if (!device || !device->initialized) return -1;
-    
-    // For now, just return 0 (no data available)
-    // In a full implementation, this would use x86_64_serial_read(device->port)
-    return 0;
+    // wait for buffer content
+    while(!buffer_index)
+        arch_halt();
+
+    return buffer[--buffer_index];
 }
 
 bool arch_serial_data_available(arch_serial_device_t *device)
 {
     if (!device || !device->initialized) return false;
+
+    // TODO: Check if data is available in the receive buffer
     
-    // For now, always return false
-    // In a full implementation, this would check device->port status
     return false;
 }

@@ -26,18 +26,16 @@ tss64 tss = {.rsp0 = 0x1000};
 void x86_64_tss_set_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags)
 {
     x86_64_gdt_set_entry(index, base, limit, access, flags);
-    x86_64_gdt_set_entry(index + 1, 0, 0, 0, 0); // Clear the next entry
+    x86_64_gdt_set_entry(index + 1, 0, 0, 0, 0);
 }
 
 void x86_64_tss_init(void)
 {
-    /* TSS initialization can be done here if needed */
     uint64_t tss_base = (uint64_t)&tss;
     uint64_t tss_limit = sizeof(tss) - 1;
 
     x86_64_tss_set_entry(5, tss_base, tss_limit, SDA_P | SDA_A | SDA_TSS, 0x0);
 
-    /* Load TSS */
     __asm__ volatile("ltr %0" : : "r"(0x28)); // Selector for TSS entry (index 5)
 }
 

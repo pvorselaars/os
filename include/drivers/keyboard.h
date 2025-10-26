@@ -1,5 +1,5 @@
-#ifndef KEYBOARD_DRIVER_H
-#define KEYBOARD_DRIVER_H
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
 
 #include "arch/arch.h"
 

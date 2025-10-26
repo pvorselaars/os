@@ -9,9 +9,4 @@ typedef enum {
 
 #define SERIAL_BUFFER_SIZE 8
 
-void x86_64_serial_init();
-uint8_t x86_64_serial_read();
-void x86_64_serial_write(serial_port, uint8_t);
-void x86_64_serial_receive();
-
 #endif

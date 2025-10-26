@@ -1,4 +1,4 @@
-#include "platform/pc/vga.h"
+#include "board/pc/vga.h"
 
 // Basic 8x16 font data for ASCII characters 0x20-0x7F
 // Each character is 16 bytes (16 rows of 8 pixels each)

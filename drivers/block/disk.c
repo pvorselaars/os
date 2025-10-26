@@ -2,19 +2,6 @@
 #include "arch/arch.h"
 #include "lib/string.h"
 
-/* Generic Disk Block Device Driver
- * 
- * Provides block device interface for storage devices.
- * Uses arch layer for hardware-specific operations (ATA, SATA, NVMe, etc.).
- * 
- * Block devices provide:
- * - Reading/writing blocks of data
- * - Block size information (typically 512 bytes)
- * - Total capacity in blocks
- * - Synchronization (flush pending writes)
- */
-
-/* Forward declarations */
 static arch_result disk_open(device_t *dev);
 static arch_result disk_close(device_t *dev);
 static int disk_read_blocks(device_t *dev, void *buf, uint64_t start_block, uint32_t block_count);
@@ -23,7 +10,6 @@ static arch_result disk_sync(device_t *dev);
 static uint32_t disk_get_block_size(device_t *dev);
 static uint64_t disk_get_block_count(device_t *dev);
 
-/* Disk driver state */
 typedef struct {
     arch_disk_device_t *arch_device;  // Opaque arch-specific device handle
     uint32_t block_size;               // Block size in bytes
@@ -31,7 +17,6 @@ typedef struct {
     bool read_only;                    // Device is read-only
 } disk_driver_data_t;
 
-/* Dynamic device storage - allocated based on what arch reports */
 static device_t *disk_devices = NULL;
 static disk_driver_data_t *disk_data = NULL;
 static int disk_device_count = 0;
@@ -40,7 +25,6 @@ static arch_result disk_open(device_t *dev)
 {
     disk_driver_data_t *data = (disk_driver_data_t *)dev->driver_data;
     
-    // Initialize this specific disk device through arch layer
     arch_result result = arch_disk_init(data->arch_device);
     if (result != ARCH_OK) {
         return result;
@@ -53,7 +37,6 @@ static arch_result disk_close(device_t *dev)
 {
     disk_driver_data_t *data = (disk_driver_data_t *)dev->driver_data;
     
-    // Sync any pending writes before closing
     arch_disk_sync(data->arch_device);
     
     return ARCH_OK;
@@ -67,10 +50,9 @@ static int disk_read_blocks(device_t *dev, void *buf, uint64_t start_block, uint
         return -1;
     }
     
-    // Check bounds
     if (start_block >= data->block_count || 
         start_block + block_count > data->block_count) {
-        return -1; // Out of bounds
+        return -1;
     }
     
     arch_result result = arch_disk_read_blocks(data->arch_device, buf, start_block, block_count);
@@ -78,7 +60,7 @@ static int disk_read_blocks(device_t *dev, void *buf, uint64_t start_block, uint
         return -1;
     }
     
-    return block_count; // Return number of blocks read
+    return block_count;
 }
 
 static int disk_write_blocks(device_t *dev, const void *buf, uint64_t start_block, uint32_t block_count)
@@ -89,15 +71,13 @@ static int disk_write_blocks(device_t *dev, const void *buf, uint64_t start_bloc
         return -1;
     }
     
-    // Check if device is read-only
     if (data->read_only) {
-        return -1; // Read-only device
+        return -1;
     }
     
-    // Check bounds
     if (start_block >= data->block_count || 
         start_block + block_count > data->block_count) {
-        return -1; // Out of bounds
+        return -1;
     }
     
     arch_result result = arch_disk_write_blocks(data->arch_device, buf, start_block, block_count);
@@ -105,7 +85,7 @@ static int disk_write_blocks(device_t *dev, const void *buf, uint64_t start_bloc
         return -1;
     }
     
-    return block_count; // Return number of blocks written
+    return block_count;
 }
 
 static arch_result disk_sync(device_t *dev)
@@ -126,19 +106,15 @@ static uint64_t disk_get_block_count(device_t *dev)
     return data->block_count;
 }
 
-/* Driver initialization function - truly arch-independent! */
 arch_result disk_driver_init(void)
 {
-    // Ask arch layer how many disk devices exist
     disk_device_count = arch_disk_get_count();
     
     if (disk_device_count == 0) {
-        // No disk devices available on this architecture
         return ARCH_OK;
     }
     
-    // Allocate storage for devices and data (in real kernel, use kmalloc)
-    // For now, we'll use a simple static approach with max devices
+    // TODO: allocate storage for devices and data dynamically
     #define MAX_DISK_DEVICES 8
     static device_t static_devices[MAX_DISK_DEVICES];
     static disk_driver_data_t static_data[MAX_DISK_DEVICES];
@@ -150,7 +126,6 @@ arch_result disk_driver_init(void)
     disk_devices = static_devices;
     disk_data = static_data;
     
-    // Create and register a device for each disk device the arch reports
     for (int i = 0; i < disk_device_count; i++) {
         arch_disk_info_t info;
         arch_result result = arch_disk_get_info(i, &info);
@@ -158,11 +133,9 @@ arch_result disk_driver_init(void)
             continue;
         }
         
-        // Initialize device structure
         device_t *device = &disk_devices[i];
         disk_driver_data_t *data = &disk_data[i];
         
-        // Copy the arch-suggested name
         strncpy(device->name, info.name, sizeof(device->name) - 1);
         device->name[sizeof(device->name) - 1] = '\0';
         
@@ -178,13 +151,11 @@ arch_result disk_driver_init(void)
         device->driver_data = data;
         device->next = NULL;
         
-        // Initialize driver data from arch info
         data->arch_device = info.device;
         data->block_size = info.block_size;
         data->block_count = info.block_count;
         data->read_only = info.read_only;
         
-        // Register the device
         result = device_register(device);
         if (result != ARCH_OK) {
             return result;

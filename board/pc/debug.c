@@ -1,5 +1,5 @@
 #include "arch/arch.h"
-#include "arch/x86_64/serial.h"
+#include "board/pc/serial.h"
 #include "lib/printf.h"
 
 void arch_debug_printf(const char *format, ...)
@@ -11,7 +11,9 @@ void arch_debug_printf(const char *format, ...)
     int len = vsnprintf(buffer, sizeof(buffer), format, args);
     
     for (int i = 0; i < len && buffer[i]; i++) {
-        x86_64_serial_write(SERIAL_PORT_0, (uint8_t)buffer[i]);
+        while (!(inb(SERIAL_PORT_0 + 5) & 0x40));
+
+        outb(SERIAL_PORT_0, (uint8_t)buffer[i]);
     }
 
     va_end(args);

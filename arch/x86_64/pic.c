@@ -1,8 +1,6 @@
 #include "arch/x86_64/io.h"
 #include "definitions.h"
 
-// x86_64 PIC (Programmable Interrupt Controller) management
-
 #define PIC1                0x20    // Master PIC
 #define PIC2                0xA0    // Slave PIC  
 #define PIC1_COMMAND        PIC1
@@ -27,24 +25,18 @@
 void x86_64_pic_remap(void)
 {
     
-    // Start initialization sequence (in cascade mode)
     outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
     outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
     
-    // Set vector offsets (remap to 0x20-0x2F instead of 0x08-0x0F)
     outb(PIC1_DATA, 0x20);  // Master PIC vector offset
     outb(PIC2_DATA, 0x28);  // Slave PIC vector offset
     
-    // Tell master PIC that there is a slave PIC at IRQ2
     outb(PIC1_DATA, 0x04);
-    // Tell slave PIC its cascade identity
     outb(PIC2_DATA, 0x02);
     
-    // Set to 8086/88 mode
     outb(PIC1_DATA, ICW4_8086);
     outb(PIC2_DATA, ICW4_8086);
     
-    // Restore masks (or set conservative defaults)
     outb(PIC1_DATA, 0b11111000);  // Enable IRQ 0,1,2 (timer, keyboard, cascade)
     outb(PIC2_DATA, 0b11101111);  // Enable IRQ 12 (mouse) on slave PIC
 }

@@ -1,7 +1,7 @@
 #include "arch/arch.h"
 #include "arch/x86_64/gdt.h"
 #include "arch/x86_64/idt.h"
-#include "arch/x86_64/serial.h"
+#include "board/board.h"
 
 arch_result arch_init(void)
 {
@@ -24,10 +24,7 @@ arch_result arch_init(void)
         return result;
     }
     
-    x86_64_serial_init();
     arch_debug_printf("x86_64: arch initialization complete\n");
-
-    arch_interrupt_enable();
     
     return ARCH_OK;
 }

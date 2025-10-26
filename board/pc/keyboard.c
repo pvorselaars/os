@@ -2,27 +2,16 @@
 #include "lib/utils.h"
 #include "lib/string.h"
 
-/* x86_64 PS/2 Keyboard Implementation
- * 
- * Provides arch-layer keyboard support using the existing PS/2 infrastructure.
- * This implements the keyboard interface defined in arch.h using PS/2 hardware.
- * 
- * Uses the scancode translation from platform/pc/ps2.c
- */
-
-/* PS/2 Controller ports */
 #define PS2_DATA_PORT    0x60
 #define PS2_COMMAND_PORT 0x64
 #define PS2_STATUS_PORT  0x64
 
-/* PS/2 Controller commands */
 #define PS2_CMD_READ_CONFIG   0x20
 #define PS2_CMD_WRITE_CONFIG  0x60
 #define PS2_CMD_DISABLE_PORT1 0xAD
 #define PS2_CMD_ENABLE_PORT1  0xAE
 #define PS2_CMD_TEST_PORT1    0xAB
 
-/* PS/2 Keyboard commands */
 #define KB_CMD_SET_LEDS      0xED
 #define KB_CMD_ECHO          0xEE
 #define KB_CMD_SET_SCANCODE  0xF0
@@ -32,17 +21,9 @@
 #define KB_CMD_DISABLE       0xF5
 #define KB_CMD_RESET         0xFF
 
-/* Response codes */
 #define KB_RESP_ACK          0xFA
 #define KB_RESP_RESEND       0xFE
 #define KB_RESP_ERROR        0xFC
-
-/* PS/2 Scancode to Unicode/Logical Key Translation
- * 
- * Maps PS/2 Set 1 scancodes to Unicode codepoints and logical keys.
- * This table handles the US QWERTY layout - other layouts would need
- * different tables or a more sophisticated mapping system.
- */
 
 typedef struct {
     uint32_t unicode_normal;    // Unicode when no modifiers
@@ -136,10 +117,8 @@ static const scancode_mapping_t scancode_table[128] = {
     [0x53] = {'.', '.', KEY_KP_DECIMAL},
     [0x57] = {0, 0, KEY_F11},
     [0x58] = {0, 0, KEY_F12},
-    // All other entries default to {0, 0, KEY_UNKNOWN}
 };
 
-/* Keyboard state tracking */
 typedef struct {
     bool shift_pressed;
     bool ctrl_pressed;  
@@ -149,7 +128,6 @@ typedef struct {
     bool scroll_lock;
 } keyboard_state_t;
 
-/* Event queue for buffering keyboard events */
 #define EVENT_QUEUE_SIZE 32
 typedef struct {
     arch_keyboard_event_t events[EVENT_QUEUE_SIZE];
@@ -158,14 +136,12 @@ typedef struct {
     int count;
 } event_queue_t;
 
-/* PS/2 Keyboard device structure */
 typedef struct {
     keyboard_state_t state;
     event_queue_t event_queue;
     bool initialized;
 } ps2_keyboard_t;
 
-/* Single PS/2 keyboard device */
 static ps2_keyboard_t ps2_keyboard_device;
 
 #include "arch/arch.h"
@@ -173,10 +149,8 @@ static ps2_keyboard_t ps2_keyboard_device;
 #include "lib/string.h"
 #include "drivers/keyboard.h"
 
-/* I/O operations (use existing definitions from io.h) */
 #include "arch/x86_64/io.h"
 
-/* Wait for PS/2 controller to be ready for output */
 static void ps2_wait_output(void) {
     int timeout = 100000;
     while (timeout-- > 0) {
@@ -186,7 +160,6 @@ static void ps2_wait_output(void) {
     }
 }
 
-/* Wait for PS/2 controller to have input */
 static void ps2_wait_input(void) {
     int timeout = 100000;
     while (timeout-- > 0) {
@@ -196,25 +169,21 @@ static void ps2_wait_input(void) {
     }
 }
 
-/* Send command to PS/2 controller */
 static void ps2_send_command(uint8_t cmd) {
     ps2_wait_output();
     outb(PS2_COMMAND_PORT, cmd);
 }
 
-/* Send data to PS/2 keyboard */
 static void ps2_send_data(uint8_t data) {
     ps2_wait_output();
     outb(PS2_DATA_PORT, data);
 }
 
-/* Read data from PS/2 keyboard */
 static uint8_t ps2_read_data(void) {
     ps2_wait_input();
     return inb(PS2_DATA_PORT);
 }
 
-/* Add event to queue */
 static void queue_event(arch_keyboard_event_t *event) {
     event_queue_t *queue = &ps2_keyboard_device.event_queue;
     
@@ -225,19 +194,16 @@ static void queue_event(arch_keyboard_event_t *event) {
     }
 }
 
-/* PS/2 keyboard interrupt handler */
 void ps2_keyboard_interrupt(void) {
     uint8_t scancode = inb(PS2_DATA_PORT);
     keyboard_state_t *state = &ps2_keyboard_device.state;
     arch_keyboard_event_t event;
     
-    // Handle key release (scancode with high bit set)
     bool key_released = (scancode & 0x80) != 0;
     if (key_released) {
         scancode &= 0x7F;
     }
     
-    // Initialize event structure
     event.unicode = 0;
     event.key = KEY_UNKNOWN;
     event.pressed = !key_released;
@@ -249,7 +215,6 @@ void ps2_keyboard_interrupt(void) {
     event.num_lock = state->num_lock;
     event.scroll_lock = state->scroll_lock;
     
-    // Update modifier key states and handle special keys
     if (scancode < 128) {
         const scancode_mapping_t *mapping = &scancode_table[scancode];
         
@@ -258,19 +223,19 @@ void ps2_keyboard_interrupt(void) {
             case 0x36: // Right Shift
                 state->shift_pressed = !key_released;
                 event.key = (scancode == 0x2A) ? KEY_LEFT_SHIFT : KEY_RIGHT_SHIFT;
-                event.shift = state->shift_pressed;  // Update current state
+                event.shift = state->shift_pressed;
                 break;
                 
             case 0x1D: // Ctrl
                 state->ctrl_pressed = !key_released;
                 event.key = KEY_LEFT_CTRL;
-                event.ctrl = state->ctrl_pressed;  // Update current state
+                event.ctrl = state->ctrl_pressed;
                 break;
                 
             case 0x38: // Alt
                 state->alt_pressed = !key_released;
                 event.key = KEY_LEFT_ALT;
-                event.alt = state->alt_pressed;  // Update current state
+                event.alt = state->alt_pressed;
                 break;
                 
             case 0x3A: // Caps Lock
@@ -278,7 +243,7 @@ void ps2_keyboard_interrupt(void) {
                     state->caps_lock = !state->caps_lock;
                 }
                 event.key = KEY_CAPS_LOCK;
-                event.caps_lock = state->caps_lock;  // Update current state
+                event.caps_lock = state->caps_lock;
                 break;
                 
             case 0x45: // Num Lock  
@@ -286,7 +251,7 @@ void ps2_keyboard_interrupt(void) {
                     state->num_lock = !state->num_lock;
                 }
                 event.key = KEY_NUM_LOCK;
-                event.num_lock = state->num_lock;  // Update current state
+                event.num_lock = state->num_lock;
                 break;
                 
             case 0x46: // Scroll Lock
@@ -294,7 +259,7 @@ void ps2_keyboard_interrupt(void) {
                     state->scroll_lock = !state->scroll_lock;
                 }
                 event.key = KEY_SCROLL_LOCK;
-                event.scroll_lock = state->scroll_lock;  // Update current state
+                event.scroll_lock = state->scroll_lock;
                 break;
                 
             default:
@@ -321,18 +286,12 @@ void ps2_keyboard_interrupt(void) {
                 break;
         }
         
-        // Queue the event (for all keys, including modifiers)
         queue_event(&event);
     }
     
-    // Notify the generic keyboard driver that events are available
     keyboard_driver_interrupt_notify((arch_keyboard_device_t *)&ps2_keyboard_device);
 }
 
-/* Register keyboard interrupt handler */
-extern int arch_register_interrupt(unsigned vector, void (*handler)(void));
-
-/* Initialize PS/2 keyboard */
 static arch_result ps2_keyboard_initialize(void) {
     ps2_keyboard_t *kbd = &ps2_keyboard_device;
     
@@ -340,7 +299,6 @@ static arch_result ps2_keyboard_initialize(void) {
         return ARCH_OK;
     }
     
-    // Initialize state
     kbd->state.shift_pressed = false;
     kbd->state.ctrl_pressed = false;
     kbd->state.alt_pressed = false;
@@ -351,38 +309,31 @@ static arch_result ps2_keyboard_initialize(void) {
     kbd->event_queue.tail = 0;
     kbd->event_queue.count = 0;
     
-    // Disable first PS/2 port
     ps2_send_command(PS2_CMD_DISABLE_PORT1);
     
-    // Flush output buffer
     int flushed = 0;
     while (inb(PS2_STATUS_PORT) & 0x01) {
-        uint8_t data = inb(PS2_DATA_PORT);
+        inb(PS2_DATA_PORT);
         flushed++;
     }
     
-    // Read controller configuration
     ps2_send_command(PS2_CMD_READ_CONFIG);
     uint8_t config = ps2_read_data();
     
-    // Set configuration (enable interrupts, disable translation)
     config |= 0x01;   // Enable keyboard interrupt
     config &= ~0x40;  // Disable keyboard translation
     
     ps2_send_command(PS2_CMD_WRITE_CONFIG);
     ps2_send_data(config);
     
-    // Test PS/2 port
     ps2_send_command(PS2_CMD_TEST_PORT1);
     uint8_t test_result = ps2_read_data();
     if (test_result != 0x00) {
         return ARCH_ERROR;
     }
     
-    // Enable PS/2 port
     ps2_send_command(PS2_CMD_ENABLE_PORT1);
     
-    // Try to reset keyboard (some emulators might not support this properly)
     ps2_send_data(KB_CMD_RESET);
     uint8_t response = ps2_read_data(); // Should be ACK
     if (response == KB_RESP_ACK) {
@@ -391,14 +342,12 @@ static arch_result ps2_keyboard_initialize(void) {
         if (response != 0xAA) {
         }
     } else {
-        // Some emulators/keyboards don't support reset, continue anyway
     }
     
     // Enable keyboard
     ps2_send_data(KB_CMD_ENABLE);
     response = ps2_read_data();
     if (response != KB_RESP_ACK) {
-        // Some keyboards might already be enabled or respond differently
     }
     
     // Register keyboard interrupt handler
@@ -408,7 +357,6 @@ static arch_result ps2_keyboard_initialize(void) {
     return ARCH_OK;
 }
 
-/* Architecture interface implementations */
 
 int arch_keyboard_get_count(void) {
     return 1; // Single PS/2 keyboard on PC
@@ -419,7 +367,7 @@ arch_result arch_keyboard_get_info(int index, arch_keyboard_info_t *info) {
         return ARCH_ERROR;
     }
     
-    info->name = "ps2kb0";
+    info->name = "kb0";
     info->device = (arch_keyboard_device_t *)&ps2_keyboard_device;
     
     return ARCH_OK;

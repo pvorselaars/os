@@ -15,7 +15,6 @@
   - 0x1F7: Command/Status register
  */
 
-// ATA Controller ports
 #define ATA_DATA        0x1F0
 #define ATA_ERROR       0x1F1
 #define ATA_FEATURES    0x1F1
@@ -27,17 +26,14 @@
 #define ATA_STATUS      0x1F7
 #define ATA_COMMAND     0x1F7
 
-// ATA Commands
 #define ATA_CMD_READ_SECTORS_EXT  0x24  // READ SECTORS EXT (48-bit LBA)
 #define ATA_CMD_WRITE_SECTORS_EXT 0x34  // WRITE SECTORS EXT (48-bit LBA)
 
-// ATA Status bits
 #define ATA_STATUS_BUSY    0x80
 #define ATA_STATUS_READY   0x40
 #define ATA_STATUS_DRQ     0x08  // Data Request
 #define ATA_STATUS_ERROR   0x01
 
-// Simple disk device - assume primary master for now
 typedef struct {
     bool initialized;
     uint64_t block_count;    // Total sectors
@@ -46,7 +42,6 @@ typedef struct {
 
 static ata_disk_device_t ata_disk = {0};
 
-/* Wait for ATA controller to be ready */
 static arch_result ata_wait_ready(void)
 {
     uint8_t status;
@@ -60,10 +55,9 @@ static arch_result ata_wait_ready(void)
         timeout--;
     } while (timeout > 0);
     
-    return ARCH_ERROR; // Timeout
+    return ARCH_ERROR;
 }
 
-/* Wait for data to be ready */
 static arch_result ata_wait_data(void)
 {
     uint8_t status;
@@ -80,7 +74,7 @@ static arch_result ata_wait_data(void)
         timeout--;
     } while (timeout > 0);
     
-    return ARCH_ERROR; // Timeout or error
+    return ARCH_ERROR;
 }
 
 
@@ -95,11 +89,10 @@ arch_result arch_disk_get_info(int index, arch_disk_info_t *info)
         return ARCH_ERROR;
     }
     
-    // Fill in ATA disk info
     info->device = (arch_disk_device_t *)&ata_disk;
     info->name = "ata0";
     info->block_size = 512;    // Standard sector size
-    info->block_count = 10;    // 5MB for testing (10 * 512 bytes)
+    info->block_count = 10;    // 5MB for testing (10 * 512 bytes) TODO: detect actual size
     info->read_only = false;
     
     return ARCH_OK;

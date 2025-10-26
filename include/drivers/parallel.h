@@ -1,5 +1,5 @@
-#ifndef DRIVERS_PARALLEL_H
-#define DRIVERS_PARALLEL_H
+#ifndef PARALLEL_H
+#define PARALLEL_H
 
 #include "arch/arch.h"
 

@@ -1,19 +1,24 @@
 #include "kernel/device.h"
 #include "lib/string.h"
 #include "arch/arch.h"
+#include "drivers/serial.h"
+#include "drivers/keyboard.h"
+#include "drivers/parallel.h"
+#include "drivers/audio.h"
+#include "drivers/disk.h"
+#include "drivers/display.h"
+#include "drivers/console.h"
 
-/* Device subsystem state */
 static device_t *device_list_head = NULL;
 static uint32_t device_count = 0;
 static bool device_subsystem_initialized = false;
 
-/* Device class names for debugging */
 static const char *device_class_names[] = {
     [DEVICE_CLASS_CHAR] = "char",
     [DEVICE_CLASS_BLOCK] = "block",
+    [DEVICE_CLASS_DISPLAY] = "display",
 };
 
-/* Device state names for debugging */
 static const char *device_state_names[] = {
     [DEVICE_STATE_UNINITIALIZED] = "uninitialized",
     [DEVICE_STATE_INITIALIZING] = "initializing",
@@ -25,7 +30,7 @@ static const char *device_state_names[] = {
 arch_result device_init(void)
 {
     if (device_subsystem_initialized) {
-        return ARCH_OK; // Already initialized
+        return ARCH_OK;
     }
     
     device_list_head = NULL;
@@ -34,6 +39,40 @@ arch_result device_init(void)
     
     arch_debug_printf("Device subsystem initialized\n");
     return ARCH_OK;
+}
+
+arch_result device_init_drivers(void)
+{
+    if (!device_subsystem_initialized) {
+        return ARCH_ERROR;
+    }
+    
+    arch_debug_printf("Initializing device drivers...\n");
+    
+    arch_result results[] = {
+        serial_driver_init(),
+        parallel_driver_init(), 
+        keyboard_driver_init(),
+        audio_driver_init(),
+        disk_driver_init(),
+        display_driver_init(),
+        console_driver_init()
+    };
+    
+    const char *driver_names[] = {
+        "serial", "parallel", "keyboard", "audio", "disk", "display", "console"
+    };
+    
+    int failed_count = 0;
+    for (int i = 0; i < 7; i++) {
+        if (results[i] != ARCH_OK) {
+            arch_debug_printf("❌ %s driver failed\n", driver_names[i]);
+            failed_count++;
+        }
+    }
+    
+    arch_debug_printf("Device drivers initialized (%d/%d successful)\n", 7 - failed_count, 7);
+    return (failed_count == 0) ? ARCH_OK : ARCH_ERROR;
 }
 
 arch_result device_register(device_t *device)
@@ -46,22 +85,18 @@ arch_result device_register(device_t *device)
         return ARCH_INVALID;
     }
     
-    // Check for duplicate names
     if (device_find_by_name(device->name)) {
         arch_debug_printf("Device '%s' already registered\n", device->name);
         return ARCH_ERROR;
     }
     
-    // Validate device class
     if (device->class >= DEVICE_CLASS_MAX) {
         return ARCH_INVALID;
     }
     
-    // Set initial state
     device->state = DEVICE_STATE_INITIALIZING;
     device->next = NULL;
     
-    // Add to device list
     if (device_list_head == NULL) {
         device_list_head = device;
     } else {
@@ -74,7 +109,6 @@ arch_result device_register(device_t *device)
     
     device_count++;
     
-    // Initialize the device if it has an open function
     if (device->open) {
         arch_result result = device->open(device);
         if (result == ARCH_OK) {
@@ -100,7 +134,6 @@ arch_result device_unregister(device_t *device)
         return ARCH_INVALID;
     }
     
-    // Remove from device list
     if (device_list_head == device) {
         device_list_head = device->next;
     } else {
@@ -111,11 +144,10 @@ arch_result device_unregister(device_t *device)
         if (current) {
             current->next = device->next;
         } else {
-            return ARCH_ERROR; // Device not found
+            return ARCH_ERROR;
         }
     }
     
-    // Close the device
     if (device->close) {
         device->close(device);
     }

@@ -2,18 +2,13 @@
 #include "arch/x86_64/io.h"
 #include "lib/utils.h"
 
-/* x86_64 parallel port implementation
- * Detects and provides info about available PC parallel ports
- */
-
 #define LPT1_BASE 0x378
 #define LPT2_BASE 0x278
 #define LPT3_BASE 0x3BC
 
-/* x86_64-specific parallel device structure */
 struct arch_parallel_device {
-    uint16_t base_port;    // I/O port base address
-    bool initialized;      // Whether this device is initialized
+    uint16_t base_port;
+    bool initialized;
 };
 
 typedef struct {
@@ -32,7 +27,6 @@ static x86_parallel_port_t x86_parallel_ports[] = {
 
 static bool parallel_ports_detected = false;
 
-/* Detect which parallel ports actually exist */
 static void detect_parallel_ports(void)
 {
     if (parallel_ports_detected) return;
@@ -44,7 +38,6 @@ static void detect_parallel_ports(void)
         // Real ports should have some bits readable
         uint8_t status = inb(base + 1);
         
-        // Basic sanity check - if we get 0xFF, port probably doesn't exist
         if (status != 0xFF) {
             x86_parallel_ports[i].detected = true;
         }
@@ -84,7 +77,7 @@ arch_result arch_parallel_get_info(int index, arch_parallel_info_t *info)
         }
     }
     
-    return ARCH_ERROR; // Index out of range
+    return ARCH_ERROR;
 }
 
 arch_result arch_parallel_init(arch_parallel_device_t *device)

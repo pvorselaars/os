@@ -1,16 +1,15 @@
 # OS
 
-A minimal, multi-platform operating system for learning and experimenting with low-level OS concepts. Supports x86_64 PC and ARM64 Raspberry Pi 4 architectures.
+A minimal operating system for learning and experimenting with low-level OS concepts. Currently supports x86_64 PC architecture.
 
 ## Structure
 
 ```
 ├── kernel/           # Core kernel functionality
 ├── lib/              # Library functions
-├── arch/x86_64/      # Architecture-specific code
-├── arch/aarch64/
-├── platform/pc/      # Platform-specific drivers
-├── platform/raspberrypi4
+├── drivers/          # Generic device drivers
+├── arch/x86_64/      # CPU architecture specific code
+├── board/pc/         # Board specific code
 └── include/          # Header files
 ```
 
@@ -18,33 +17,9 @@ A minimal, multi-platform operating system for learning and experimenting with l
 
 ### Core Features
 - [x] 64-bit kernel
-- [x] Multi-platform build system
+- [x] Architecture and board separation
 - [x] Bootable and debuggable via QEMU
 - [x] Virtual memory management
-# OS
-
-A minimal, multi-platform operating system for learning and experimenting with low-level OS concepts. Supports x86_64 PC and ARM64 Raspberry Pi 4 architectures.
-
-## Structure
-
-```
-├── kernel/           # Core kernel functionality
-├── lib/              # Library functions
-├── arch/x86_64/      # Architecture-specific code
-├── arch/aarch64/
-├── platform/pc/      # Platform-specific drivers
-├── platform/raspberrypi4
-└── include/          # Header files
-```
-
-## Features
-
-### Core Features
-- [x] 64-bit kernel
-- [x] Multi-platform build system
-- [x] Bootable and debuggable via QEMU
-- [x] Virtual memory management
-- [x] Basic process management
 
 ### PC Platform Features
 - [x] x86_64 boot sequence
@@ -58,8 +33,7 @@ A minimal, multi-platform operating system for learning and experimenting with l
 - [x] ATA/IDE disk controller
 
 ### Planned Features
-- [ ] ARM64/AArch64 support for Raspberry Pi 4
-- [ ] Advanced process management and scheduling
+- [ ] Process management and scheduling
 - [ ] Bootable on real hardware
 - [ ] File system support
 - [ ] Network stack
@@ -81,11 +55,10 @@ A minimal, multi-platform operating system for learning and experimenting with l
 1. **Clone the repository**
     ```bash
     git clone https://github.com/pvorselaars/os
-   cd os
-   ```
+    cd os
+    ```
 
-
-3. **Build and run (PC platform - default)**
+2. **Build and run**
    ```bash
    make run
    ```
@@ -94,10 +67,9 @@ A minimal, multi-platform operating system for learning and experimenting with l
 
 | Command | Description |
 |---------|-------------|
-| `make` | Build for default platform (PC) |
-| `make PLATFORM=<platform>` | Build for specific platform |
+| `make` | Build for default configuration (x86_64/PC) |
+| `make ARCH=x86_64 BOARD=pc` | Build for specific arch/board |
 | `make pc` | Build for PC (shortcut) |
-| `make raspberrypi4` | Build for Raspberry Pi 4 (shortcut) |
 | `make run` | Run the OS in QEMU |
 | `make gdb` | Start debug session with GDB |
 | `make clean` | Clean build artifacts |

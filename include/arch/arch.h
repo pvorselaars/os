@@ -155,6 +155,27 @@ arch_result arch_disk_read_blocks(arch_disk_device_t *device, void *buf, uint64_
 arch_result arch_disk_write_blocks(arch_disk_device_t *device, const void *buf, uint64_t start_block, uint32_t block_count);
 arch_result arch_disk_sync(arch_disk_device_t *device);            // Flush any pending writes
 
+// Display interface - arch-specific implementations
+typedef struct arch_display_device arch_display_device_t;  // Opaque handle
+
+typedef struct {
+    arch_display_device_t *device;  // Opaque arch-specific device handle
+    const char *name;                // Suggested device name (e.g., "vga0", "fb0")
+    uint32_t width;                  // Display width in characters/pixels
+    uint32_t height;                 // Display height in characters/pixels
+    uint32_t bpp;                    // Bits per pixel (0 for text mode)
+    bool text_mode;                  // True for text mode, false for graphics mode
+} arch_display_info_t;
+
+int arch_display_get_count(void);                                       // Get number of display devices
+arch_result arch_display_get_info(int index, arch_display_info_t *info); // Get info for device N
+arch_result arch_display_init(arch_display_device_t *device);           // Initialize specific device
+arch_result arch_display_set_cursor(arch_display_device_t *device, uint32_t x, uint32_t y);
+arch_result arch_display_get_cursor(arch_display_device_t *device, uint32_t *x, uint32_t *y);
+arch_result arch_display_write_char(arch_display_device_t *device, uint32_t x, uint32_t y, char c, uint8_t fg, uint8_t bg);
+arch_result arch_display_clear_screen(arch_display_device_t *device, uint8_t fg, uint8_t bg);
+arch_result arch_display_scroll_up(arch_display_device_t *device, uint32_t lines);
+
 arch_result arch_memory_init(void);
 void arch_memory_set(void *ptr, uint8_t value, uint64_t size);
 void arch_memory_set_byte(void *ptr, uint8_t value, uint64_t size);
