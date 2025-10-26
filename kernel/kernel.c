@@ -1,9 +1,14 @@
-#include "platform/init.h"
+#include "arch/arch.h"
 
 void kernel(void)
 {
-	platform_init();
+	arch_result result = arch_init();
+	if (result != ARCH_OK) {
+		// If arch initialization fails, halt immediately
+		arch_halt();
+	}
 
-	while (1)
-		platform_halt();
+	// Main kernel execution would go here
+	
+	arch_halt();
 }

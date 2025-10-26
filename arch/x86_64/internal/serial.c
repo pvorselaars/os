@@ -1,11 +1,11 @@
-#include "platform/pc/serial.h"
+#include "arch/x86_64/serial.h"
+#include "arch/arch.h"
 
 static uint8_t buffer[SERIAL_BUFFER_SIZE];
 static uint8_t buffer_index = 0;
 
-void serial_init()
+void x86_64_serial_init()
 {
-    // TODO: support more ports
     outb(SERIAL_PORT_0 + 1, 0x00); // Disable interrupts
 
     outb(SERIAL_PORT_0 + 3, 0x80); // Set DLAB
@@ -25,16 +25,16 @@ void serial_init()
     outb(SERIAL_PORT_0 + 1, 0x01); // Enable interrupts
 }
 
-uint8_t serial_read()
+uint8_t x86_64_serial_read()
 {
     // wait for buffer content
     while(!buffer_index)
-        platform_halt();
+        arch_halt();
 
     return buffer[--buffer_index];
 }
 
-void serial_write(serial_port port, uint8_t data)
+void x86_64_serial_write(serial_port port, uint8_t data)
 {
     // wait for transmit buffer to be empty
     while (!(inb(port+5) & 0x40));
@@ -49,27 +49,20 @@ static void write_buffer(uint8_t data)
         buffer_index = 0;
 }
 
-void serial_receive_interrupt()
+void x86_64_serial_receive()
 {
     uint8_t iir = inb(SERIAL_PORT_0 + 2);
 
     while(!(iir & 0x01)) {
         uint8_t data = inb(SERIAL_PORT_0);
 
-        serial_write(SERIAL_PORT_0, data); // echo received data
+        x86_64_serial_write(SERIAL_PORT_0, data); // echo received data
         write_buffer(data);
         if (data == '\r') {
-            serial_write(SERIAL_PORT_0, '\n');
+            x86_64_serial_write(SERIAL_PORT_0, '\n');
             write_buffer('\n');
         }
 
         iir = inb(SERIAL_PORT_0 + 2);
-    }
-}
-
-void serial_output_func(const char *str, uint64_t len)
-{
-    for (uint64_t i = 0; i < len; i++) {
-        serial_write(SERIAL_PORT_0, (uint8_t)str[i]);
     }
 }

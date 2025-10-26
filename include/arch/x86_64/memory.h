@@ -6,21 +6,6 @@
 #define PAGE_USER (1 << 2)
 #define PAGE_PS (1 << 7)
 
-#define SDA_TSS (0x09)  // Available 64-bit TSS
-#define SDA_P (1U << 7) // Present segment
-#define SDA_U (3U << 5) // User segment
-#define SDA_S (1U << 4) // Descriptor type; system or code/data segment
-#define SDA_E (1U << 3) // Executable segment
-#define SDA_D (1U << 2) // Expand down (non-executable segments)
-#define SDA_C (1U << 2) // Conforming code segment (executable only)
-#define SDA_W (1U << 1) // Writeable (non-executable segments)
-#define SDA_R (1U << 1) // Readable (executable segments)
-#define SDA_A (1U << 0) // Accessed
-
-#define SDF_G (1 << 3)  // Granularity flag
-#define SDF_DB (1 << 2) // Size flag
-#define SDF_L (1 << 1)  // Long mode flag
-
 #define CR0_PE (1 << 0)  // Protected Mode Enable bit
 #define CR0_PG (1 << 31) // Paging bit
 

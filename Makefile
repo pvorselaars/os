@@ -71,6 +71,8 @@ SRC_LIB_C := $(wildcard lib/*.c)
 SRC_LIB_S := $(wildcard lib/*.s)
 SRC_ARCH_C := $(wildcard arch/$(ARCH)/*.c)
 SRC_ARCH_S := $(wildcard arch/$(ARCH)/*.s)
+SRC_ARCH_INTERNAL_C := $(wildcard arch/$(ARCH)/internal/*.c)
+SRC_ARCH_INTERNAL_S := $(wildcard arch/$(ARCH)/internal/*.s)
 SRC_PLATFORM_C := $(wildcard platform/$(PLATFORM)/*.c)
 SRC_PLATFORM_S := $(wildcard platform/$(PLATFORM)/*.s)
 
@@ -80,10 +82,12 @@ OBJ_LIB_C := $(patsubst lib/%.c,obj/lib/%.o,$(SRC_LIB_C))
 OBJ_LIB_S := $(patsubst lib/%.s,obj/lib/%.s.o,$(SRC_LIB_S))
 OBJ_ARCH_C := $(patsubst arch/$(ARCH)/%.c,obj/arch/$(ARCH)/%.o,$(SRC_ARCH_C))
 OBJ_ARCH_S := $(patsubst arch/$(ARCH)/%.s,obj/arch/$(ARCH)/%.s.o,$(SRC_ARCH_S))
+OBJ_ARCH_INTERNAL_C := $(patsubst arch/$(ARCH)/internal/%.c,obj/arch/$(ARCH)/internal/%.o,$(SRC_ARCH_INTERNAL_C))
+OBJ_ARCH_INTERNAL_S := $(patsubst arch/$(ARCH)/internal/%.s,obj/arch/$(ARCH)/internal/%.s.o,$(SRC_ARCH_INTERNAL_S))
 OBJ_PLATFORM_C := $(patsubst platform/$(PLATFORM)/%.c,obj/platform/$(PLATFORM)/%.o,$(SRC_PLATFORM_C))
 OBJ_PLATFORM_S := $(patsubst platform/$(PLATFORM)/%.s,obj/platform/$(PLATFORM)/%.s.o,$(SRC_PLATFORM_S))
 
-OBJ := $(OBJ_KERNEL_C) $(OBJ_KERNEL_S) $(OBJ_LIB_C) $(OBJ_LIB_S) $(OBJ_ARCH_C) $(OBJ_ARCH_S) $(OBJ_PLATFORM_C) $(OBJ_PLATFORM_S)
+OBJ := $(OBJ_KERNEL_C) $(OBJ_KERNEL_S) $(OBJ_LIB_C) $(OBJ_LIB_S) $(OBJ_ARCH_C) $(OBJ_ARCH_S) $(OBJ_ARCH_INTERNAL_C) $(OBJ_ARCH_INTERNAL_S) $(OBJ_PLATFORM_C) $(OBJ_PLATFORM_S)
 
 gdb: bin/os
 	tmux new-session -d -s os
@@ -129,6 +133,14 @@ obj/arch/$(ARCH)/%.s.o: arch/$(ARCH)/%.s | dir
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -x assembler-with-cpp -c $< -o $@
 
+obj/arch/$(ARCH)/internal/%.o: arch/$(ARCH)/internal/%.c | dir
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+obj/arch/$(ARCH)/internal/%.s.o: arch/$(ARCH)/internal/%.s | dir
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -x assembler-with-cpp -c $< -o $@
+
 obj/platform/$(PLATFORM)/%.o: platform/$(PLATFORM)/%.c | dir
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -139,7 +151,7 @@ obj/platform/$(PLATFORM)/%.s.o: platform/$(PLATFORM)/%.s | dir
 
 dir:
 	@mkdir -p obj bin
-	@mkdir -p obj/kernel obj/lib obj/arch/$(ARCH) obj/platform/$(PLATFORM)
+	@mkdir -p obj/kernel obj/lib obj/arch/$(ARCH) obj/arch/$(ARCH)/internal obj/platform/$(PLATFORM)
 
 pc:
 	$(MAKE) PLATFORM=pc

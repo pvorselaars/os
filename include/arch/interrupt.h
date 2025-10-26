@@ -20,7 +20,6 @@ void arch_irq_disable(void);
 /* Register an interrupt handler for a vector/irq. Flags are arch-specific.
    Handler will be called in interrupt context with interrupts disabled. */
 int arch_register_interrupt(unsigned vector, addr_t handler);
-void arch_interrupt_init(void);
 
 void arch_set_interrupt_stack_pointer(uint64_t sp);
 

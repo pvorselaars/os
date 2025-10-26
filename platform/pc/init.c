@@ -8,9 +8,9 @@
 #include "arch/interrupt.h"
 #include "lib/printf.h"
 
-extern void timer_interrupt_handler(void);
-extern void ps2_keyboard_interrupt_handler(void);
-extern void serial_receive_interrupt_handler(void);
+extern void timer_interrupt(void);
+extern void ps2_keyboard_interrupt(void);
+extern void serial_receive_interrupt(void);
 
 void platform_halt()
 {
@@ -97,11 +97,6 @@ void timer_interrupt()
 
 void platform_init(void)
 {
-    serial_init();
-    printf_set_output(serial_output_func);
-
-    arch_gdt_init();
-    arch_interrupt_init();
 
     arch_register_interrupt(0, (addr_t)divide_by_zero_handler);
     arch_register_interrupt(2, (addr_t)nmi_handler);
@@ -109,13 +104,10 @@ void platform_init(void)
     arch_register_interrupt(8, (addr_t)double_fault_handler);
     arch_register_interrupt(13, (addr_t)general_protection_fault_handler);
     arch_register_interrupt(14, (addr_t)page_fault_handler);
-    arch_register_interrupt(0x20, (addr_t)timer_interrupt_handler);
-    arch_register_interrupt(0x21, (addr_t)ps2_keyboard_interrupt_handler);
-    arch_register_interrupt(0x24, (addr_t)serial_receive_interrupt_handler);
+    arch_register_interrupt(0x20, (addr_t)timer_interrupt);
+    arch_register_interrupt(0x21, (addr_t)ps2_keyboard_interrupt);
 
     platform_pic_remap();
-
-    arch_irq_enable();
 
     platform_timer_init(1000); // 1000 Hz
 }

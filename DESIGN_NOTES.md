@@ -82,13 +82,13 @@
  * - Hides hardware differences between x86, ARM, RISC-V
  * - Provides minimal hardware access primitives
  * - Same interface, different implementation per architecture
- * - Examples: system_init(), device_read(), interrupts_on()
+ * - Examples: arch_system_init(), arch_device_read(), arch_interrupts_enable()
  * 
  * KERNEL API (High-level kernel services):
  * - Uses arch API internally to provide kernel services
  * - Adds higher-level abstractions and policies
  * - Same implementation works on all architectures
- * - Examples: process_create(), kmalloc(), file_open()
+ * - Examples: kproc_create(), kmalloc(), kfs_open()
  * 
  * LAYERING:
  * [Kernel API] -> [Arch API] -> [Hardware]
@@ -100,20 +100,52 @@
  * EXAMPLE - Creating a process:
  * 1. User calls: process_create(my_function, data, 4096)
  * 2. Kernel API: Uses kmalloc() to allocate process structure
- * 3. Kernel kmalloc(): Calls arch page_alloc() for memory
- * 4. Arch page_alloc(): Talks to x86 MMU / ARM MMU / RISC-V MMU
+ * 3. Kernel kmalloc(): Calls arch_page_alloc() for memory
+ * 4. Arch arch_page_alloc(): Talks to x86 MMU / ARM MMU / RISC-V MMU
  * 
  * EXAMPLE - Timer interrupt:
  * 1. User calls: timer_set_callback(my_callback, data) 
- * 2. Kernel API: Registers callback, calls interrupt_register()
- * 3. Kernel interrupt_register(): Calls arch interrupt_enable()
- * 4. Arch interrupt_enable(): Programs x86 PIC / ARM GIC / RISC-V PLIC
+ * 2. Kernel API: Registers callback, calls kirq_register()
+ * 3. Kernel kirq_register(): Calls arch_interrupt_register()
+ * 4. Arch arch_interrupt_register(): Programs x86 PIC / ARM GIC / RISC-V PLIC
  * 
  * EXAMPLE - Device I/O:
  * 1. User calls: device_write(uart_handle, "Hello", 5)
  * 2. Kernel device API: Calls registered device driver write function
- * 3. Device driver: Calls arch device_write(DEV_UART, UART_DATA_REG, char)
- * 4. Arch device_write(): Uses x86 outb() / ARM MMIO / RISC-V MMIO
+ * 3. Device driver: Calls arch_device_write(DEV_UART, UART_DATA_REG, char)
+ * 4. Arch arch_device_write(): Uses x86 outb() / ARM MMIO / RISC-V MMIO
+ */
+
+/* ==================== NAMING CONSISTENCY FIXES ==================== */
+
+/*
+ * PROBLEM: Overlapping function names between arch and kernel APIs
+ * 
+ * CONFLICTS IDENTIFIED:
+ * - memory_init() (both arch and kernel)
+ * - interrupt_enable() (both arch and kernel) 
+ * - device_read() (ambiguous which layer)
+ * - vm_* functions (mixed between layers)
+ * 
+ * SOLUTION: Consistent prefixing scheme
+ * 
+ * ARCH API NAMING:
+ * - All functions: arch_ prefix
+ * - Examples: arch_system_init(), arch_device_read(), arch_interrupts_enable()
+ * 
+ * KERNEL API NAMING:
+ * - Memory: kmem_, kvm_, kpage_ prefixes
+ * - Interrupts: kirq_ prefix  
+ * - Processes: kproc_ prefix (implied)
+ * - Devices: kdev_ prefix (implied)
+ * - Filesystem: kfs_ prefix (implied)
+ * - Synchronization: No prefix (mutex_, semaphore_, spinlock_)
+ * 
+ * BENEFITS:
+ * - No naming conflicts between layers
+ * - Clear which layer you're calling
+ * - Easy to grep/search for functions
+ * - Consistent with kernel naming conventions
  */
 
 /* ==================== ARCH API SPECIFICATION ==================== */
@@ -121,6 +153,7 @@
 /*
  * PORTABLE ARCHITECTURE ABSTRACTION LAYER:
  * This provides hardware abstraction - same interface on all architectures
+ * ALL FUNCTIONS HAVE arch_ PREFIX FOR CLARITY
  */
 
 /*
@@ -180,54 +213,61 @@ typedef void (*irq_handler_t)(void);
 // PROGRESSIVE API LEVELS
 
 // === LEVEL 1: ABSOLUTE BASICS ===
-void system_init(void);                      // Initialize everything with defaults
-void system_halt(void);                      // Stop the system
-void debug_print(char c);                    // Print one character for debugging
+void arch_system_init(void);                // Initialize everything with defaults  
+void arch_system_halt(void);                // Stop the system
+
+// Debug output - arch decides best available output channel
+void arch_debug_puts(const char *str);      // Output string to best debug channel
+void arch_debug_putc(char c);               // Output single character
+
+// Optional: More specific control if needed
+void arch_debug_printf(const char *fmt, ...); // Printf-style formatted output (optional)
+void arch_debug_write(const char *data, size_t len); // Raw byte output (optional)
+
+// Optional: Explicit output channel selection (advanced)
+// void arch_debug_serial_puts(const char *str);   // Force serial output
+// void arch_debug_console_puts(const char *str);  // Force console output
 
 // === LEVEL 2: INTERRUPTS ===  
-result_t interrupt_enable(irq_t irq, irq_handler_t handler);
-void interrupts_on(void);                    // Enable all interrupts
-void interrupts_off(void);                   // Disable all interrupts
+result_t arch_interrupt_register(irq_t irq, irq_handler_t handler);
+void arch_interrupts_enable(void);          // Enable all interrupts
+void arch_interrupts_disable(void);         // Disable all interrupts
 
 // === LEVEL 3: DEVICES ===
-uint8_t device_read(device_t dev, uint32_t reg);
-result_t device_write(device_t dev, uint32_t reg, uint8_t value);
+uint8_t arch_device_read(device_t dev, uint32_t reg);
+result_t arch_device_write(device_t dev, uint32_t reg, uint8_t value);
 
 // === LEVEL 4: TIMING ===
-result_t timer_start(uint32_t frequency_hz);
-uint64_t timer_ticks(void);
-void delay_ms(uint32_t milliseconds);
+result_t arch_timer_init(uint32_t frequency_hz);
+uint64_t arch_timer_get_ticks(void);
+void arch_delay_ms(uint32_t milliseconds);
 
 // === LEVEL 5: MEMORY ===
-void memory_init(void);
-void *kmalloc(size_t size);
-void *kzalloc(size_t size);              // Zero-initialized malloc
-void kfree(void *ptr);
-void *page_alloc(size_t count);          // Allocate physical pages
-void page_free(void *pages, size_t count);
-size_t get_page_size(void);              // Get architecture page size
+void arch_memory_init(void);
+void *arch_page_alloc(size_t count);        // Allocate physical pages
+void arch_page_free(void *pages, size_t count);
+size_t arch_get_page_size(void);            // Get architecture page size
 
 // === LEVEL 6: VIRTUAL MEMORY ===
 typedef struct arch_page_table* arch_page_table_t;
-arch_page_table_t vm_create_table(void);
-void vm_destroy_table(arch_page_table_t table);
-result_t vm_map(arch_page_table_t table, uint64_t vaddr, uint64_t paddr, uint32_t flags);
-result_t vm_unmap(arch_page_table_t table, uint64_t vaddr);
-void vm_activate(arch_page_table_t table);
-void vm_flush_tlb(void);
+arch_page_table_t arch_vm_create_table(void);
+void arch_vm_destroy_table(arch_page_table_t table);
+result_t arch_vm_map(arch_page_table_t table, uint64_t vaddr, uint64_t paddr, uint32_t flags);
+result_t arch_vm_unmap(arch_page_table_t table, uint64_t vaddr);
+void arch_vm_activate(arch_page_table_t table);
+void arch_vm_flush_tlb(void);
 
 // CONVENIENCE MACROS - Make common operations super readable
-#define UART_SEND(c)        device_write(DEV_UART, UART_DATA_REG, c)
-#define UART_RECV()         device_read(DEV_UART, UART_DATA_REG)
-#define UART_READY()        (device_read(DEV_UART, UART_STATUS_REG) & UART_TX_READY)
-#define TIMER_START(hz)     timer_start(hz)
-#define TIMER_GET()         timer_ticks()
-#define WAIT_MS(ms)         delay_ms(ms)
-#define IRQ_ON()            interrupts_on()
-#define IRQ_OFF()           interrupts_off()
-#define MALLOC(size)        kmalloc(size)
-#define ZALLOC(size)        kzalloc(size)
-#define FREE(ptr)           kfree(ptr)
+#define UART_SEND(c)        arch_device_write(DEV_UART, UART_DATA_REG, c)
+#define UART_RECV()         arch_device_read(DEV_UART, UART_DATA_REG)
+#define UART_READY()        (arch_device_read(DEV_UART, UART_STATUS_REG) & UART_TX_READY)
+#define DEBUG_PRINT(str)    arch_debug_puts(str)
+#define DEBUG_PRINTF(...)   arch_debug_printf(__VA_ARGS__)
+#define TIMER_START(hz)     arch_timer_init(hz)
+#define TIMER_GET()         arch_timer_get_ticks()
+#define WAIT_MS(ms)         arch_delay_ms(ms)
+#define IRQ_ON()            arch_interrupts_enable()
+#define IRQ_OFF()           arch_interrupts_disable()
 
 // ERROR HANDLING - Built-in debugging that can be enabled/disabled
 #ifdef ARCH_DEBUG
@@ -239,8 +279,65 @@ void vm_flush_tlb(void);
 #endif
 
 // Safe versions that never fail silently
-uint8_t device_read_safe(device_t dev, uint32_t reg);  // Returns 0 on error, logs message
-result_t device_write_safe(device_t dev, uint32_t reg, uint8_t value);  // Logs on error
+uint8_t arch_device_read_safe(device_t dev, uint32_t reg);  // Returns 0 on error, logs message
+result_t arch_device_write_safe(device_t dev, uint32_t reg, uint8_t value);  // Logs on error
+
+// DEBUG OUTPUT IMPLEMENTATION NOTES:
+//
+// WHERE DOES DEBUG OUTPUT GO? - Arch layer decides based on what's available
+//
+// PHILOSOPHY: arch_debug_*() outputs to the "best available debug channel"
+// The arch implementation chooses the most appropriate output for the platform:
+//
+// x86 PC: 
+//   - Serial port (COM1) - reliable, works in QEMU, real hardware
+//   - VGA text mode - visible on screen but harder to capture
+//   - Both serial + VGA for redundancy
+//
+// ARM (Raspberry Pi):
+//   - UART (mini UART or PL011) - most reliable  
+//   - Framebuffer console - if graphics available
+//   - GPIO pins for logic analyzer - for hardware debugging
+//
+// QEMU/Emulator:
+//   - Serial output redirected to host terminal
+//   - Easy to capture and log
+//
+// Real Hardware:
+//   - Serial cable to development machine
+//   - On-screen display if available
+//
+// EARLY BOOT (before most hardware initialized):
+//   - May fall back to simpler output (VGA text mode on x86)
+//   - Or buffer output until serial is available
+//
+// ARCH IMPLEMENTATION EXAMPLES:
+//
+// void arch_debug_puts(const char *str) {
+//     #ifdef ARCH_X86_64
+//         serial_puts(str);           // Send to COM1
+//         vga_puts(str);             // Also show on screen
+//     #endif
+//     
+//     #ifdef ARCH_ARM64  
+//         uart_puts(str);            // Send to UART
+//         if (framebuffer_ready()) {
+//             fb_puts(str);          // Also show on screen if available
+//         }
+//     #endif
+// }
+//
+// BENEFITS OF ARCH-DECIDES APPROACH:
+// - Kernel code doesn't care about output details
+// - Each architecture uses its best debug channel
+// - Easy to change debug output method per platform
+// - Can enable multiple outputs for redundancy
+// - Works in both emulators and real hardware
+//
+// ALTERNATIVE: Explicit output selection
+// - arch_debug_puts_serial(str) - force serial output
+// - arch_debug_puts_console(str) - force screen output  
+// - More control but more complex API
 
 #endif // ARCH_ULTIMATE_H
 */
@@ -295,40 +392,39 @@ void log_message(log_level_t level, const char *format, ...);
 */
 
 /*
-// KERNEL MEMORY API (uses arch page_alloc() internally)
+// KERNEL MEMORY API (uses arch_page_alloc() internally)
 #ifndef KERNEL_MEMORY_H
 #define KERNEL_MEMORY_H
 
 #include <stddef.h>
 
-// Physical memory management
-void memory_init(void);
+// Physical memory management - kernel layer provides allocation policies
+void kmem_init(void);
 void *kmalloc(size_t size);
 void *kzalloc(size_t size);  // Zero-initialized malloc
 void kfree(void *ptr);
-void *page_alloc(size_t count);
-void page_free(void *pages, size_t count);
+void *kpage_alloc(size_t count);         // Kernel page allocator (uses arch layer)
+void kpage_free(void *pages, size_t count);
 
-// Virtual memory management
-typedef struct page_table* page_table_t;
+// Virtual memory management - kernel layer provides address space management
+typedef struct kvm_space* kvm_space_t;
 typedef uintptr_t virtual_addr_t;
 typedef uintptr_t physical_addr_t;
 
-#define VM_READ     0x01
-#define VM_WRITE    0x02
-#define VM_EXEC     0x04
-#define VM_USER     0x08
+#define KVM_READ     0x01
+#define KVM_WRITE    0x02
+#define KVM_EXEC     0x04
+#define KVM_USER     0x08
 
-page_table_t vm_create_page_table(void);
-void vm_destroy_page_table(page_table_t pt);
-kernel_error_t vm_map_page(page_table_t pt, virtual_addr_t vaddr, physical_addr_t paddr, uint32_t flags);
-kernel_error_t vm_unmap_page(page_table_t pt, virtual_addr_t vaddr);
-void vm_activate_page_table(page_table_t pt);
-void vm_flush_tlb(void);
+kvm_space_t kvm_create_space(void);          // Create address space (uses arch_vm_create_table)
+void kvm_destroy_space(kvm_space_t space);
+kernel_error_t kvm_map_page(kvm_space_t space, virtual_addr_t vaddr, physical_addr_t paddr, uint32_t flags);
+kernel_error_t kvm_unmap_page(kvm_space_t space, virtual_addr_t vaddr);
+void kvm_activate_space(kvm_space_t space);  // Switch to address space (uses arch_vm_activate)
 
-// Memory regions for processes
-kernel_error_t vm_map_region(page_table_t pt, virtual_addr_t vaddr, size_t size, uint32_t flags);
-kernel_error_t vm_unmap_region(page_table_t pt, virtual_addr_t vaddr, size_t size);
+// Memory regions for processes - higher level than single pages
+kernel_error_t kvm_map_region(kvm_space_t space, virtual_addr_t vaddr, size_t size, uint32_t flags);
+kernel_error_t kvm_unmap_region(kvm_space_t space, virtual_addr_t vaddr, size_t size);
 
 typedef struct {
     size_t total_pages;
@@ -338,7 +434,7 @@ typedef struct {
     size_t user_pages;
 } memory_info_t;
 
-memory_info_t memory_get_info(void);
+memory_info_t kmem_get_info(void);
 
 #endif
 */
@@ -357,11 +453,11 @@ typedef enum {
 
 typedef void (*interrupt_handler_t)(void);
 
-kernel_error_t interrupt_register(irq_number_t irq, interrupt_handler_t handler);
-kernel_error_t interrupt_enable(irq_number_t irq);
-kernel_error_t interrupt_disable(irq_number_t irq);
-void interrupt_enable_all(void);
-void interrupt_disable_all(void);
+kernel_error_t kirq_register(irq_number_t irq, interrupt_handler_t handler);
+kernel_error_t kirq_enable(irq_number_t irq);
+kernel_error_t kirq_disable(irq_number_t irq);
+void kirq_enable_all(void);
+void kirq_disable_all(void);
 
 #endif
 */

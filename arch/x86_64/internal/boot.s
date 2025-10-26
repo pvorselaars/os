@@ -1,4 +1,5 @@
 #include "arch/x86_64/memory.h"
+#include "arch/x86_64/gdt.h"
 
 .code16
 _start:

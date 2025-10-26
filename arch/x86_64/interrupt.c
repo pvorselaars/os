@@ -1,106 +1,50 @@
-#include "arch/x86_64/gdt.h"
-#include "arch/x86_64/memory.h"
+#include "definitions.h"
+#include "arch/arch.h"
+#include "arch/x86_64/idt.h"
 
-#pragma pack(1)
-typedef struct
+static addr_t interrupt_handlers[256] = {0}; // Standard max interrupt vectors
+
+// Assembly stubs we have available
+extern void exception_0(void), exception_2(void), exception_4(void);
+extern void exception_8(void), exception_13(void), exception_14(void);
+extern void irq_0x20(void), irq_0x21(void), irq_0x24(void);
+
+// Initialize interrupt system - pre-populate IDT with available stubs
+arch_result arch_interrupt_init(void)
 {
-    uint32_t reserved0;
-    uint64_t rsp0;
-    uint64_t rsp1;
-    uint64_t rsp2;
-    uint64_t reserved1;
-    uint64_t ist1;
-    uint64_t ist2;
-    uint64_t ist3;
-    uint64_t ist4;
-    uint64_t ist5;
-    uint64_t ist6;
-    uint64_t ist7;
-    uint64_t reserved2;
-    uint16_t reserved3;
-    uint16_t iomap_base;
-} tss64;
-
-typedef struct
-{
-    uint16_t offset_low;
-    uint16_t selector;
-    uint8_t ist;
-    uint8_t flags;
-    uint16_t offset_mid;
-    uint32_t offset_high;
-    uint32_t reserved;
-} interrupt_descriptor;
-
-typedef struct
-{
-    unsigned short size;
-    interrupt_descriptor *offset;
-} idt_descriptor;
-#pragma pack()
-
-#define MAX_INTERRUPTS 256
-
-typedef enum
-{
-    INTERRUPT_GATE = 0xe,
-    TRAP_GATE = 0xf
-} gate_type;
-
-typedef enum
-{
-    KERNEL = 0,
-    USER = 3
-} privilege_level;
-
-interrupt_descriptor idt[MAX_INTERRUPTS] = {0};
-idt_descriptor idtr;
-tss64 tss = {.rsp0 = 0x1000};
+    // Initialize IDT structure
+    x86_64_idt_init();
+    
+    // Pre-populate IDT with our available stubs
+    x86_64_idt_set_entry(0, (addr_t)exception_0, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(2, (addr_t)exception_2, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(4, (addr_t)exception_4, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(8, (addr_t)exception_8, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(13, (addr_t)exception_13, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(14, (addr_t)exception_14, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0x20, (addr_t)irq_0x20, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0x21, (addr_t)irq_0x21, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0x24, (addr_t)irq_0x24, IDT_FLAG_INTERRUPT_GATE);
+    
+    return ARCH_OK;
+}
 
 int arch_register_interrupt(unsigned vector, addr_t handler)
 {
-    if (vector >= MAX_INTERRUPTS)
+    if (vector >= 256) {
         return -1;
-
-    idt[vector].offset_low = handler & 0xffff;
-    idt[vector].selector = CODE_SEG;
-    idt[vector].ist = 0;
-    idt[vector].flags = 0x80 | (KERNEL << 5) | INTERRUPT_GATE;
-    idt[vector].offset_mid = (handler >> 16) & 0xffff;
-    idt[vector].offset_high = (handler >> 32) & 0xffffffff;
-    idt[vector].reserved = 0;
-
+    }
+    
+    // Simply store the handler - arch-specific init handles IDT setup
+    interrupt_handlers[vector] = handler;
     return 0;
 }
 
-void arch_irq_eoi(unsigned vector)
+void arch_handle_interrupt(unsigned vector)
 {
-    extern void platform_pic_eoi(unsigned vector);
-    platform_pic_eoi(vector);
-}
-
-void arch_set_interrupt_stack_pointer(uint64_t sp)
-{
-    tss.rsp0 = sp;
-}
-
-static void set_tss_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags)
-{
-    arch_gdt_set_entry(index, base, limit, access, flags);
-    arch_gdt_set_entry(index + 1, 0, 0, 0, 0); // Clear the next entry
-}
-
-void arch_interrupt_init()
-{
-    idtr.size = sizeof(interrupt_descriptor) * MAX_INTERRUPTS - 1;
-    idtr.offset = idt;
-    __asm__ volatile("lidt %0" : : "m"(idtr));
-
-    uint64_t tss_base = (uint64_t)&tss;
-    uint64_t tss_limit = sizeof(tss) - 1;
-
-    set_tss_entry(5, tss_base, tss_limit, SDA_P | SDA_A | SDA_TSS, 0x0);
-
-    /* Load TSS */
-    __asm__ volatile("ltr %0" : : "r"(0x28)); // Selector for TSS entry (index 5)
+    if (vector < 256 && interrupt_handlers[vector]) {
+        // Call the registered C handler
+        void (*handler)(void) = (void (*)(void))interrupt_handlers[vector];
+        handler();
+    }
 }
