@@ -39,17 +39,18 @@ typedef enum
 interrupt_descriptor idt[MAX_INTERRUPTS] = {0};
 idt_descriptor idtr;
 
-int x86_64_idt_set_entry(unsigned vector, addr_t handler, uint8_t flags)
+int x86_64_idt_set_entry(unsigned vector, void (*handler)(void), uint8_t flags)
 {
     if (vector >= MAX_INTERRUPTS)
         return -1;
 
-    idt[vector].offset_low = handler & 0xffff;
+    uint64_t addr = (uint64_t)handler;
+    idt[vector].offset_low = addr & 0xffff;
     idt[vector].selector = CODE_SEG;
     idt[vector].ist = 0;
     idt[vector].flags = flags | 0x80 | (KERNEL << 5) | INTERRUPT_GATE;
-    idt[vector].offset_mid = (handler >> 16) & 0xffff;
-    idt[vector].offset_high = (handler >> 32) & 0xffffffff;
+    idt[vector].offset_mid = (addr >> 16) & 0xffff;
+    idt[vector].offset_high = (addr >> 32) & 0xffffffff;
     idt[vector].reserved = 0;
 
     return 0;

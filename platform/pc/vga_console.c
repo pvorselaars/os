@@ -9,7 +9,7 @@ static int cursor = 0;
 void vga_console_init()
 {
 	// Clear screen with white-on-black attribute (0x0f20)
-	memory_set_word(vga, 0x0f20, 4000);
+	arch_memory_set_word(vga, 0x0f20, 4000);
 	cursor = 0;
 	vga_update_cursor();
 }
@@ -56,9 +56,9 @@ void vga_console_puts(const char *str)
 void vga_scroll_up()
 {
 	// Move all lines up by one
-	memory_copy(vga, vga + 160, 3840);
+	arch_memory_copy(vga, vga + 160, 3840);
 	// Clear the bottom line
-	memory_set_word(vga + 3840, 0x0f20, 160);
+	arch_memory_set_word(vga + 3840, 0x0f20, 160);
 	cursor = 3840;
 }
 
@@ -89,7 +89,7 @@ void vga_get_cursor(int *x, int *y)
 
 void vga_clear_screen()
 {
-	memory_set_word(vga, 0x0f20, 4000);
+	arch_memory_set_word(vga, 0x0f20, 4000);
 	cursor = 0;
 	vga_update_cursor();
 }

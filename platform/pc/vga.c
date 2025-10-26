@@ -1923,7 +1923,7 @@ void vga_load_font(void) {
     uint8_t* font_mem = (uint8_t*)virtual_address(0xA0000);
     
     // Clear font memory first
-    memory_set_qword(font_mem, 0, 1024);
+    arch_memory_set_qword(font_mem, 0, 1024);
 
     // Load our font data (characters 0x20-0x7F)
     for (int char_index = 0; char_index < 96; char_index++) {
@@ -1931,7 +1931,7 @@ void vga_load_font(void) {
         uint8_t* char_ptr = (uint8_t*)(font_mem + char_code * 32);
         
         // Copy 16 bytes of font data for this character
-        memory_copy(char_ptr, vga_font[char_index], 16);
+        arch_memory_copy(char_ptr, vga_font[char_index], 16);
     }
     
     // Restore original state

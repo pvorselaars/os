@@ -38,7 +38,7 @@ static void sort(region r[], int size)
 	}
 }
 
-uint64_t memory_map(uint64_t va, uint64_t pa, int flags)
+arch_result arch_memory_map_page(uint64_t va, uint64_t pa, int flags)
 {
 	assert(IS_ALIGNED(pa, PAGE_SIZE));
 	assert(IS_ALIGNED(va, PAGE_SIZE));
@@ -54,7 +54,7 @@ uint64_t memory_map(uint64_t va, uint64_t pa, int flags)
 
 	if (!(pml4[pml4_offset] & PAGE_PRESENT))
 	{
-		void *p = memory_allocate();
+		void *p = arch_memory_allocate_page();
 
 		if (p == NULL)
 		{
@@ -68,7 +68,7 @@ uint64_t memory_map(uint64_t va, uint64_t pa, int flags)
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 	{
-		void *p = memory_allocate();
+		void *p = arch_memory_allocate_page();
 
 		if (p == NULL)
 		{
@@ -88,7 +88,7 @@ uint64_t memory_map(uint64_t va, uint64_t pa, int flags)
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
 	{
-		void *p = memory_allocate();
+		void *p = arch_memory_allocate_page();
 
 		if (p == NULL)
 		{
@@ -102,14 +102,14 @@ uint64_t memory_map(uint64_t va, uint64_t pa, int flags)
 
 	if (pt[pt_offset] & PAGE_PRESENT)
 	{
-		return 0;
+		return ARCH_ERROR; // Page already mapped
 	}
 	else
 	{
 		pt[pt_offset] = (pte)pa | flags;
 	}
 
-	return pml4[pml4_offset];
+	return ARCH_OK;
 }
 
 /*
@@ -125,7 +125,7 @@ static bool empty(unsigned long *table)
 }
 */
 
-int memory_unmap(address va)
+arch_result arch_memory_unmap_page(uint64_t va)
 {
 	pdpte *pdpt;
 	pde *pd;
@@ -137,12 +137,12 @@ int memory_unmap(address va)
 	unsigned short pt_offset = (va >> 12) & 0x1FF;
 
 	if (!(pml4[pml4_offset] & PAGE_PRESENT))
-		return -1;
+		return ARCH_ERROR;
 
 	pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
-		return -1;
+		return ARCH_ERROR;
 
 	if (pdpt[pdpt_offset] & PAGE_PS)
 	{
@@ -153,25 +153,25 @@ int memory_unmap(address va)
 	pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
-		return -1;
+		return ARCH_ERROR;
 
 	if (pd[pd_offset] & PAGE_PS)
 	{
 		pd[pd_offset] = 0;
-		return 0;
+		return ARCH_OK;
 	}
 
 	pt = (pte *)virtual_address((pd[pd_offset] >> 12) << 12);
 
 	if (!(pt[pt_offset] & PAGE_PRESENT))
-		return -1;
+		return ARCH_ERROR;
 
 	pt[pt_offset] = 0;
 
-	return 0;
+	return ARCH_OK;
 }
 
-void *memory_allocate()
+void *arch_memory_allocate_page(void)
 {
 	void *page = NULL;
 
@@ -187,7 +187,7 @@ void *memory_allocate()
 	return page;
 }
 
-void memory_deallocate(void *page)
+void arch_memory_deallocate_page(void *page)
 {
 	region *current;
 	uint64_t address = (uint64_t)page;
@@ -244,96 +244,12 @@ void memory_deallocate(void *page)
 	sort(free_regions, total_regions);
 }
 
-void memory_map_userpages(uint64_t pdpt)
+void arch_memory_map_userpages(uint64_t pdpt)
 {
 	pml4[0] = pdpt;
 }
 
-void print_pagetable_entries(address a)
-{
-	pdpte *pdpt;
-	pde *pd;
-	pte *pt;
-
-	unsigned short pml4_offset = (a >> 39) & 0x1FF;
-	unsigned short pdpt_offset = (a >> 30) & 0x1FF;
-	unsigned short pd_offset = (a >> 21) & 0x1FF;
-	unsigned short pt_offset = (a >> 12) & 0x1FF;
-
-	//printf("Addr: %016lx\n", a);
-	if (!(pml4[pml4_offset] & PAGE_PRESENT))
-	{
-		//printf("Page not present %x\n", pml4_offset * 8);
-		return;
-	}
-
-	//printf("PML4: %016lx\n", pml4[pml4_offset]);
-	pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
-
-	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
-	{
-		//printf("Page not present\n");
-		return;
-	}
-
-	//printf("PDPT: %016lx\n", pdpt[pdpt_offset]);
-	pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
-
-	if (!(pd[pd_offset] & PAGE_PRESENT))
-	{
-		//printf("Page not present\n");
-		return;
-	}
-
-	//printf("PD:   %016lx\n", pd[pd_offset]);
-
-	if (pd[pd_offset] & PAGE_PS)
-	{
-		return;
-	}
-
-	pt = (pte *)virtual_address((pd[pd_offset] >> 12) << 12);
-
-	if (!(pt[pt_offset] & PAGE_PRESENT))
-	{
-		//printf("Page not present\n");
-		return;
-	}
-
-	//printf("PT:   %016lx\n", pt[pt_offset]);
-}
-/*
-
-void print_regions()
-{
-
-	printf("Free memory regions:\n");
-	printf("%-16s %-16s\n", "address", "size");
-
-	for (int r = 0; r < total_regions; r++)
-	{
-		printf("%-16lx %-16lx\n", free_regions[r].start, free_regions[r].size);
-	}
-
-	printf("%ld/%ld KiB free\n", total_memory_free / 0x400, total_memory / 0x400);
-	printf("%ld/%ld KiB used\n", total_memory_reserved / 0x400, total_memory / 0x400);
-}
-
-void examine(void *ptr, unsigned long bytes)
-{
-
-	unsigned char *mem = (unsigned char *)ptr;
-
-	for (int i = 0; i < bytes; i++)
-	{
-		printf("%02x ", *mem++);
-	}
-	printf("\n");
-}
-
-*/
-
-void memory_init()
+arch_result arch_memory_init(void)
 {
 	total_regions = 4;
 	total_memory = 0x200000;
@@ -358,5 +274,65 @@ void memory_init()
 
 	/* Remove bootstrap identity mapping */
 	pml4[0] = 0;
-	flush_tlb();
+	arch_memory_flush_tlb();
+	
+	return ARCH_OK;
+}
+
+void arch_memory_set(void *ptr, const uint8_t value, const uint64_t count)
+{
+    /* For simple byte patterns, use byte set */
+    if (value == 0 || count < 8) {
+        arch_memory_set_byte(ptr, value, count);
+        return;
+    }
+    
+    /* For aligned addresses and sizes, use larger operations */
+    uint64_t addr = (uint64_t)ptr;
+    
+    /* Use qword operations for 8-byte aligned addresses and large counts */
+    if (IS_ALIGNED(addr, 8) && count >= 64 && IS_ALIGNED(count, 8)) {
+        uint64_t qword_val = ((uint64_t)value << 56) | ((uint64_t)value << 48) |
+                            ((uint64_t)value << 40) | ((uint64_t)value << 32) |
+                            ((uint64_t)value << 24) | ((uint64_t)value << 16) |
+                            ((uint64_t)value << 8) | value;
+        arch_memory_set_qword(ptr, qword_val, count / 8);
+
+        /* Handle remaining bytes */
+        uint64_t remaining = count % 8;
+        if (remaining > 0) {
+            arch_memory_set_byte((uint8_t *)ptr + (count - remaining), value, remaining);
+        }
+        return;
+    }
+    
+    /* Use dword operations for 4-byte aligned addresses */
+    if (IS_ALIGNED(addr, 4) && count >= 32 && IS_ALIGNED(count, 4)) {
+        uint32_t dword_val = ((uint32_t)value << 24) | ((uint32_t)value << 16) |
+                            ((uint32_t)value << 8) | value;
+        arch_memory_set_dword(ptr, dword_val, count / 4);
+        
+        /* Handle remaining bytes */
+        uint64_t remaining = count % 4;
+        if (remaining > 0) {
+            arch_memory_set_byte((uint8_t *)ptr + (count - remaining), value, remaining);
+        }
+        return;
+    }
+    
+    /* Use word operations for 2-byte aligned addresses */
+    if (IS_ALIGNED(addr, 2) && count >= 16 && IS_ALIGNED(count, 2)) {
+        uint16_t word_val = ((uint16_t)value << 8) | value;
+        arch_memory_set_word(ptr, word_val, count / 2);
+
+        /* Handle remaining bytes */
+        uint64_t remaining = count % 2;
+        if (remaining > 0) {
+            arch_memory_set_byte((uint8_t *)ptr + (count - remaining), value, remaining);
+        }
+        return;
+    }
+    
+    /* Fall back to byte operations */
+    arch_memory_set_byte(ptr, value, count);
 }

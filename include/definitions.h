@@ -17,6 +17,7 @@ typedef int int32_t;
 typedef long int64_t;
 
 typedef __builtin_va_list va_list;
+typedef uint64_t size_t;
 
 #define va_start(v, l) __builtin_va_start(v, l)
 #define va_arg(v, l) __builtin_va_arg(v, l)

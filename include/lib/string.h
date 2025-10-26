@@ -16,5 +16,6 @@
 
 int vsnprintf(int8_t *s, uint32_t n, const int8_t *format, va_list arg);
 uint64_t strlen(const char *str);
+int strcmp(const char *s1, const char *s2);
 
 #endif

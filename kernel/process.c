@@ -1,6 +1,7 @@
 #include "lib/memory.h"
 #include "kernel/process.h"
 #include "arch/process.h"
+#include "arch/x86_64/memory.h"
 
 #define MAX_PROCESSES 32
 
@@ -31,7 +32,7 @@ static process_t *find_next_ready_process(void);
 void process_subsystem_init(void)
 {
     /* Initialize process table */
-    memory_zero(process_table, sizeof(process_table));
+    arch_memory_zero(process_table, sizeof(process_table));
     
     ready_queue = NULL;
     current_process = NULL;
@@ -202,7 +203,7 @@ static process_t *allocate_process(void)
 static void free_process(process_t *proc)
 {
     if (proc) {
-        memory_zero_struct(proc);
+        arch_memory_zero_struct(proc);
     }
 }
 

@@ -1,45 +1,45 @@
 .code64
 
-.globl memory_set_byte
-.globl memory_set_word
-.globl memory_set_dword
-.globl memory_set_qword
-.globl memory_compare
-.globl memory_move
-.globl memory_copy
-.globl flush_tlb
+.globl arch_memory_set_byte
+.globl arch_memory_set_word
+.globl arch_memory_set_dword
+.globl arch_memory_set_qword
+.globl arch_memory_compare
+.globl arch_memory_move
+.globl arch_memory_copy
+.globl arch_memory_flush_tlb
 
 .section .text
 
-memory_set_byte:
+arch_memory_set_byte:
   cld
   mov %rsi, %rax
   mov %rdx, %rcx
   rep stosb
   ret
 
-memory_set_word:
+arch_memory_set_word:
   cld
   mov %rsi, %rax
   mov %rdx, %rcx
   rep stosw
   ret
 
-memory_set_dword:
+arch_memory_set_dword:
   cld
   mov %rsi, %rax
   mov %rdx, %rcx
   rep stosl
   ret
 
-memory_set_qword:
+arch_memory_set_qword:
   cld
   mov %rsi, %rax
   mov %rdx, %rcx
   rep stosq
   ret
 
-memory_compare:
+arch_memory_compare:
   cld
   xor %rax, %rax
   mov %rdx, %rcx
@@ -47,8 +47,8 @@ memory_compare:
   setnz %al
   ret
 
-memory_move:
-memory_copy:
+arch_memory_move:
+arch_memory_copy:
   cld
   cmp %rdi, %rsi
   jae 1f
@@ -68,7 +68,7 @@ memory_copy:
   rep movsb
   ret
 
-flush_tlb:
+arch_memory_flush_tlb:
   mov %cr3, %rax
   mov %rax, %cr3
   ret

@@ -1,5 +1,6 @@
 #include "lib/memory.h"
 #include "arch/x86_64/memory.h"
+#include "arch/x86_64/tss.h"
 #include "arch/process.h"
 
 /* x86_64-specific process context */
@@ -27,17 +28,17 @@ void arch_process_init(void)
 
 arch_context_t *arch_context_create(void *entry_point, uint64_t stack_size)
 {
-    arch_context_t *ctx = memory_allocate();
+    arch_context_t *ctx = arch_memory_allocate_page();
     if (!ctx) {
         return NULL;
     }
     
-    memory_zero_struct(ctx);
+    arch_memory_zero_struct(ctx);
     
     /* Allocate kernel stack */
-    void *kstack_phys = memory_allocate();
+    void *kstack_phys = arch_memory_allocate_page();
     if (!kstack_phys) {
-        memory_deallocate(ctx);
+        arch_memory_deallocate_page(ctx);
         return NULL;
     }
     
@@ -73,11 +74,11 @@ void arch_context_destroy(arch_context_t *context)
     /* Free kernel stack */
     if (context->kstack_base) {
         void *kstack_phys = (void *)((void *)context->kstack_base);
-        memory_deallocate(kstack_phys);
+        arch_memory_deallocate_page(kstack_phys);
     }
     
     /* Free context structure */
-    memory_deallocate(context);
+    arch_memory_deallocate_page(context);
 }
 
 uint64_t arch_context_switch(arch_context_t *old_ctx, arch_context_t *new_ctx)
@@ -88,8 +89,8 @@ uint64_t arch_context_switch(arch_context_t *old_ctx, arch_context_t *new_ctx)
     
     /* Switch page tables */
     if (new_ctx->pagetable != old_ctx->pagetable) {
-        memory_map_userpages(new_ctx->pagetable);
-        flush_tlb();
+        arch_memory_map_userpages(new_ctx->pagetable);
+        arch_memory_flush_tlb();
     }
     
     /* Update interrupt stack pointer */
@@ -107,9 +108,9 @@ void arch_process_start_user(arch_context_t *context)
     if (!context) return;
     
     /* Switch to process page table */
-    memory_map_userpages(context->pagetable);
-    flush_tlb();
-    
+    arch_memory_map_userpages(context->pagetable);
+    arch_memory_flush_tlb();
+
     /* Set interrupt stack pointer */
     arch_set_interrupt_stack_pointer(context->kstack_base + PAGE_SIZE);
     
@@ -138,21 +139,21 @@ int arch_process_setup_memory(arch_context_t *context, void *entry_point)
     uint64_t entry_page = ALIGN_DOWN(entry_addr, PAGE_SIZE);
     
     /* Map process code page */
-    uint64_t pagetable = memory_map(0, entry_page, 
+    uint64_t pagetable = arch_memory_map_page(0, entry_page, 
                                    PAGE_PRESENT | PAGE_WRITE | PAGE_USER);
     if (!pagetable) {
         return -1;
     }
     
     /* Allocate and map user stack */
-    void *ustack_phys = memory_allocate();
+    void *ustack_phys = arch_memory_allocate_page();
     if (!ustack_phys) {
         return -1;
     }
     
-    if (memory_map(USER_STACK_VADDR, (uint64_t)ustack_phys, 
+    if (arch_memory_map_page(USER_STACK_VADDR, (uint64_t)ustack_phys, 
                    PAGE_PRESENT | PAGE_WRITE | PAGE_USER) == 0) {
-        memory_deallocate(ustack_phys);
+        arch_memory_deallocate_page(ustack_phys);
         return -1;
     }
     
