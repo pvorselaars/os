@@ -181,10 +181,10 @@ arch_result arch_display_scroll_up(arch_display_device_t *device, uint32_t lines
 
 arch_result arch_memory_init(void);
 
-void *arch_memory_allocate_page(void);
-void arch_memory_deallocate_page(void *page);
-arch_result arch_memory_map_page(uint64_t virtual_addr, uint64_t physical_addr, int flags);
-arch_result arch_memory_unmap_page(uint64_t virtual_addr);
+uint64_t arch_memory_allocate_frame(void);
+void arch_memory_deallocate_frame(uint64_t frame);
+arch_result arch_memory_map_page(uint64_t address, uint64_t frame, int flags);
+arch_result arch_memory_unmap_page(uint64_t address);
 
 void arch_memory_set(void *ptr, uint8_t value, uint64_t size);
 void arch_memory_set_byte(void *ptr, uint8_t value, uint64_t size);
@@ -200,5 +200,6 @@ int arch_memory_compare(const void *ptr1, const void *ptr2, uint64_t size);
 
 
 void arch_debug_printf(const char *format, ...);
+void arch_debug_vprintf(const char *format, va_list args);
 
 #endif

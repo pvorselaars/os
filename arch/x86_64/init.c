@@ -5,26 +5,33 @@
 
 arch_result arch_init(void)
 {
+    arch_result result;
+
     x86_64_gdt_init();
 
-    arch_interrupt_init();
-    
-    arch_result result = arch_memory_init();
-    if (result != ARCH_OK) {
-        return result;
+    TEST_CASE("Memory initialization") {
+        result = arch_memory_init();
+        TEST_ASSERT_EQUAL(ARCH_OK, result);
+        if (result != ARCH_OK) {
+            return result;
+        }
+    }
+
+    TEST_CASE("Interrupt initialization") {
+        result = arch_interrupt_init();
+        TEST_ASSERT_EQUAL(ARCH_OK, result);
+        if (result != ARCH_OK) {
+            return result;
+        }
     }
     
-    result = arch_register_default_handlers();
-    if (result != ARCH_OK) {
-        return result;
+    TEST_CASE("Timer initialization") {
+        result = arch_timer_init(100);
+        TEST_ASSERT_EQUAL(ARCH_OK, result);
+        if (result != ARCH_OK) {
+            return result;
+        }
     }
-    
-    result = arch_timer_init(100);
-    if (result != ARCH_OK) {
-        return result;
-    }
-    
-    arch_debug_printf("x86_64: arch initialization complete\n");
     
     return ARCH_OK;
 }

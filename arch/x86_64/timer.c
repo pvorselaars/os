@@ -6,9 +6,6 @@ static uint64_t timer_ticks = 0;
 
 void timer_handler(void) {
     timer_ticks++;
-    if (timer_ticks % timer_frequency_hz == 0) {
-        arch_debug_printf("Timer: %lu seconds\n", timer_ticks / timer_frequency_hz);
-    }
 }
 
 arch_result arch_timer_init(uint32_t frequency_hz)

@@ -36,9 +36,15 @@ arch_result device_init(void)
     device_list_head = NULL;
     device_count = 0;
     device_subsystem_initialized = true;
+
+    arch_result result = ARCH_ERROR;
+
+	TEST_CASE("Device driver initialization") {
+		result = device_init_drivers();
+		TEST_ASSERT_EQUAL(ARCH_OK, result);
+	}
     
-    arch_debug_printf("Device subsystem initialized\n");
-    return ARCH_OK;
+    return result;
 }
 
 arch_result device_init_drivers(void)
@@ -46,8 +52,6 @@ arch_result device_init_drivers(void)
     if (!device_subsystem_initialized) {
         return ARCH_ERROR;
     }
-    
-    arch_debug_printf("Initializing device drivers...\n");
     
     arch_result results[] = {
         serial_driver_init(),
@@ -59,19 +63,13 @@ arch_result device_init_drivers(void)
         console_driver_init()
     };
     
-    const char *driver_names[] = {
-        "serial", "parallel", "keyboard", "audio", "disk", "display", "console"
-    };
-    
     int failed_count = 0;
     for (int i = 0; i < 7; i++) {
         if (results[i] != ARCH_OK) {
-            arch_debug_printf("❌ %s driver failed\n", driver_names[i]);
             failed_count++;
         }
     }
     
-    arch_debug_printf("Device drivers initialized (%d/%d successful)\n", 7 - failed_count, 7);
     return (failed_count == 0) ? ARCH_OK : ARCH_ERROR;
 }
 
@@ -121,9 +119,6 @@ arch_result device_register(device_t *device)
     } else {
         device->state = DEVICE_STATE_READY;
     }
-    
-    arch_debug_printf("Registered %s device '%s'\n",
-                     device_class_name(device->class), device->name);
     
     return ARCH_OK;
 }

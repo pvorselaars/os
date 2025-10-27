@@ -67,7 +67,7 @@ QEMU = qemu-system-aarch64 \
 						-display none
 endif
 
-SRC_C := $(wildcard kernel/*.c lib/*.c drivers/*/*.c arch/$(ARCH)/*.c arch/$(ARCH)/internal/*.c board/$(BOARD)/*.c)
+SRC_C := $(wildcard kernel/*.c lib/*.c drivers/*/*.c arch/$(ARCH)/*.c arch/$(ARCH)/internal/*.c board/$(BOARD)/*.c tests/tests.c)
 SRC_S := $(wildcard kernel/*.s lib/*.s drivers/*/*.s arch/$(ARCH)/*.s arch/$(ARCH)/internal/*.s board/$(BOARD)/*.s)
 
 OBJ_C := $(patsubst %.c,obj/%.o,$(SRC_C))
@@ -106,11 +106,32 @@ dir:
 	@mkdir -p obj bin
 	@mkdir -p obj/kernel obj/lib obj/drivers obj/arch/$(ARCH) obj/arch/$(ARCH)/internal obj/board/$(BOARD)
 
+TEST_CC := gcc
+TEST_CFLAGS := -g -std=c2x -Iinclude 
+
+TEST_SRCS := $(wildcard tests/arch/$(ARCH)/*.c)
+TEST_BINS := $(patsubst tests/%.c,tests/bin/%,$(TEST_SRCS))
+
+tests/bin:
+	@mkdir -p tests/bin
+
+tests/bin/%: tests/%.c | tests/bin
+	@mkdir -p $(dir $@)
+	@$(TEST_CC) $(TEST_CFLAGS) -o $@ $< tests/tests.c \
+		$(if $(wildcard $(patsubst tests/arch/$(ARCH)/%.c,arch/$(ARCH)/%.s,$<)),$(patsubst tests/arch/$(ARCH)/%.c,arch/$(ARCH)/%.s,$<))
+
+.PHONY: test
+test: $(TEST_BINS)
+	@for t in $(TEST_BINS); do \
+		./$$t ; \
+	done; \
+
 pc:
 	$(MAKE) ARCH=x86_64 BOARD=pc
 
 rpi4:
 	$(MAKE) ARCH=aarch64 BOARD=rpi4
+
 
 clean:
 	rm -rf obj/ bin/ *.l

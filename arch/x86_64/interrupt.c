@@ -25,6 +25,14 @@ arch_result arch_interrupt_init(void)
 
     x86_64_pic_remap();
 
+    TEST_CASE("Interrupt handlers registration") {
+        arch_result result = arch_register_default_handlers();
+        TEST_ASSERT_EQUAL(ARCH_OK, result);
+        if (result != ARCH_OK) {
+            return result;
+        }
+    }
+
     return ARCH_OK;
 }
 

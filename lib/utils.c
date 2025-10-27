@@ -8,9 +8,9 @@ void fatal(const int8_t *format, ...)
 	va_list args;
 	va_start(args, format);
 
-	int8_t buffer[PRINTF_BUFFER_SIZE];
-	vsnprintf(buffer, PRINTF_BUFFER_SIZE, format, args);
-	arch_debug_printf("Fatal error: %s\n", buffer);
+	arch_debug_printf("Fatal error: ");
+	arch_debug_vprintf(format, args);
+	arch_debug_printf("\n");
 
 	va_end(args);
 

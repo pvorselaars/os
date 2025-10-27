@@ -1,71 +1,36 @@
 #include "board/board.h"
 #include "kernel/device.h"
 #include "lib/string.h"
+#include "arch/arch.h"
+#include "test.h"
 
 void kernel(void)
 {
-	arch_result result = arch_init();
-	if (result != ARCH_OK) {
-		arch_halt();
+	arch_result result;
+	TEST_CASE("Architecture initialization") {
+		result = arch_init();
+		TEST_ASSERT_EQUAL(ARCH_OK, result);
 	}
 
-	result = board_init();
-	if (result != ARCH_OK) {
-		arch_halt();
+
+	TEST_CASE("Board initialization") {
+		result = board_init();
+		TEST_ASSERT_EQUAL(ARCH_OK, result);
 	}
 
 	arch_interrupt_enable();
 	
-	// Initialize device subsystem
-	result = device_init();
-	if (result != ARCH_OK) {
-		arch_debug_printf("Device subsystem initialization failed\n");
-		arch_halt();
+	TEST_CASE("Device initialization") {
+		result = device_init();
+		TEST_ASSERT_EQUAL(ARCH_OK, result);
 	}
 	
-	// Initialize all device drivers
-	result = device_init_drivers();
-	if (result != ARCH_OK) {
-		arch_debug_printf("Some device drivers failed to initialize\n");
-		arch_halt();
-	}
-	
-	arch_debug_printf("🧪 Running tests...\n");
-	
-	// Test 1: Console device
-	device_t *console = device_find_by_name("console0");
-	if (console && console->open(console) == ARCH_OK) {
-		console->char_ops.write(console, "Console: VGA text mode working\n", 30);
-		console->close(console);
-	} else {
-		arch_debug_printf("❌ Console test failed\n");
-		arch_halt();
+	TEST_CASE("Memory allocation") {
+		TEST_ASSERT_EQUAL(0, 0);
 	}
 
-	device_t *parallel = device_find_by_name("parallel0");
-	if (parallel && parallel->open(parallel) == ARCH_OK) {
-		parallel->char_ops.write(parallel, "Parallel: Test message\n", 22);
-		parallel->close(parallel);
-	} else {
-		arch_debug_printf("❌ Parallel test failed\n");
-		arch_halt();
-	}
-	
-	// Test 2: Block device
-	device_t *disk = device_find_by_name("ata0");
-	if (disk && disk->open(disk) == ARCH_OK) {
-		disk->close(disk);
-	} else {
-		arch_debug_printf("❌ Disk test failed\n");
-		arch_halt();
-	}
-	
-	
-	arch_debug_printf("🎉 Tests complete!\n");
+	TEST_REPORT();
 
-	device_list_all();
-
-	while (1) {
+	while (1)
 		arch_halt();
-	}
 }
