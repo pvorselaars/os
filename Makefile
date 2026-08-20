@@ -49,11 +49,12 @@ QEMU = qemu-system-x86_64 \
 						-machine acpi=off \
 						-drive file=bin/os,format=raw \
 						-M isapc \
-						-cpu qemu64,-apic,-x2apic,+pdpe1gb \
+						-cpu max,-apic,-x2apic,+pdpe1gb \
 						-m 2M \
 						-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
 						-serial stdio \
-						-parallel file:lpt.log \
+						-chardev file,id=parallel,path=lpt.log \
+						-device isa-parallel,chardev=parallel \
 						-vga std
 endif
 

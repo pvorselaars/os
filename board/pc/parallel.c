@@ -1,8 +1,11 @@
 #include "arch/x86_64/io.h"
 #include "board/pc/parallel.h"
 #include "kernel/device.h"
+#include "lib/utils.h"
 
 #define PC_PARALLEL_PORT_0 0x378
+#define PC_PARALLEL_CONTROL_IDLE   0x0C
+#define PC_PARALLEL_CONTROL_STROBE 0x0D
 
 typedef struct {
     uint16_t base_port;
@@ -17,7 +20,7 @@ static result_t pc_parallel_init(device_t *device)
 {
     pc_parallel_t *parallel = device->data;
 
-    outb(parallel->base_port + 2, 0x04);
+    outb(parallel->base_port + 2, PC_PARALLEL_CONTROL_IDLE);
     parallel->initialized = true;
     return RESULT_OK;
 }
@@ -39,15 +42,9 @@ static int pc_parallel_write(device_t *device, const void *buffer, size_t length
     for (size_t i = 0; i < length; i++) {
         uint16_t port = parallel->base_port;
 
-        // TODO: poll on real hardware
-        //while (!(inb(port + 1) & 0x80))
-        //    sleep(10);
-
         outb(port, data[i]);
-
-        uint8_t control = inb(port + 2);
-        outb(port + 2, control | 1);
-        outb(port + 2, control);
+        outb(port + 2, PC_PARALLEL_CONTROL_STROBE);
+        outb(port + 2, PC_PARALLEL_CONTROL_IDLE);
     }
 
     return (int)length;
