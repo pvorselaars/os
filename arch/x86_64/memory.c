@@ -14,7 +14,7 @@ static unsigned long total_memory;
 static unsigned long total_memory_free;
 static unsigned long total_memory_reserved;
 
-pml4e *pml4 = (pml4e *)virtual_address(PML4_ADDRESS);
+pml4e *pml4 = virtual_address(PML4_ADDRESS);
 
 // TODO: more efficient sorting algorithm
 static void sort(region r[], int size)
@@ -38,7 +38,7 @@ static void sort(region r[], int size)
 	}
 }
 
-arch_result arch_memory_map_page(uint64_t va, uint64_t pa, int flags)
+result_t arch_memory_map_page(uint64_t va, uint64_t pa, int flags)
 {
 	assert(IS_ALIGNED(pa, PAGE_SIZE));
 	assert(IS_ALIGNED(va, PAGE_SIZE));
@@ -102,14 +102,14 @@ arch_result arch_memory_map_page(uint64_t va, uint64_t pa, int flags)
 
 	if (pt[pt_offset] & PAGE_PRESENT)
 	{
-		return ARCH_ERROR; // Page already mapped
+		return RESULT_ERROR; // Page already mapped
 	}
 	else
 	{
 		pt[pt_offset] = (pte)pa | flags;
 	}
 
-	return ARCH_OK;
+	return RESULT_OK;
 }
 
 /*
@@ -125,7 +125,7 @@ static bool empty(unsigned long *table)
 }
 */
 
-arch_result arch_memory_unmap_page(uint64_t va)
+result_t x86_64_memory_unmap_page(uint64_t va)
 {
 	pdpte *pdpt;
 	pde *pd;
@@ -137,12 +137,12 @@ arch_result arch_memory_unmap_page(uint64_t va)
 	unsigned short pt_offset = (va >> 12) & 0x1FF;
 
 	if (!(pml4[pml4_offset] & PAGE_PRESENT))
-		return ARCH_ERROR;
+		return RESULT_ERROR;
 
 	pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
-		return ARCH_ERROR;
+		return RESULT_ERROR;
 
 	if (pdpt[pdpt_offset] & PAGE_PS)
 	{
@@ -153,22 +153,22 @@ arch_result arch_memory_unmap_page(uint64_t va)
 	pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
-		return ARCH_ERROR;
+		return RESULT_ERROR;
 
 	if (pd[pd_offset] & PAGE_PS)
 	{
 		pd[pd_offset] = 0;
-		return ARCH_OK;
+		return RESULT_OK;
 	}
 
 	pt = (pte *)virtual_address((pd[pd_offset] >> 12) << 12);
 
 	if (!(pt[pt_offset] & PAGE_PRESENT))
-		return ARCH_ERROR;
+		return RESULT_ERROR;
 
 	pt[pt_offset] = 0;
 
-	return ARCH_OK;
+	return RESULT_OK;
 }
 
 void *arch_memory_allocate_page(void)
@@ -249,7 +249,7 @@ void arch_memory_map_userpages(uint64_t pdpt)
 	pml4[0] = pdpt;
 }
 
-arch_result arch_memory_init(void)
+void arch_memory_init(void)
 {
 	total_regions = 4;
 	total_memory = 0x200000;
@@ -272,8 +272,6 @@ arch_result arch_memory_init(void)
 	/* Remove bootstrap identity mapping */
 	pml4[0] = 0;
 	arch_memory_flush_tlb();
-	
-	return ARCH_OK;
 }
 
 void arch_memory_set(void *ptr, const uint8_t value, const uint64_t count)

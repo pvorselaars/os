@@ -17,8 +17,7 @@ typedef struct {
     uint64_t rip, cs, rflags, user_rsp, ss;
 } interrupt_context;
 
-int x86_64_idt_set_entry(unsigned vector, void (*handler)(void), uint8_t flags);
-void x86_64_idt_init(void);
-void x86_64_handle_interrupt(unsigned vector, interrupt_context *context);
+int x86_64_idt_set_entry(unsigned vector, void (*handler)(), uint8_t flags);
+void x86_64_idt_init();
 
 #endif

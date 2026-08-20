@@ -5,6 +5,7 @@
 
 void fatal(const int8_t *format, ...);
 void sleep(uint64_t ms);
+void debug_printf(const char *format, ...);
 
 #define assert(e)                                              \
     if (!(e))                                                  \

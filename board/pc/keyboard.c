@@ -1,6 +1,8 @@
-#include "arch/arch.h"
-#include "lib/utils.h"
-#include "lib/string.h"
+#include "arch/x86_64/interrupt.h"
+#include "arch/x86_64/io.h"
+#include "drivers/keyboard.h"
+#include "kernel/device.h"
+#include "lib/unicode.h"
 
 #define PS2_DATA_PORT    0x60
 #define PS2_COMMAND_PORT 0x64
@@ -28,7 +30,7 @@
 typedef struct {
     uint32_t unicode_normal;    // Unicode when no modifiers
     uint32_t unicode_shift;     // Unicode when shift pressed  
-    arch_logical_key_t logical; // Logical key (for special keys)
+    keyboard_key_t logical; // Logical key (for special keys)
 } scancode_mapping_t;
 
 static const scancode_mapping_t scancode_table[128] = {
@@ -128,28 +130,20 @@ typedef struct {
     bool scroll_lock;
 } keyboard_state_t;
 
-#define EVENT_QUEUE_SIZE 32
 typedef struct {
-    arch_keyboard_event_t events[EVENT_QUEUE_SIZE];
+    char data[512];
     int head;
     int tail;
     int count;
-} event_queue_t;
+} keyboard_input_buffer_t;
 
 typedef struct {
     keyboard_state_t state;
-    event_queue_t event_queue;
+    keyboard_input_buffer_t input_buffer;
     bool initialized;
 } ps2_keyboard_t;
 
 static ps2_keyboard_t ps2_keyboard_device;
-
-#include "arch/arch.h"
-#include "lib/utils.h"
-#include "lib/string.h"
-#include "drivers/keyboard.h"
-
-#include "arch/x86_64/io.h"
 
 static void ps2_wait_output(void) {
     int timeout = 100000;
@@ -184,20 +178,28 @@ static uint8_t ps2_read_data(void) {
     return inb(PS2_DATA_PORT);
 }
 
-static void queue_event(arch_keyboard_event_t *event) {
-    event_queue_t *queue = &ps2_keyboard_device.event_queue;
-    
-    if (queue->count < EVENT_QUEUE_SIZE) {
-        queue->events[queue->head] = *event;
-        queue->head = (queue->head + 1) % EVENT_QUEUE_SIZE;
-        queue->count++;
+static void ps2_keyboard_buffer_event(const keyboard_event_t *event)
+{
+    if (!event->pressed || event->unicode == 0 ||
+        !unicode_is_printable(event->unicode)) {
+        return;
+    }
+
+    char utf8[4];
+    int length = unicode_to_utf8(event->unicode, utf8);
+    keyboard_input_buffer_t *buffer = &ps2_keyboard_device.input_buffer;
+
+    for (int i = 0; i < length && buffer->count < sizeof(buffer->data); i++) {
+        buffer->data[buffer->head] = utf8[i];
+        buffer->head = (buffer->head + 1) % sizeof(buffer->data);
+        buffer->count++;
     }
 }
 
 void ps2_keyboard_interrupt(void) {
     uint8_t scancode = inb(PS2_DATA_PORT);
     keyboard_state_t *state = &ps2_keyboard_device.state;
-    arch_keyboard_event_t event;
+    keyboard_event_t event;
     
     bool key_released = (scancode & 0x80) != 0;
     if (key_released) {
@@ -286,17 +288,16 @@ void ps2_keyboard_interrupt(void) {
                 break;
         }
         
-        queue_event(&event);
+        ps2_keyboard_buffer_event(&event);
     }
-    
-    keyboard_driver_interrupt_notify((arch_keyboard_device_t *)&ps2_keyboard_device);
 }
 
-static arch_result ps2_keyboard_initialize(void) {
+static result_t ps2_keyboard_init(device_t *device) {
+    (void)device;
     ps2_keyboard_t *kbd = &ps2_keyboard_device;
     
     if (kbd->initialized) {
-        return ARCH_OK;
+        return RESULT_OK;
     }
     
     kbd->state.shift_pressed = false;
@@ -305,16 +306,14 @@ static arch_result ps2_keyboard_initialize(void) {
     kbd->state.caps_lock = false;
     kbd->state.num_lock = false;
     kbd->state.scroll_lock = false;
-    kbd->event_queue.head = 0;
-    kbd->event_queue.tail = 0;
-    kbd->event_queue.count = 0;
+    kbd->input_buffer.head = 0;
+    kbd->input_buffer.tail = 0;
+    kbd->input_buffer.count = 0;
     
     ps2_send_command(PS2_CMD_DISABLE_PORT1);
     
-    int flushed = 0;
     while (inb(PS2_STATUS_PORT) & 0x01) {
         inb(PS2_DATA_PORT);
-        flushed++;
     }
     
     ps2_send_command(PS2_CMD_READ_CONFIG);
@@ -329,7 +328,7 @@ static arch_result ps2_keyboard_initialize(void) {
     ps2_send_command(PS2_CMD_TEST_PORT1);
     uint8_t test_result = ps2_read_data();
     if (test_result != 0x00) {
-        return ARCH_ERROR;
+        return RESULT_ERROR;
     }
     
     ps2_send_command(PS2_CMD_ENABLE_PORT1);
@@ -351,58 +350,54 @@ static arch_result ps2_keyboard_initialize(void) {
     }
     
     // Register keyboard interrupt handler
-    arch_register_interrupt(0x21, ps2_keyboard_interrupt);
-    
+    if (x86_64_register_interrupt(0x21, ps2_keyboard_interrupt) != RESULT_OK)
+        return RESULT_ERROR;
+
     kbd->initialized = true;
-    return ARCH_OK;
+    return RESULT_OK;
 }
 
+static int ps2_keyboard_read(device_t *device, void *output, size_t length)
+{
+    (void)device;
 
-int arch_keyboard_get_count(void) {
-    return 1; // Single PS/2 keyboard on PC
+    if (!output) {
+        return -1;
+    }
+
+    keyboard_input_buffer_t *buffer = &ps2_keyboard_device.input_buffer;
+    char *bytes = output;
+    int count = 0;
+
+    while (buffer->count > 0 && (size_t)count < length) {
+        bytes[count++] = buffer->data[buffer->tail];
+        buffer->tail = (buffer->tail + 1) % sizeof(buffer->data);
+        buffer->count--;
+    }
+
+    return count;
 }
 
-arch_result arch_keyboard_get_info(int index, arch_keyboard_info_t *info) {
-    if (index != 0 || info == NULL) {
-        return ARCH_ERROR;
-    }
-    
-    info->name = "kb0";
-    info->device = (arch_keyboard_device_t *)&ps2_keyboard_device;
-    
-    return ARCH_OK;
+static int ps2_keyboard_write(device_t *device, const void *input, size_t length)
+{
+    (void)device;
+    (void)input;
+    (void)length;
+    return -1;
 }
 
-arch_result arch_keyboard_init(arch_keyboard_device_t *device) {
-    if (device != (arch_keyboard_device_t *)&ps2_keyboard_device) {
-        return ARCH_ERROR;
-    }
-    
-    return ps2_keyboard_initialize();
-}
+static device_t ps2_keyboard = {
+    .name = "kb0",
+    .class = DEVICE_CLASS_CHAR,
+    .init = ps2_keyboard_init,
+    .char_ops = {
+        .read = ps2_keyboard_read,
+        .write = ps2_keyboard_write,
+    },
+    .data = &ps2_keyboard_device,
+};
 
-bool arch_keyboard_has_event(arch_keyboard_device_t *device) {
-    if (device != (arch_keyboard_device_t *)&ps2_keyboard_device) {
-        return false;
-    }
-    
-    return ps2_keyboard_device.event_queue.count > 0;
-}
-
-arch_result arch_keyboard_read_event(arch_keyboard_device_t *device, arch_keyboard_event_t *event) {
-    if (device != (arch_keyboard_device_t *)&ps2_keyboard_device || event == NULL) {
-        return ARCH_ERROR;
-    }
-    
-    event_queue_t *queue = &ps2_keyboard_device.event_queue;
-    
-    if (queue->count == 0) {
-        return ARCH_ERROR; // No events available
-    }
-    
-    *event = queue->events[queue->tail];
-    queue->tail = (queue->tail + 1) % EVENT_QUEUE_SIZE;
-    queue->count--;
-    
-    return ARCH_OK;
+result_t pc_keyboard_register(void)
+{
+    return device_register(&ps2_keyboard);
 }

@@ -1,127 +1,118 @@
-#include "arch/arch.h"
+#include "arch/x86_64/io.h"
 #include "board/pc/serial.h"
+#include "kernel/device.h"
 
-struct arch_serial_device {
-    serial_port port;
-    bool initialized;
-};
+#define PC_UART_DATA 0
+#define PC_UART_IER  1
+#define PC_UART_FCR  2
+#define PC_UART_LCR  3
+#define PC_UART_MCR  4
+#define PC_UART_LSR  5
+
+#define PC_UART_LSR_DATA_READY 0x01
+#define PC_UART_LSR_TX_EMPTY   0x20
 
 typedef struct {
-    struct arch_serial_device device;
-    const char *name;
-    bool detected;
-} x86_serial_port_t;
+    uint16_t base;
+    bool initialized;
+} pc_serial_t;
 
-static x86_serial_port_t x86_serial_ports[] = {
-    { .device = {SERIAL_PORT_0, false}, .name = "serial0", .detected = false }
-    // TODO: add more ports
+static pc_serial_t pc_serial0 = {
+    .base = PC_SERIAL_PORT_0,
 };
 
-#define X86_SERIAL_PORT_COUNT (sizeof(x86_serial_ports) / sizeof(x86_serial_ports[0]))
-
-static bool serial_ports_detected = false;
-static uint8_t buffer[SERIAL_BUFFER_SIZE];
-static uint8_t buffer_index = 0;
-
-static void detect_serial_ports(void)
+static result_t pc_serial_init(device_t *device)
 {
-    if (serial_ports_detected) return;
-    
-    outb(SERIAL_PORT_0 + 1, 0x00); // Disable interrupts
+    pc_serial_t *serial = device->data;
 
-    outb(SERIAL_PORT_0 + 3, 0x80); // Set DLAB
-    outb(SERIAL_PORT_0 + 0, 0x03); // Set divisor low byte (115200 / 3 = 38400 baud)
-    outb(SERIAL_PORT_0 + 1, 0x00); // Set divisor high byte
-
-    outb(SERIAL_PORT_0 + 3, 0x03); // 8 bits, one stop bit, no parity
-    outb(SERIAL_PORT_0 + 2, 0xC7); // Enable and clear 14 byte FIFO
-    outb(SERIAL_PORT_0 + 4, 0x1E); // Set in loopback mode for testing
-
-    outb(SERIAL_PORT_0 + 0, 0xAE); // Send test byte
-
-    while (!(inb(SERIAL_PORT_0+5) & 0x01));
-    assert(inb(SERIAL_PORT_0) == 0xAE);
-
-    outb(SERIAL_PORT_0 + 4, 0x0F); // Disable loopback mode
-    outb(SERIAL_PORT_0 + 1, 0x01); // Enable interrupts
-    
-    x86_serial_ports[0].detected = true;
-    
-    serial_ports_detected = true;
-}
-
-int arch_serial_get_count(void)
-{
-    detect_serial_ports();
-    
-    int count = 0;
-    for (int i = 0; i < X86_SERIAL_PORT_COUNT; i++) {
-        if (x86_serial_ports[i].detected) {
-            count++;
-        }
+    if (serial->initialized) {
+        return RESULT_OK;
     }
-    return count;
+
+    outb(serial->base + PC_UART_IER, 0x00);
+    outb(serial->base + PC_UART_LCR, 0x80);
+    outb(serial->base + PC_UART_DATA, 0x03);
+    outb(serial->base + PC_UART_IER, 0x00);
+    outb(serial->base + PC_UART_LCR, 0x03);
+    outb(serial->base + PC_UART_FCR, 0xC7);
+    outb(serial->base + PC_UART_MCR, 0x0F);
+
+    serial->initialized = true;
+    return RESULT_OK;
 }
 
-arch_result arch_serial_get_info(int index, arch_serial_info_t *info)
-{
-    if (!info) return ARCH_ERROR;
-    
-    detect_serial_ports();
-    
-    int found_count = 0;
-    for (int i = 0; i < X86_SERIAL_PORT_COUNT; i++) {
-        if (x86_serial_ports[i].detected) {
-            if (found_count == index) {
-                info->device = &x86_serial_ports[i].device;
-                info->name = x86_serial_ports[i].name;
-                return ARCH_OK;
-            }
-            found_count++;
-        }
+static int pc_serial_write_bytes(
+    pc_serial_t *serial,
+    const void *buffer,
+    size_t length
+) {
+    const uint8_t *bytes = buffer;
+
+    for (size_t i = 0; i < length; i++) {
+        while (!(inb(serial->base + PC_UART_LSR) & PC_UART_LSR_TX_EMPTY))
+            ;
+
+        outb(serial->base + PC_UART_DATA, bytes[i]);
     }
-    
-    return ARCH_ERROR;
+
+    return (int)length;
 }
 
-arch_result arch_serial_init(arch_serial_device_t *device)
+static int pc_serial_read(device_t *device, void *buffer, size_t length)
 {
-    if (!device) return ARCH_ERROR;
-    
-    device->initialized = true;
-    return ARCH_OK;
-}
+    pc_serial_t *serial = device->data;
+    uint8_t *bytes = buffer;
+    size_t count = 0;
 
-int arch_serial_write(arch_serial_device_t *device, const void *buf, size_t len)
-{
-    if (!device || !device->initialized) return -1;
-    
-    const char *str = (const char *)buf;
-    
-    for (size_t i = 0; i < len; i++) {
-        // wait for transmit buffer to be empty
-        while (!(inb(device->port+5) & 0x40));
+    if (!serial->initialized || !buffer)
+        return -1;
 
-        outb(device->port, str[i]);
+    while (count < length &&
+           (inb(serial->base + PC_UART_LSR) & PC_UART_LSR_DATA_READY)) {
+        bytes[count++] = inb(serial->base + PC_UART_DATA);
     }
-    
-    return (int)len;
+
+    return (int)count;
 }
 
-int arch_serial_read(arch_serial_device_t *device, void *buf, size_t len)
-{
-    // wait for buffer content
-    while(!buffer_index)
-        arch_halt();
+static int pc_serial_write(
+    device_t *device,
+    const void *buffer,
+    size_t length
+) {
+    pc_serial_t *serial = device->data;
+    if (!serial->initialized || !buffer)
+        return -1;
 
-    return buffer[--buffer_index];
+    return pc_serial_write_bytes(serial, buffer, length);
 }
 
-bool arch_serial_data_available(arch_serial_device_t *device)
+static result_t pc_serial_flush(device_t *device)
 {
-    if (!device || !device->initialized) return false;
+    (void)device;
+    return RESULT_OK;
+}
 
-    // TODO: Check if data is available in the receive buffer
-    
-    return false;
+static device_t pc_serial0_device = {
+    .name = "serial0",
+    .class = DEVICE_CLASS_CHAR,
+    .init = pc_serial_init,
+    .char_ops = {
+        .read = pc_serial_read,
+        .write = pc_serial_write,
+        .flush = pc_serial_flush,
+    },
+    .data = &pc_serial0,
+};
+
+result_t pc_serial_register(void)
+{
+    return device_register(&pc_serial0_device);
+}
+
+void pc_serial_write_early(const char *buffer, size_t length)
+{
+    if (pc_serial_init(&pc_serial0_device) == RESULT_OK) {
+        pc_serial_write_bytes(&pc_serial0, buffer, length);
+    }
 }

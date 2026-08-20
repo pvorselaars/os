@@ -3,7 +3,7 @@ BOARD ?= pc
 
 ifeq ($(ARCH),x86_64)
     CC := gcc
-    ARCH_CFLAGS := -m64
+    ARCH_CFLAGS := -m64 -mcmodel=large -mno-red-zone
     ARCH_LFLAGS := 
     VALID_BOARDS := pc
 endif
@@ -31,6 +31,7 @@ CFLAGS = -Wall -s -pedantic \
                         -fno-builtin \
                         -std=c2x \
 						$(ARCH_CFLAGS) \
+						-DDEBUG \
 						-Iinclude \
 						-Iinclude/arch/$(ARCH) \
 						-Iinclude/board/$(BOARD) \
@@ -73,6 +74,8 @@ SRC_S := $(wildcard kernel/*.s lib/*.s drivers/*/*.s arch/$(ARCH)/*.s arch/$(ARC
 OBJ_C := $(patsubst %.c,obj/%.o,$(SRC_C))
 OBJ_S := $(patsubst %.s,obj/%.s.o,$(SRC_S))
 OBJ := $(OBJ_C) $(OBJ_S)
+
+all: bin/os
 
 gdb: bin/os
 	tmux new-session -d -s os

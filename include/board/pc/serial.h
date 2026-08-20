@@ -1,12 +1,11 @@
-#ifndef X86_64_SERIAL_H
-#define X86_64_SERIAL_H
-#include "arch/x86_64/io.h"
-#include "lib/utils.h"
+#ifndef PC_SERIAL_H
+#define PC_SERIAL_H
 
-typedef enum {
-    SERIAL_PORT_0 = 0x3F8,
-} serial_port;
+#include "definitions.h"
 
-#define SERIAL_BUFFER_SIZE 8
+#define PC_SERIAL_PORT_0 0x3F8
+
+result_t pc_serial_register(void);
+void pc_serial_write_early(const char *buffer, size_t length);
 
 #endif

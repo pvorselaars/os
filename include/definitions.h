@@ -23,4 +23,9 @@ typedef uint64_t size_t;
 #define va_arg(v, l) __builtin_va_arg(v, l)
 #define va_end(v) __builtin_va_end(v)
 
+typedef enum {
+    RESULT_OK = 0,
+    RESULT_ERROR = -1,
+} result_t;
+
 #endif

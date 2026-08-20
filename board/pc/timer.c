@@ -1,8 +1,10 @@
+#include "arch/arch.h"
 #include "arch/x86_64/io.h"
-#include "definitions.h"
+#include "arch/x86_64/interrupt.h"
+#include "lib/utils.h"
 
 #define PIT_CHANNEL_0   0x40    // Channel 0 data port
-#define PIT_CHANNEL_1   0x41    // Channel 1 data port  
+#define PIT_CHANNEL_1   0x41    // Channel 1 data port
 #define PIT_CHANNEL_2   0x42    // Channel 2 data port
 #define PIT_COMMAND     0x43    // Mode/Command register
 
@@ -15,7 +17,7 @@
 
 #define PIT_ACCESS_LATCH        0x00    // Latch count value
 #define PIT_ACCESS_LOW          0x10    // Low byte only
-#define PIT_ACCESS_HIGH         0x20    // High byte only  
+#define PIT_ACCESS_HIGH         0x20    // High byte only
 #define PIT_ACCESS_BOTH         0x30    // Low byte then high byte
 
 #define PIT_MODE_0              0x00    // Interrupt on terminal count
@@ -28,26 +30,42 @@
 #define PIT_BINARY              0x00    // Binary mode
 #define PIT_BCD                 0x01    // BCD mode
 
-void x86_64_pit_init(unsigned int frequency_hz)
+static uint32_t timer_frequency_hz = 0;
+static uint64_t timer_ticks = 0;
+
+static void pc_timer_interrupt() {
+    timer_ticks++;
+}
+
+void pc_timer_init(const unsigned int frequency_hz)
 {
+    timer_frequency_hz = frequency_hz;
+
     uint32_t divisor = PIT_FREQUENCY / frequency_hz;
-    
+
     if (divisor > 0xFFFF) {
         divisor = 0xFFFF;
     }
     if (divisor < 1) {
         divisor = 1;
     }
-    
+
     // Configure PIT Channel 0:
     // - Channel 0 select
     // - Access both low and high byte
     // - Mode 2 (rate generator) - generates periodic interrupts
     // - Binary mode
     uint8_t command = PIT_CHANNEL_0_SELECT | PIT_ACCESS_BOTH | PIT_MODE_2 | PIT_BINARY;
-    
+
     outb(PIT_COMMAND, command);
-    
+
     outb(PIT_CHANNEL_0, (uint8_t)(divisor & 0xFF));
     outb(PIT_CHANNEL_0, (uint8_t)((divisor >> 8) & 0xFF));
+
+    x86_64_register_interrupt(0x20, pc_timer_interrupt);
+}
+
+uint64_t time_now_ns()
+{
+    return timer_ticks * 1000000000ULL / timer_frequency_hz;
 }
