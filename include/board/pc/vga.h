@@ -1,5 +1,5 @@
-#ifndef VGA_H
-#define VGA_H
+#ifndef PC_VGA_H
+#define PC_VGA_H
 
 #include "arch/x86_64/io.h"
 #include "arch/x86_64/memory.h"

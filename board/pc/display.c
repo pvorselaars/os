@@ -1,216 +1,203 @@
-#include "arch/arch.h"
 #include "arch/x86_64/io.h"
 #include "arch/x86_64/memory.h"
+#include "board/pc/display.h"
+#include "kernel/device.h"
 
-#define VGA_WIDTH   80
-#define VGA_HEIGHT  25
-#define VGA_MEMORY  ((uint16_t*)virtual_address(0xB8000))
+#define VGA_WIDTH  80
+#define VGA_HEIGHT 25
+#define VGA_MEMORY ((uint16_t *)virtual_address(0xB8000))
 
 #define VGA_CURSOR_CMD  0x3D4
 #define VGA_CURSOR_DATA 0x3D5
-
-#define VGA_COLOR_BLACK         0
-#define VGA_COLOR_BLUE          1
-#define VGA_COLOR_GREEN         2
-#define VGA_COLOR_CYAN          3
-#define VGA_COLOR_RED           4
-#define VGA_COLOR_MAGENTA       5
-#define VGA_COLOR_BROWN         6
-#define VGA_COLOR_LIGHT_GREY    7
-#define VGA_COLOR_DARK_GREY     8
-#define VGA_COLOR_LIGHT_BLUE    9
-#define VGA_COLOR_LIGHT_GREEN   10
-#define VGA_COLOR_LIGHT_CYAN    11
-#define VGA_COLOR_LIGHT_RED     12
-#define VGA_COLOR_LIGHT_MAGENTA 13
-#define VGA_COLOR_LIGHT_BROWN   14
-#define VGA_COLOR_WHITE         15
 
 typedef struct {
     bool initialized;
     uint32_t cursor_x;
     uint32_t cursor_y;
-} vga_display_device_t;
+} vga_display_t;
 
-static vga_display_device_t vga_device = {0};
+static vga_display_t vga_display;
 
-static uint8_t vga_make_color(uint8_t fg, uint8_t bg)
+static uint8_t vga_make_color(uint8_t foreground, uint8_t background)
 {
-    return fg | (bg << 4);
+    return foreground | (background << 4);
 }
 
-static uint16_t vga_make_entry(char c, uint8_t color)
+static uint16_t vga_make_entry(char character, uint8_t color)
 {
-    return (uint16_t)c | ((uint16_t)color << 8);
+    return (uint16_t)character | ((uint16_t)color << 8);
 }
 
 static void vga_update_hardware_cursor(uint32_t x, uint32_t y)
 {
-    uint16_t pos = y * VGA_WIDTH + x;
-    
+    uint16_t position = y * VGA_WIDTH + x;
+
     outb(VGA_CURSOR_CMD, 0x0F);
-    outb(VGA_CURSOR_DATA, pos & 0xFF);
+    outb(VGA_CURSOR_DATA, (uint8_t)position);
     outb(VGA_CURSOR_CMD, 0x0E);
-    outb(VGA_CURSOR_DATA, (pos >> 8) & 0xFF);
+    outb(VGA_CURSOR_DATA, (uint8_t)(position >> 8));
 }
 
-int arch_display_get_count(void)
+static result_t vga_display_init(device_t *device)
 {
-    return 1;
-}
+    vga_display_t *display = device->data;
+    uint16_t blank = vga_make_entry(' ', vga_make_color(15, 0));
 
-arch_result arch_display_get_info(int index, arch_display_info_t *info)
-{
-    if (index != 0 || !info) {
-        return ARCH_ERROR;
-    }
-    
-    info->device = (arch_display_device_t *)&vga_device;
-    info->name = "vga0";
-    info->width = VGA_WIDTH;
-    info->height = VGA_HEIGHT;
-    info->bpp = 0;  // Text mode
-    info->text_mode = true;
-    
-    return ARCH_OK;
-}
-
-arch_result arch_display_init(arch_display_device_t *device)
-{
-    vga_display_device_t *vga = (vga_display_device_t *)device;
-    
-    if (vga != &vga_device) {
-        return ARCH_ERROR;
-    }
-    
-    vga->initialized = true;
-    vga->cursor_x = 0;
-    vga->cursor_y = 0;
-    
-    uint16_t *vga_mem = VGA_MEMORY;
-    
-    uint16_t blank = vga_make_entry(' ', vga_make_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
-    
     for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
-        vga_mem[i] = blank;
+        VGA_MEMORY[i] = blank;
     }
-    
-    return ARCH_OK;
-}
 
-arch_result arch_display_set_cursor(arch_display_device_t *device, uint32_t x, uint32_t y)
-{
-    vga_display_device_t *vga = (vga_display_device_t *)device;
-    
-    if (vga != &vga_device || !vga->initialized) {
-        return ARCH_ERROR;
-    }
-    
-    if (x >= VGA_WIDTH || y >= VGA_HEIGHT) {
-        return ARCH_ERROR;
-    }
-    
-    vga->cursor_x = x;
-    vga->cursor_y = y;
-    vga_update_hardware_cursor(x, y);
-    
-    return ARCH_OK;
-}
-
-arch_result arch_display_get_cursor(arch_display_device_t *device, uint32_t *x, uint32_t *y)
-{
-    vga_display_device_t *vga = (vga_display_device_t *)device;
-    
-    if (vga != &vga_device || !vga->initialized) {
-        return ARCH_ERROR;
-    }
-    
-    if (x) *x = vga->cursor_x;
-    if (y) *y = vga->cursor_y;
-    
-    return ARCH_OK;
-}
-
-arch_result arch_display_write_char(arch_display_device_t *device, uint32_t x, uint32_t y, char c, uint8_t fg, uint8_t bg)
-{
-    vga_display_device_t *vga = (vga_display_device_t *)device;
-    
-    if (vga != &vga_device || !vga->initialized) {
-        return ARCH_ERROR;
-    }
-    
-    if (x >= VGA_WIDTH || y >= VGA_HEIGHT) {
-        return ARCH_ERROR;
-    }
-    
-    uint16_t *vga_mem = VGA_MEMORY;
-    uint8_t color = vga_make_color(fg & 0x0F, bg & 0x0F);  // Limit to 4 bits each
-    vga_mem[y * VGA_WIDTH + x] = vga_make_entry(c, color);
-    
-    return ARCH_OK;
-}
-
-arch_result arch_display_clear_screen(arch_display_device_t *device, uint8_t fg, uint8_t bg)
-{
-    vga_display_device_t *vga = (vga_display_device_t *)device;
-    
-    if (vga != &vga_device || !vga->initialized) {
-        return ARCH_ERROR;
-    }
-    
-    uint16_t *vga_mem = VGA_MEMORY;
-    uint8_t color = vga_make_color(fg & 0x0F, bg & 0x0F);
-    uint16_t blank = vga_make_entry(' ', color);
-    
-    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
-        vga_mem[i] = blank;
-    }
-    
-    // Reset cursor to top-left
-    vga->cursor_x = 0;
-    vga->cursor_y = 0;
+    display->initialized = true;
+    display->cursor_x = 0;
+    display->cursor_y = 0;
     vga_update_hardware_cursor(0, 0);
-    
-    return ARCH_OK;
+    return RESULT_OK;
 }
 
-arch_result arch_display_scroll_up(arch_display_device_t *device, uint32_t lines)
+static result_t vga_display_get_mode(
+    device_t *device,
+    uint32_t *width,
+    uint32_t *height,
+    uint32_t *bpp
+) {
+    (void)device;
+
+    if (width) {
+        *width = VGA_WIDTH;
+    }
+    if (height) {
+        *height = VGA_HEIGHT;
+    }
+    if (bpp) {
+        *bpp = 0;
+    }
+
+    return RESULT_OK;
+}
+
+static result_t vga_display_set_cursor(device_t *device, uint32_t x, uint32_t y)
 {
-    vga_display_device_t *vga = (vga_display_device_t *)device;
-    
-    if (vga != &vga_device || !vga->initialized) {
-        return ARCH_ERROR;
+    vga_display_t *display = device->data;
+
+    if (!display->initialized || x >= VGA_WIDTH || y >= VGA_HEIGHT) {
+        return RESULT_ERROR;
     }
-    
-    if (lines == 0 || lines >= VGA_HEIGHT) {
-        return ARCH_ERROR;
+
+    display->cursor_x = x;
+    display->cursor_y = y;
+    vga_update_hardware_cursor(x, y);
+    return RESULT_OK;
+}
+
+static result_t vga_display_get_cursor(device_t *device, uint32_t *x, uint32_t *y)
+{
+    vga_display_t *display = device->data;
+
+    if (!display->initialized) {
+        return RESULT_ERROR;
     }
-    
-    uint16_t *vga_mem = VGA_MEMORY;
-    
-    // Move all lines up
+    if (x) {
+        *x = display->cursor_x;
+    }
+    if (y) {
+        *y = display->cursor_y;
+    }
+
+    return RESULT_OK;
+}
+
+static result_t vga_display_write_char(
+    device_t *device,
+    uint32_t x,
+    uint32_t y,
+    char character,
+    uint8_t foreground,
+    uint8_t background
+) {
+    vga_display_t *display = device->data;
+
+    if (!display->initialized || x >= VGA_WIDTH || y >= VGA_HEIGHT) {
+        return RESULT_ERROR;
+    }
+
+    VGA_MEMORY[y * VGA_WIDTH + x] = vga_make_entry(
+        character,
+        vga_make_color(foreground & 0x0F, background & 0x0F)
+    );
+    return RESULT_OK;
+}
+
+static result_t vga_display_clear_screen(
+    device_t *device,
+    uint8_t foreground,
+    uint8_t background
+) {
+    vga_display_t *display = device->data;
+
+    if (!display->initialized) {
+        return RESULT_ERROR;
+    }
+
+    uint16_t blank = vga_make_entry(
+        ' ',
+        vga_make_color(foreground & 0x0F, background & 0x0F)
+    );
+
+    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        VGA_MEMORY[i] = blank;
+    }
+
+    display->cursor_x = 0;
+    display->cursor_y = 0;
+    vga_update_hardware_cursor(0, 0);
+    return RESULT_OK;
+}
+
+static result_t vga_display_scroll_up(device_t *device, uint32_t lines)
+{
+    vga_display_t *display = device->data;
+
+    if (!display->initialized || lines == 0 || lines >= VGA_HEIGHT) {
+        return RESULT_ERROR;
+    }
+
     for (uint32_t row = 0; row < VGA_HEIGHT - lines; row++) {
-        for (uint32_t col = 0; col < VGA_WIDTH; col++) {
-            vga_mem[row * VGA_WIDTH + col] = vga_mem[(row + lines) * VGA_WIDTH + col];
+        for (uint32_t column = 0; column < VGA_WIDTH; column++) {
+            VGA_MEMORY[row * VGA_WIDTH + column] =
+                VGA_MEMORY[(row + lines) * VGA_WIDTH + column];
         }
     }
-    
-    // Clear the bottom lines
-    uint16_t blank = vga_make_entry(' ', vga_make_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
+
+    uint16_t blank = vga_make_entry(' ', vga_make_color(15, 0));
     for (uint32_t row = VGA_HEIGHT - lines; row < VGA_HEIGHT; row++) {
-        for (uint32_t col = 0; col < VGA_WIDTH; col++) {
-            vga_mem[row * VGA_WIDTH + col] = blank;
+        for (uint32_t column = 0; column < VGA_WIDTH; column++) {
+            VGA_MEMORY[row * VGA_WIDTH + column] = blank;
         }
     }
-    
-    // Adjust cursor position if needed
-    if (vga->cursor_y >= lines) {
-        vga->cursor_y -= lines;
-    } else {
-        vga->cursor_y = 0;
-    }
-    
-    vga_update_hardware_cursor(vga->cursor_x, vga->cursor_y);
-    
-    return ARCH_OK;
+
+    display->cursor_y = display->cursor_y >= lines
+        ? display->cursor_y - lines
+        : 0;
+    vga_update_hardware_cursor(display->cursor_x, display->cursor_y);
+    return RESULT_OK;
+}
+
+static device_t vga_device = {
+    .name = "vga0",
+    .class = DEVICE_CLASS_DISPLAY,
+    .init = vga_display_init,
+    .display_ops = {
+        .get_mode = vga_display_get_mode,
+        .set_cursor = vga_display_set_cursor,
+        .get_cursor = vga_display_get_cursor,
+        .write_char = vga_display_write_char,
+        .clear_screen = vga_display_clear_screen,
+        .scroll_up = vga_display_scroll_up,
+    },
+    .data = &vga_display,
+};
+
+result_t pc_display_register(void)
+{
+    return device_register(&vga_device);
 }

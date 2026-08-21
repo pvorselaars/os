@@ -1,210 +1,182 @@
-#include "arch/arch.h"
 #include "arch/x86_64/io.h"
+#include "board/pc/disk.h"
+#include "kernel/device.h"
 
-/* x86_64 ATA/IDE Disk
-
-  ATA Registers:
-
-  - 0x1F0: Data port
-  - 0x1F1: Features/Error information  
-  - 0x1F2: Sector count
-  - 0x1F3: LBA low (bits 0-7)
-  - 0x1F4: LBA mid (bits 8-15)
-  - 0x1F5: LBA high (bits 16-23)
-  - 0x1F6: Drive select + LBA bits 24-27
-  - 0x1F7: Command/Status register
- */
-
-#define ATA_DATA        0x1F0
-#define ATA_ERROR       0x1F1
-#define ATA_FEATURES    0x1F1
+#define ATA_DATA         0x1F0
 #define ATA_SECTOR_COUNT 0x1F2
-#define ATA_LBA_LOW     0x1F3
-#define ATA_LBA_MID     0x1F4
-#define ATA_LBA_HIGH    0x1F5
+#define ATA_LBA_LOW      0x1F3
+#define ATA_LBA_MID      0x1F4
+#define ATA_LBA_HIGH     0x1F5
 #define ATA_DRIVE_SELECT 0x1F6
-#define ATA_STATUS      0x1F7
-#define ATA_COMMAND     0x1F7
+#define ATA_STATUS       0x1F7
+#define ATA_COMMAND      0x1F7
 
-#define ATA_CMD_READ_SECTORS_EXT  0x24  // READ SECTORS EXT (48-bit LBA)
-#define ATA_CMD_WRITE_SECTORS_EXT 0x34  // WRITE SECTORS EXT (48-bit LBA)
+#define ATA_CMD_READ_SECTORS_EXT  0x24
+#define ATA_CMD_WRITE_SECTORS_EXT 0x34
 
-#define ATA_STATUS_BUSY    0x80
-#define ATA_STATUS_READY   0x40
-#define ATA_STATUS_DRQ     0x08  // Data Request
-#define ATA_STATUS_ERROR   0x01
+#define ATA_STATUS_BUSY  0x80
+#define ATA_STATUS_READY 0x40
+#define ATA_STATUS_DRQ   0x08
+#define ATA_STATUS_ERROR 0x01
 
 typedef struct {
     bool initialized;
-    uint64_t block_count;    // Total sectors
-    uint32_t block_size;     // Bytes per sector (512)
-} ata_disk_device_t;
+    uint64_t block_count;
+    uint32_t block_size;
+} ata_disk_t;
 
-static ata_disk_device_t ata_disk = {0};
+static ata_disk_t ata_disk = {
+    .block_count = 10,
+    .block_size = 512,
+};
 
-static arch_result ata_wait_ready(void)
+static result_t ata_wait_ready(void)
 {
-    uint8_t status;
-    int timeout = 10000;
-    
-    do {
-        status = inb(ATA_STATUS);
+    for (int timeout = 10000; timeout > 0; timeout--) {
+        uint8_t status = inb(ATA_STATUS);
         if (!(status & ATA_STATUS_BUSY) && (status & ATA_STATUS_READY)) {
-            return ARCH_OK;
+            return RESULT_OK;
         }
-        timeout--;
-    } while (timeout > 0);
-    
-    return ARCH_ERROR;
+    }
+
+    return RESULT_ERROR;
 }
 
-static arch_result ata_wait_data(void)
+static result_t ata_wait_data(void)
 {
-    uint8_t status;
-    int timeout = 10000;
-    
-    do {
-        status = inb(ATA_STATUS);
-        if (!(status & ATA_STATUS_BUSY) && (status & ATA_STATUS_DRQ)) {
-            return ARCH_OK;
-        }
+    for (int timeout = 10000; timeout > 0; timeout--) {
+        uint8_t status = inb(ATA_STATUS);
         if (status & ATA_STATUS_ERROR) {
-            return ARCH_ERROR;
+            return RESULT_ERROR;
         }
-        timeout--;
-    } while (timeout > 0);
-    
-    return ARCH_ERROR;
-}
-
-
-int arch_disk_get_count(void)
-{
-    return 1;
-}
-
-arch_result arch_disk_get_info(int index, arch_disk_info_t *info)
-{
-    if (index != 0 || !info) {
-        return ARCH_ERROR;
+        if (!(status & ATA_STATUS_BUSY) && (status & ATA_STATUS_DRQ)) {
+            return RESULT_OK;
+        }
     }
-    
-    info->device = (arch_disk_device_t *)&ata_disk;
-    info->name = "ata0";
-    info->block_size = 512;    // Standard sector size
-    info->block_count = 10;    // 5MB for testing (10 * 512 bytes) TODO: detect actual size
-    info->read_only = false;
-    
-    return ARCH_OK;
+
+    return RESULT_ERROR;
 }
 
-arch_result arch_disk_init(arch_disk_device_t *device)
+static result_t ata_select_sector(uint64_t lba, uint8_t command)
 {
-    ata_disk_device_t *disk = (ata_disk_device_t *)device;
-    
-    if (disk != &ata_disk) {
-        return ARCH_ERROR;
+    if (ata_wait_ready() != RESULT_OK) {
+        return RESULT_ERROR;
     }
-    
+
+    outb(ATA_DRIVE_SELECT, 0x40);
+    outb(ATA_SECTOR_COUNT, 0);
+    outb(ATA_LBA_LOW, (uint8_t)(lba >> 24));
+    outb(ATA_LBA_MID, (uint8_t)(lba >> 32));
+    outb(ATA_LBA_HIGH, (uint8_t)(lba >> 40));
+    outb(ATA_SECTOR_COUNT, 1);
+    outb(ATA_LBA_LOW, (uint8_t)lba);
+    outb(ATA_LBA_MID, (uint8_t)(lba >> 8));
+    outb(ATA_LBA_HIGH, (uint8_t)(lba >> 16));
+    outb(ATA_COMMAND, command);
+
+    return ata_wait_data();
+}
+
+static result_t ata_disk_init(device_t *device)
+{
+    ata_disk_t *disk = device->data;
+
     disk->initialized = true;
-    disk->block_size = 512;
-
-    // TODO: detect actual size
-    disk->block_count = 10; // 5MB
-    
-    return ARCH_OK;
+    return RESULT_OK;
 }
 
-arch_result arch_disk_read_blocks(arch_disk_device_t *device, void *buf, uint64_t start_block, uint32_t block_count)
+static result_t ata_disk_sync(device_t *device)
 {
-    ata_disk_device_t *disk = (ata_disk_device_t *)device;
-    
-    if (disk != &ata_disk || !disk->initialized || !buf || block_count == 0) {
-        return ARCH_ERROR;
-    }
-    
-    uint16_t *buffer = (uint16_t *)buf;
-    
-    for (uint32_t block = 0; block < block_count; block++) {
-        uint64_t lba = start_block + block;
-        
-        if (ata_wait_ready() != ARCH_OK) {
-            return ARCH_ERROR;
-        }
-        
-        outb(ATA_DRIVE_SELECT, 0x40);               // Select master drive, LBA mode
-        outb(ATA_SECTOR_COUNT, (block_count >> 8) & 0xFF);  // Sector count high
-        outb(ATA_LBA_LOW, (lba >> 24) & 0xFF);      // LBA bits 24-31
-        outb(ATA_LBA_MID, (lba >> 32) & 0xFF);      // LBA bits 32-39  
-        outb(ATA_LBA_HIGH, (lba >> 40) & 0xFF);     // LBA bits 40-47
-        outb(ATA_SECTOR_COUNT, block_count & 0xFF); // Sector count low
-        outb(ATA_LBA_LOW, lba & 0xFF);              // LBA bits 0-7
-        outb(ATA_LBA_MID, (lba >> 8) & 0xFF);       // LBA bits 8-15
-        outb(ATA_LBA_HIGH, (lba >> 16) & 0xFF);     // LBA bits 16-23
-        outb(ATA_COMMAND, ATA_CMD_READ_SECTORS_EXT); // Issue read command
-        
-        if (ata_wait_data() != ARCH_OK) {
-            return ARCH_ERROR;
-        }
-        
-        for (int word = 0; word < 256; word++) {
-            *buffer = inw(ATA_DATA);
-            buffer++;
-        }
-    }
-    
-    return ARCH_OK;
-}
+    ata_disk_t *disk = device->data;
 
-arch_result arch_disk_write_blocks(arch_disk_device_t *device, const void *buf, uint64_t start_block, uint32_t block_count)
-{
-    ata_disk_device_t *disk = (ata_disk_device_t *)device;
-    
-    if (disk != &ata_disk || !disk->initialized || !buf || block_count == 0) {
-        return ARCH_ERROR;
+    if (!disk->initialized) {
+        return RESULT_ERROR;
     }
-    
-    const uint16_t *buffer = (const uint16_t *)buf;
-    
-    for (uint32_t block = 0; block < block_count; block++) {
-        uint64_t lba = start_block + block;
-        
-        if (ata_wait_ready() != ARCH_OK) {
-            return ARCH_ERROR;
-        }
-        
-        outb(ATA_DRIVE_SELECT, 0x40);               // Select master drive, LBA mode
-        outb(ATA_SECTOR_COUNT, (block_count >> 8) & 0xFF);  // Sector count high
-        outb(ATA_LBA_LOW, (lba >> 24) & 0xFF);      // LBA bits 24-31
-        outb(ATA_LBA_MID, (lba >> 32) & 0xFF);      // LBA bits 32-39
-        outb(ATA_LBA_HIGH, (lba >> 40) & 0xFF);     // LBA bits 40-47
-        outb(ATA_SECTOR_COUNT, block_count & 0xFF); // Sector count low
-        outb(ATA_LBA_LOW, lba & 0xFF);              // LBA bits 0-7
-        outb(ATA_LBA_MID, (lba >> 8) & 0xFF);       // LBA bits 8-15
-        outb(ATA_LBA_HIGH, (lba >> 16) & 0xFF);     // LBA bits 16-23
-        outb(ATA_COMMAND, ATA_CMD_WRITE_SECTORS_EXT); // Issue write command
-        
-        if (ata_wait_data() != ARCH_OK) {
-            return ARCH_ERROR;
-        }
-        
-        for (int word = 0; word < 256; word++) {
-            outw(ATA_DATA, *buffer);
-            buffer++;
-        }
-    }
-    
-    return ARCH_OK;
-}
 
-arch_result arch_disk_sync(arch_disk_device_t *device)
-{
-    ata_disk_device_t *disk = (ata_disk_device_t *)device;
-    
-    if (disk != &ata_disk || !disk->initialized) {
-        return ARCH_ERROR;
-    }
-    
-    // TODO: flush command
     return ata_wait_ready();
+}
+
+static int ata_disk_read_blocks(
+    device_t *device,
+    void *buffer,
+    uint64_t start_block,
+    uint32_t block_count
+) {
+    ata_disk_t *disk = device->data;
+
+    if (!disk->initialized || !buffer || block_count == 0 ||
+        start_block >= disk->block_count ||
+        block_count > disk->block_count - start_block) {
+        return -1;
+    }
+
+    uint16_t *words = buffer;
+    for (uint32_t block = 0; block < block_count; block++) {
+        if (ata_select_sector(start_block + block, ATA_CMD_READ_SECTORS_EXT) != RESULT_OK) {
+            return -1;
+        }
+
+        for (int word = 0; word < 256; word++) {
+            *words++ = inw(ATA_DATA);
+        }
+    }
+
+    return (int)block_count;
+}
+
+static int ata_disk_write_blocks(
+    device_t *device,
+    const void *buffer,
+    uint64_t start_block,
+    uint32_t block_count
+) {
+    ata_disk_t *disk = device->data;
+
+    if (!disk->initialized || !buffer || block_count == 0 ||
+        start_block >= disk->block_count ||
+        block_count > disk->block_count - start_block) {
+        return -1;
+    }
+
+    const uint16_t *words = buffer;
+    for (uint32_t block = 0; block < block_count; block++) {
+        if (ata_select_sector(start_block + block, ATA_CMD_WRITE_SECTORS_EXT) != RESULT_OK) {
+            return -1;
+        }
+
+        for (int word = 0; word < 256; word++) {
+            outw(ATA_DATA, *words++);
+        }
+    }
+
+    return (int)block_count;
+}
+
+static uint32_t ata_disk_get_block_size(device_t *device)
+{
+    return ((ata_disk_t *)device->data)->block_size;
+}
+
+static uint64_t ata_disk_get_block_count(device_t *device)
+{
+    return ((ata_disk_t *)device->data)->block_count;
+}
+
+static device_t ata_disk_device = {
+    .name = "ata0",
+    .class = DEVICE_CLASS_BLOCK,
+    .init = ata_disk_init,
+    .block_ops = {
+        .read_blocks = ata_disk_read_blocks,
+        .write_blocks = ata_disk_write_blocks,
+        .sync = ata_disk_sync,
+        .get_block_size = ata_disk_get_block_size,
+        .get_block_count = ata_disk_get_block_count,
+    },
+    .data = &ata_disk,
+};
+
+result_t pc_disk_register(void)
+{
+    return device_register(&ata_disk_device);
 }

@@ -1,5 +1,6 @@
-#include "arch/arch.h"
 #include "arch/x86_64/io.h"
+#include "board/pc/audio.h"
+#include "kernel/device.h"
 
 #define PIT_FREQUENCY    1193180    // PIT base frequency
 #define PIT_COMMAND      0x43       // PIT command register
@@ -14,81 +15,101 @@ typedef struct {
 
 static pc_speaker_device_t pc_speaker = {0};
 
-int arch_audio_get_count(void)
+static result_t pc_speaker_init(device_t *device)
 {
-    return 1;
+    pc_speaker_device_t *speaker = device->data;
+
+    uint8_t speaker_control = inb(SPEAKER_PORT) & 0xFC;
+    outb(SPEAKER_PORT, speaker_control);
+
+    speaker->initialized = true;
+    speaker->is_playing = false;
+    speaker->current_frequency = 0;
+    return RESULT_OK;
 }
 
-arch_result arch_audio_get_info(int index, arch_audio_info_t *info)
+static result_t pc_speaker_stop(pc_speaker_device_t *spk)
 {
-    if (index != 0 || !info) {
-        return ARCH_ERROR;
+    if (!spk->initialized) {
+        return RESULT_ERROR;
     }
-    
-    info->device = (arch_audio_device_t *)&pc_speaker;
-    info->name = "pcspk0";
-    
-    return ARCH_OK;
-}
 
-arch_result arch_audio_init(arch_audio_device_t *device)
-{
-    pc_speaker_device_t *spk = (pc_speaker_device_t *)device;
-    
-    if (spk != &pc_speaker) {
-        return ARCH_ERROR;
-    }
-    
     uint8_t speaker_control = inb(SPEAKER_PORT) & 0xFC;
     outb(SPEAKER_PORT, speaker_control);
     
-    spk->initialized = true;
     spk->is_playing = false;
     spk->current_frequency = 0;
     
-    return ARCH_OK;
+    return RESULT_OK;
 }
 
-arch_result arch_audio_play_tone(arch_audio_device_t *device, uint32_t frequency)
+static result_t pc_speaker_play(pc_speaker_device_t *spk, uint32_t frequency)
 {
-    pc_speaker_device_t *spk = (pc_speaker_device_t *)device;
-    
-    if (spk != &pc_speaker || !spk->initialized) {
-        return ARCH_ERROR;
+    if (!spk->initialized) {
+        return RESULT_ERROR;
     }
-    
+
     if (frequency == 0) {
-        return arch_audio_stop(device);
+        return pc_speaker_stop(spk);
     }
-    
+
     uint32_t divisor = PIT_FREQUENCY / frequency;
-    
-    outb(PIT_COMMAND, 0xB6);  // Channel 2, lobyte/hibyte, square wave mode
-    outb(PIT_CHANNEL_2, (uint8_t)(divisor & 0xFF));        // Low byte
-    outb(PIT_CHANNEL_2, (uint8_t)((divisor >> 8) & 0xFF)); // High byte
-    
+    if (divisor == 0) {
+        divisor = 1;
+    } else if (divisor > 0xFFFF) {
+        divisor = 0xFFFF;
+    }
+
+    outb(PIT_COMMAND, 0xB6);
+    outb(PIT_CHANNEL_2, (uint8_t)(divisor & 0xFF));
+    outb(PIT_CHANNEL_2, (uint8_t)((divisor >> 8) & 0xFF));
+
     uint8_t speaker_control = inb(SPEAKER_PORT);
     outb(SPEAKER_PORT, speaker_control | 0x03);
-    
+
     spk->is_playing = true;
     spk->current_frequency = frequency;
-    
-    return ARCH_OK;
+    return RESULT_OK;
 }
 
-arch_result arch_audio_stop(arch_audio_device_t *device)
+static int pc_speaker_read(device_t *device, void *buffer, size_t length)
 {
-    pc_speaker_device_t *spk = (pc_speaker_device_t *)device;
-    
-    if (spk != &pc_speaker || !spk->initialized) {
-        return ARCH_ERROR;
+    (void)device;
+    (void)buffer;
+    (void)length;
+    return -1;
+}
+
+static int pc_speaker_write(device_t *device, const void *buffer, size_t length)
+{
+    if (!buffer || length != sizeof(uint32_t)) {
+        return -1;
     }
-    
-    uint8_t speaker_control = inb(SPEAKER_PORT) & 0xFC;
-    outb(SPEAKER_PORT, speaker_control);
-    
-    spk->is_playing = false;
-    spk->current_frequency = 0;
-    
-    return ARCH_OK;
+
+    const uint8_t *bytes = buffer;
+    uint32_t frequency =
+        (uint32_t)bytes[0] |
+        ((uint32_t)bytes[1] << 8) |
+        ((uint32_t)bytes[2] << 16) |
+        ((uint32_t)bytes[3] << 24);
+
+    return pc_speaker_play(device->data, frequency) == RESULT_OK
+        ? (int)length
+        : -1;
+}
+
+static device_t pc_speaker_device = {
+    .name = "pcspk0",
+    .class = DEVICE_CLASS_CHAR,
+    .init = pc_speaker_init,
+    .char_ops = {
+        .read = pc_speaker_read,
+        .write = pc_speaker_write,
+    },
+    .data = &pc_speaker,
+};
+
+result_t pc_audio_register(void)
+{
+    return device_register(&pc_speaker_device);
 }

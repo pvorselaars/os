@@ -1,7 +1,7 @@
 #include "arch/arch.h"
 #include "lib/utils.h"
-#include "lib/string.h"
 #include "lib/printf.h"
+#include "kernel/time.h"
 
 void fatal(const int8_t *format, ...)
 {
@@ -10,7 +10,7 @@ void fatal(const int8_t *format, ...)
 
 	int8_t buffer[PRINTF_BUFFER_SIZE];
 	vsnprintf(buffer, PRINTF_BUFFER_SIZE, format, args);
-	arch_debug_printf("Fatal error: %s\n", buffer);
+	debug_printf("Fatal error: %s\n", buffer);
 
 	va_end(args);
 
@@ -20,8 +20,8 @@ void fatal(const int8_t *format, ...)
 
 void sleep(uint64_t milliseconds)
 {
-	uint64_t start = arch_time_ns();
-	while (arch_time_ns() - start < milliseconds * 1000000) {
-		arch_halt();
+	uint64_t start = time_now_ns();
+	while (time_now_ns() - start < milliseconds * 1000000) {
+		arch_idle();
 	}
 }

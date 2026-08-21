@@ -39,7 +39,7 @@ typedef enum
 interrupt_descriptor idt[MAX_INTERRUPTS] = {0};
 idt_descriptor idtr;
 
-int x86_64_idt_set_entry(unsigned vector, void (*handler)(void), uint8_t flags)
+int x86_64_idt_set_entry(const unsigned vector, void (*handler)(), const uint8_t flags)
 {
     if (vector >= MAX_INTERRUPTS)
         return -1;
@@ -56,10 +56,9 @@ int x86_64_idt_set_entry(unsigned vector, void (*handler)(void), uint8_t flags)
     return 0;
 }
 
-void x86_64_idt_init(void)
+void x86_64_idt_init()
 {
     idtr.size = sizeof(interrupt_descriptor) * MAX_INTERRUPTS - 1;
     idtr.offset = idt;
     __asm__ volatile("lidt %0" : : "m"(idtr));
-
 }
