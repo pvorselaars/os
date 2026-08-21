@@ -41,10 +41,10 @@ static result_t board_register_devices(void)
     return pc_display_register();
 }
 
-void board_init()
+result_t board_init(void)
 {
     pc_pic_init();
     vga_init();
     pc_timer_init(100);
-    board_register_devices();
+    return board_register_devices();
 }

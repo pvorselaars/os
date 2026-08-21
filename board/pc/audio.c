@@ -1,6 +1,6 @@
 #include "board/pc/audio.h"
 
-#include "arch/arch.h"
+#include "board/pc/io.h"
 #include "kernel/device.h"
 
 #define PIT_FREQUENCY    1193180    // PIT base frequency
@@ -18,10 +18,10 @@ static pc_speaker_device_t pc_speaker = {0};
 
 static result_t pc_speaker_init(device_t *device)
 {
-    pc_speaker_device_t *speaker = device->data;
+    pc_speaker_device_t *speaker = device_data(device);
 
-    uint8_t speaker_control = arch_io_read8(SPEAKER_PORT) & 0xFC;
-    arch_io_write8(SPEAKER_PORT, speaker_control);
+    uint8_t speaker_control = pc_io_read8(SPEAKER_PORT) & 0xFC;
+    pc_io_write8(SPEAKER_PORT, speaker_control);
 
     speaker->initialized = true;
     speaker->is_playing = false;
@@ -35,8 +35,8 @@ static result_t pc_speaker_stop(pc_speaker_device_t *spk)
         return RESULT_ERROR;
     }
 
-    uint8_t speaker_control = arch_io_read8(SPEAKER_PORT) & 0xFC;
-    arch_io_write8(SPEAKER_PORT, speaker_control);
+    uint8_t speaker_control = pc_io_read8(SPEAKER_PORT) & 0xFC;
+    pc_io_write8(SPEAKER_PORT, speaker_control);
     
     spk->is_playing = false;
     spk->current_frequency = 0;
@@ -61,12 +61,12 @@ static result_t pc_speaker_play(pc_speaker_device_t *spk, uint32_t frequency)
         divisor = 0xFFFF;
     }
 
-    arch_io_write8(PIT_COMMAND, 0xB6);
-    arch_io_write8(PIT_CHANNEL_2, (uint8_t)(divisor & 0xFF));
-    arch_io_write8(PIT_CHANNEL_2, (uint8_t)((divisor >> 8) & 0xFF));
+    pc_io_write8(PIT_COMMAND, 0xB6);
+    pc_io_write8(PIT_CHANNEL_2, (uint8_t)(divisor & 0xFF));
+    pc_io_write8(PIT_CHANNEL_2, (uint8_t)((divisor >> 8) & 0xFF));
 
-    uint8_t speaker_control = arch_io_read8(SPEAKER_PORT);
-    arch_io_write8(SPEAKER_PORT, speaker_control | 0x03);
+    uint8_t speaker_control = pc_io_read8(SPEAKER_PORT);
+    pc_io_write8(SPEAKER_PORT, speaker_control | 0x03);
 
     spk->is_playing = true;
     spk->current_frequency = frequency;
@@ -94,12 +94,12 @@ static int pc_speaker_write(device_t *device, const void *buffer, size_t length)
         ((uint32_t)bytes[2] << 16) |
         ((uint32_t)bytes[3] << 24);
 
-    return pc_speaker_play(device->data, frequency) == RESULT_OK
+    return pc_speaker_play(device_data(device), frequency) == RESULT_OK
         ? (int)length
         : -1;
 }
 
-static device_t pc_speaker_device = {
+static const device_descriptor_t pc_speaker_device = {
     .name = "pcspk0",
     .class = DEVICE_CLASS_CHAR,
     .init = pc_speaker_init,

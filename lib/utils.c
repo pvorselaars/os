@@ -1,4 +1,4 @@
-#include "arch/arch.h"
+#include "arch/cpu.h"
 #include "lib/utils.h"
 #include "lib/printf.h"
 #include "kernel/time.h"
@@ -14,7 +14,7 @@ void fatal(const int8_t *format, ...)
 
 	va_end(args);
 
-	arch_halt();
+	arch_cpu_halt();
 }
 
 
@@ -22,6 +22,6 @@ void sleep(uint64_t milliseconds)
 {
 	uint64_t start = time_now_ns();
 	while (time_now_ns() - start < milliseconds * 1000000) {
-		arch_idle();
+		arch_cpu_idle();
 	}
 }

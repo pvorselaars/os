@@ -5,12 +5,6 @@
 #define ALIGN_DOWN(x, size) ((x) & ~((size) - 1))
 #define IS_ALIGNED(x, size) (((x) & ((size) - 1)) == 0)
 
-#define KERNEL_BASE 0xFFFFFF8000000000
-#define KERNEL_STACK KERNEL_BASE + 0x200000 - 1
-
-#define physical_address(va) ((uint64_t)(va) - KERNEL_BASE)
-#define virtual_address(pa) ((void *)((uint64_t)(pa) + KERNEL_BASE))
-
 #ifndef __ASSEMBLER__
 
 #include "definitions.h"

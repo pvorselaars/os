@@ -1,5 +1,5 @@
 #include "definitions.h"
-#include "arch/arch.h"
+#include "board/pc/io.h"
 
 #define PIC1                0x20    // Master PIC
 #define PIC2                0xA0    // Slave PIC  

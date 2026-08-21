@@ -1,5 +1,5 @@
 #include "lib/memory.h"
-#include "arch/arch.h"
+#include "arch/memory.h"
 
 void memory_set(void *ptr, const uint8_t value, const uint64_t count)
 {

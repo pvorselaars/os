@@ -1,13 +1,16 @@
 #include "arch/x86_64/memory.h"
 #include "arch/x86_64/vmm.h"
 
-#include "arch/arch.h"
+#include "arch/memory.h"
+#include "arch/mmu.h"
+#include "arch/x86_64/layout.h"
 #include "lib/memory.h"
 #include "lib/utils.h"
 
-static pml4e *pml4 = virtual_address(PML4_ADDRESS);
+static pml4e *pml4 = x86_64_virtual_address(PML4_ADDRESS);
 
-result_t arch_vmm_map_page(uint64_t virtual_address, uint64_t physical_address, int flags)
+result_t arch_mmu_map_page(uint64_t virtual_address, uint64_t physical_address,
+                           uint32_t flags)
 {
 	assert(IS_ALIGNED(physical_address, PAGE_SIZE));
 	assert(IS_ALIGNED(virtual_address, PAGE_SIZE));
@@ -23,10 +26,10 @@ result_t arch_vmm_map_page(uint64_t virtual_address, uint64_t physical_address, 
 		if (page == NULL)
 			fatal("Unable to get page for PDPT\n");
 
-		pml4[pml4_offset] = (pml4e)page | flags;
+		pml4[pml4_offset] = (pml4e)page | PAGE_PRESENT | PAGE_WRITE;
 	}
 
-	pdpte *pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
+	pdpte *pdpt = x86_64_virtual_address((pml4[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 	{
@@ -34,10 +37,10 @@ result_t arch_vmm_map_page(uint64_t virtual_address, uint64_t physical_address, 
 		if (page == NULL)
 			fatal("Unable to get page for PD\n");
 
-		pdpt[pdpt_offset] = (pdpte)page | flags;
+		pdpt[pdpt_offset] = (pdpte)page | PAGE_PRESENT | PAGE_WRITE;
 	}
 
-	pde *pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
+	pde *pd = x86_64_virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 
 	if (pd[pd_offset] & (PAGE_PS | PAGE_PRESENT))
 	{
@@ -51,18 +54,25 @@ result_t arch_vmm_map_page(uint64_t virtual_address, uint64_t physical_address, 
 		if (page == NULL)
 			fatal("Unable to get page for PT\n");
 
-		pd[pd_offset] = (pde)page | flags;
+		pd[pd_offset] = (pde)page | PAGE_PRESENT | PAGE_WRITE;
 	}
 
-	pte *pt = (pte *)virtual_address((pd[pd_offset] >> 12) << 12);
+	pte *pt = x86_64_virtual_address((pd[pd_offset] >> 12) << 12);
 	if (pt[pt_offset] & PAGE_PRESENT)
 		return RESULT_ERROR;
 
-	pt[pt_offset] = (pte)physical_address | flags;
+    uint64_t page_flags = PAGE_PRESENT;
+    if (flags & ARCH_MMU_MAP_WRITE) {
+        page_flags |= PAGE_WRITE;
+    }
+    if (flags & ARCH_MMU_MAP_USER) {
+        page_flags |= PAGE_USER;
+    }
+	pt[pt_offset] = (pte)physical_address | page_flags;
 	return RESULT_OK;
 }
 
-result_t arch_vmm_unmap_page(uint64_t virtual_address)
+result_t arch_mmu_unmap_page(uint64_t virtual_address)
 {
 	unsigned short pml4_offset = (virtual_address >> 39) & 0x1FF;
 	unsigned short pdpt_offset = (virtual_address >> 30) & 0x1FF;
@@ -72,7 +82,7 @@ result_t arch_vmm_unmap_page(uint64_t virtual_address)
 	if (!(pml4[pml4_offset] & PAGE_PRESENT))
 		return RESULT_ERROR;
 
-	pdpte *pdpt = (pdpte *)virtual_address((pml4[pml4_offset] >> 12) << 12);
+	pdpte *pdpt = x86_64_virtual_address((pml4[pml4_offset] >> 12) << 12);
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 		return RESULT_ERROR;
 
@@ -82,7 +92,7 @@ result_t arch_vmm_unmap_page(uint64_t virtual_address)
 		return RESULT_OK;
 	}
 
-	pde *pd = (pde *)virtual_address((pdpt[pdpt_offset] >> 12) << 12);
+	pde *pd = x86_64_virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 	if (!(pd[pd_offset] & PAGE_PRESENT))
 		return RESULT_ERROR;
 
@@ -92,7 +102,7 @@ result_t arch_vmm_unmap_page(uint64_t virtual_address)
 		return RESULT_OK;
 	}
 
-	pte *pt = (pte *)virtual_address((pd[pd_offset] >> 12) << 12);
+	pte *pt = x86_64_virtual_address((pd[pd_offset] >> 12) << 12);
 	if (!(pt[pt_offset] & PAGE_PRESENT))
 		return RESULT_ERROR;
 

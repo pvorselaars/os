@@ -1,13 +1,14 @@
 #include "board/pc/display.h"
 
-#include "arch/arch.h"
+#include "arch/x86_64/layout.h"
+#include "board/pc/io.h"
 #include "kernel/device.h"
 
 #include "lib/memory.h"
 
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25
-#define VGA_MEMORY ((uint16_t *)virtual_address(0xB8000))
+#define VGA_MEMORY ((uint16_t *)x86_64_virtual_address(0xB8000))
 
 #define VGA_CURSOR_CMD  0x3D4
 #define VGA_CURSOR_DATA 0x3D5
@@ -34,15 +35,15 @@ static void vga_update_hardware_cursor(uint32_t x, uint32_t y)
 {
     uint16_t position = y * VGA_WIDTH + x;
 
-    arch_io_write8(VGA_CURSOR_CMD, 0x0F);
-    arch_io_write8(VGA_CURSOR_DATA, (uint8_t)position);
-    arch_io_write8(VGA_CURSOR_CMD, 0x0E);
-    arch_io_write8(VGA_CURSOR_DATA, (uint8_t)(position >> 8));
+    pc_io_write8(VGA_CURSOR_CMD, 0x0F);
+    pc_io_write8(VGA_CURSOR_DATA, (uint8_t)position);
+    pc_io_write8(VGA_CURSOR_CMD, 0x0E);
+    pc_io_write8(VGA_CURSOR_DATA, (uint8_t)(position >> 8));
 }
 
 static result_t vga_display_init(device_t *device)
 {
-    vga_display_t *display = device->data;
+    vga_display_t *display = device_data(device);
     uint16_t blank = vga_make_entry(' ', vga_make_color(15, 0));
 
     for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
@@ -79,7 +80,7 @@ static result_t vga_display_get_mode(
 
 static result_t vga_display_set_cursor(device_t *device, uint32_t x, uint32_t y)
 {
-    vga_display_t *display = device->data;
+    vga_display_t *display = device_data(device);
 
     if (!display->initialized || x >= VGA_WIDTH || y >= VGA_HEIGHT) {
         return RESULT_ERROR;
@@ -93,7 +94,7 @@ static result_t vga_display_set_cursor(device_t *device, uint32_t x, uint32_t y)
 
 static result_t vga_display_get_cursor(device_t *device, uint32_t *x, uint32_t *y)
 {
-    vga_display_t *display = device->data;
+    vga_display_t *display = device_data(device);
 
     if (!display->initialized) {
         return RESULT_ERROR;
@@ -116,7 +117,7 @@ static result_t vga_display_write_char(
     uint8_t foreground,
     uint8_t background
 ) {
-    vga_display_t *display = device->data;
+    vga_display_t *display = device_data(device);
 
     if (!display->initialized || x >= VGA_WIDTH || y >= VGA_HEIGHT) {
         return RESULT_ERROR;
@@ -134,7 +135,7 @@ static result_t vga_display_clear_screen(
     uint8_t foreground,
     uint8_t background
 ) {
-    vga_display_t *display = device->data;
+    vga_display_t *display = device_data(device);
 
     if (!display->initialized) {
         return RESULT_ERROR;
@@ -157,7 +158,7 @@ static result_t vga_display_clear_screen(
 
 static result_t vga_display_scroll_up(device_t *device, uint32_t lines)
 {
-    vga_display_t *display = device->data;
+    vga_display_t *display = device_data(device);
 
     if (!display->initialized || lines == 0 || lines >= VGA_HEIGHT) {
         return RESULT_ERROR;
@@ -184,7 +185,7 @@ static result_t vga_display_scroll_up(device_t *device, uint32_t lines)
     return RESULT_OK;
 }
 
-static device_t vga_device = {
+static const device_descriptor_t vga_device = {
     .name = "vga0",
     .class = DEVICE_CLASS_DISPLAY,
     .init = vga_display_init,

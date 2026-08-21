@@ -1,5 +1,7 @@
 #include "board/pc/vga.h"
-#include "arch/arch.h"
+#include "arch/memory.h"
+#include "arch/x86_64/layout.h"
+#include "board/pc/io.h"
 #include "lib/memory.h"
 
 // Basic 8x16 font data for ASCII characters 0x20-0x7F
@@ -1922,7 +1924,7 @@ void vga_load_font(void) {
     arch_io_write8(0x3CE, 0x06); arch_io_write8(0x3CF, 0x00); // Map to A0000-AFFFF
     
     // Load font data into video memory plane 2
-    uint8_t* font_mem = (uint8_t*)virtual_address(0xA0000);
+    uint8_t* font_mem = (uint8_t*)x86_64_virtual_address(0xA0000);
     
     // Clear font memory first
     arch_memory_set_qword(font_mem, 0, 1024);

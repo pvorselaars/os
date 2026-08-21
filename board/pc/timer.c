@@ -1,4 +1,5 @@
-#include "arch/arch.h"
+#include "arch/interrupt.h"
+#include "board/pc/io.h"
 #include "lib/utils.h"
 
 #define PIT_CHANNEL_0   0x40    // Channel 0 data port
@@ -60,7 +61,7 @@ void pc_timer_init(const unsigned int frequency_hz)
     arch_io_write8(PIT_CHANNEL_0, (uint8_t)(divisor & 0xFF));
     arch_io_write8(PIT_CHANNEL_0, (uint8_t)((divisor >> 8) & 0xFF));
 
-    arch_register_interrupt(0x20, pc_timer_interrupt);
+    arch_interrupt_register(0x20, pc_timer_interrupt);
 }
 
 uint64_t time_now_ns()

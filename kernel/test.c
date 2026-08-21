@@ -16,7 +16,7 @@
 static device_t *require_device(const char *name, device_class_t class) {
     device_t *device = device_find_by_name(name);
 
-    if (!device || device->class != class) {
+    if (!device || device_class(device) != class) {
         return NULL;
     }
 
@@ -46,33 +46,35 @@ result_t test_run(void) {
     CHECK(disk);
     CHECK(display);
     CHECK(console);
+    CHECK(device_state(console) == DEVICE_STATE_READY);
+    CHECK(device_char_write(disk, NULL, 0) == -1);
 
     static const char console_message[] = "Console test\n";
-    CHECK(console->char_ops.write(
+    CHECK(device_char_write(
         console, console_message, sizeof(console_message) - 1
     ) == sizeof(console_message) - 1);
 
     static const char serial_message[] = "Serial test\n";
-    CHECK(serial->char_ops.write(
+    CHECK(device_char_write(
         serial, serial_message, sizeof(serial_message) - 1
     ) == sizeof(serial_message) - 1);
 
     debug_printf("Parallel test\n");
     static const char parallel_message[] = "Parallel test\n";
-    CHECK(parallel->char_ops.write(parallel,
+    CHECK(device_char_write(parallel,
         parallel_message, sizeof(parallel_message) - 1
     ) == sizeof(parallel_message) - 1);
 
     debug_printf("Audio test\n");
     uint8_t tone[] = {0xB8, 0x01, 0x00, 0x00}; // 440 Hz, little-endian
     uint8_t silence[] = {0, 0, 0, 0};
-    CHECK(speaker->char_ops.write(speaker, tone, sizeof(tone)) == sizeof(tone));
+    CHECK(device_char_write(speaker, tone, sizeof(tone)) == sizeof(tone));
     sleep(50);
-    CHECK(speaker->char_ops.write(speaker, silence, sizeof(silence)) == sizeof(silence));
+    CHECK(device_char_write(speaker, silence, sizeof(silence)) == sizeof(silence));
 
     debug_printf("Disk test\n");
     static uint8_t sector[512];
-    CHECK(disk->block_ops.read_blocks(disk, sector, 0, 1) == 1);
+    CHECK(device_block_read(disk, sector, 0, 1) == 1);
 
 
     debug_printf("Tests passed\n");

@@ -1,7 +1,7 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#include "definitions.h"
+#include "kernel/base.h"
 
 typedef enum {
     DEVICE_CLASS_CHAR,
@@ -43,7 +43,7 @@ typedef struct {
     result_t (*scroll_up)(device_t *dev, uint32_t lines);
 } display_device_ops_t;
 
-struct device {
+typedef struct {
     const char *name;
     device_class_t class;
     result_t (*init)(device_t *device);
@@ -55,12 +55,36 @@ struct device {
     };
 
     void *data;
-    device_t *next;
-};
+} device_descriptor_t;
 
-/* Device management API */
-result_t device_register(device_t *device);
-device_t* device_find_by_name(const char *name);
-device_t* device_find_by_class(device_class_t class, uint32_t index);
+result_t device_register(const device_descriptor_t *descriptor);
+device_t *device_find_by_name(const char *name);
+device_t *device_find_by_class(device_class_t class, uint32_t index);
+
+const char *device_name(const device_t *device);
+device_class_t device_class(const device_t *device);
+device_state_t device_state(const device_t *device);
+void *device_data(device_t *device);
+
+int device_char_read(device_t *device, void *buffer, size_t length);
+int device_char_write(device_t *device, const void *buffer, size_t length);
+result_t device_char_flush(device_t *device);
+
+int device_block_read(device_t *device, void *buffer, uint64_t start_block,
+                      uint32_t block_count);
+int device_block_write(device_t *device, const void *buffer, uint64_t start_block,
+                       uint32_t block_count);
+result_t device_block_sync(device_t *device);
+uint32_t device_block_size(device_t *device);
+uint64_t device_block_count(device_t *device);
+
+result_t device_display_get_mode(device_t *device, uint32_t *width, uint32_t *height,
+                                 uint32_t *bpp);
+result_t device_display_set_cursor(device_t *device, uint32_t x, uint32_t y);
+result_t device_display_get_cursor(device_t *device, uint32_t *x, uint32_t *y);
+result_t device_display_write_char(device_t *device, uint32_t x, uint32_t y, char c,
+                                   uint8_t foreground, uint8_t background);
+result_t device_display_clear(device_t *device, uint8_t foreground, uint8_t background);
+result_t device_display_scroll(device_t *device, uint32_t lines);
 
 #endif

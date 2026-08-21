@@ -1,5 +1,4 @@
 #include "kernel/device.h"
-#include "arch/arch.h"
 
 typedef struct {
     device_t *display_device;  // Backend display device
@@ -11,14 +10,13 @@ typedef struct {
     uint8_t bg_color;          // Background color
 } console_driver_data_t;
 
-static device_t console_device;
 static console_driver_data_t console_data;
 
 static void console_scroll_if_needed(console_driver_data_t *data)
 {
     if (data->cursor_y >= data->height) {
         if (data->display_device) {
-            data->display_device->display_ops.scroll_up(data->display_device, 1);
+            device_display_scroll(data->display_device, 1);
         }
         data->cursor_y = data->height - 1;
     }
@@ -27,8 +25,7 @@ static void console_scroll_if_needed(console_driver_data_t *data)
 static void console_update_cursor(console_driver_data_t *data)
 {
     if (data->display_device) {
-        data->display_device->display_ops.set_cursor(data->display_device, 
-                                                     data->cursor_x, data->cursor_y);
+        device_display_set_cursor(data->display_device, data->cursor_x, data->cursor_y);
     }
 }
 
@@ -39,7 +36,7 @@ static int console_read(device_t *dev, void *buf, size_t len)
 
 static int console_write(device_t *dev, const void *buf, size_t len)
 {
-    console_driver_data_t *data = dev->data;
+    console_driver_data_t *data = device_data(dev);
     const char *str = buf;
     
     if (!data->display_device || !buf) {
@@ -79,9 +76,8 @@ static int console_write(device_t *dev, const void *buf, size_t len)
             
         default:
             if (c >= 32 && c < 127) {
-                data->display_device->display_ops.write_char(data->display_device,
-                                                             data->cursor_x, data->cursor_y,
-                                                             c, data->fg_color, data->bg_color);
+                device_display_write_char(data->display_device, data->cursor_x,
+                                          data->cursor_y, c, data->fg_color, data->bg_color);
                 data->cursor_x++;
                 
                 if (data->cursor_x >= data->width) {
@@ -107,28 +103,27 @@ static result_t console_flush(device_t *dev)
 
 static result_t console_init(device_t *device)
 {
-    console_driver_data_t *data = device->data;
+    console_driver_data_t *data = device_data(device);
 
     data->display_device = device_find_by_class(DEVICE_CLASS_DISPLAY, 0);
     if (!data->display_device) {
         return RESULT_ERROR;
     }
 
-    data->display_device->display_ops.get_mode(
-        data->display_device, &data->width, &data->height, NULL
-    );
+    if (device_display_get_mode(data->display_device, &data->width,
+                                &data->height, NULL) != RESULT_OK) {
+        return RESULT_ERROR;
+    }
 
     data->cursor_x = 0;
     data->cursor_y = 0;
     data->fg_color = 15;
     data->bg_color = 0;
 
-    return data->display_device->display_ops.clear_screen(
-        data->display_device, data->fg_color, data->bg_color
-    );
+    return device_display_clear(data->display_device, data->fg_color, data->bg_color);
 }
 
-static device_t console_device = {
+static const device_descriptor_t console_device = {
     .name = "console0",
     .class = DEVICE_CLASS_CHAR,
     .init = console_init,
