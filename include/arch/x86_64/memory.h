@@ -38,8 +38,9 @@
 #else
 
 #include "definitions.h"
-#include "lib/utils.h"
-#include "arch/arch.h"
+
+void x86_64_memory_init(void);
+void x86_64_memory_flush_tlb();
 
 extern char KERNEL_VMA[];
 extern char KERNEL_END[];

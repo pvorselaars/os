@@ -1,4 +1,3 @@
-// kernel/device.c
 #include "kernel/device.h"
 #include "lib/string.h"
 

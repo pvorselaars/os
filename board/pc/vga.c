@@ -1,4 +1,6 @@
 #include "board/pc/vga.h"
+#include "arch/arch.h"
+#include "lib/memory.h"
 
 // Basic 8x16 font data for ASCII characters 0x20-0x7F
 // Each character is 16 bytes (16 rows of 8 pixels each)
@@ -1931,7 +1933,7 @@ void vga_load_font(void) {
         uint8_t* char_ptr = (uint8_t*)(font_mem + char_code * 32);
         
         // Copy 16 bytes of font data for this character
-        arch_memory_copy(char_ptr, vga_font[char_index], 16);
+        memory_copy(char_ptr, vga_font[char_index], 16);
     }
     
     // Restore original state

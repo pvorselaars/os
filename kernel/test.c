@@ -1,4 +1,5 @@
 #include "kernel/test.h"
+
 #include "drivers/console.h"
 #include "kernel/device.h"
 #include "kernel/time.h"
@@ -12,8 +13,7 @@
         } \
     } while (0)
 
-static device_t *require_device(const char *name, device_class_t class)
-{
+static device_t *require_device(const char *name, device_class_t class) {
     device_t *device = device_find_by_name(name);
 
     if (!device || device->class != class) {
@@ -58,12 +58,14 @@ result_t test_run(void) {
     ) == sizeof(serial_message) - 1);
 
     debug_printf("Parallel test\n");
-    uint8_t parallel_byte = 'T';
-    CHECK(parallel->char_ops.write(parallel, &parallel_byte, 1) == 1);
+    static const char parallel_message[] = "Parallel test\n";
+    CHECK(parallel->char_ops.write(parallel,
+        parallel_message, sizeof(parallel_message) - 1
+    ) == sizeof(parallel_message) - 1);
 
     debug_printf("Audio test\n");
-    uint8_t tone[] = { 0xB8, 0x01, 0x00, 0x00 }; // 440 Hz, little-endian
-    uint8_t silence[] = { 0, 0, 0, 0 };
+    uint8_t tone[] = {0xB8, 0x01, 0x00, 0x00}; // 440 Hz, little-endian
+    uint8_t silence[] = {0, 0, 0, 0};
     CHECK(speaker->char_ops.write(speaker, tone, sizeof(tone)) == sizeof(tone));
     sleep(50);
     CHECK(speaker->char_ops.write(speaker, silence, sizeof(silence)) == sizeof(silence));
