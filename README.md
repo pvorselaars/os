@@ -13,6 +13,9 @@ A minimal operating system for learning and experimenting with low-level OS conc
 └── include/          # Header files
 ```
 
+See [Kernel Architecture](docs/architecture.md) for layer boundaries, device
+contracts, initialization, and extension guidelines.
+
 ## Features
 
 ### Core Features

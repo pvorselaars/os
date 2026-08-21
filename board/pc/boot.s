@@ -1,6 +1,8 @@
 #include "arch/x86_64/memory.h"
 #include "arch/x86_64/gdt.h"
 
+#include "arch/x86_64/layout.h"
+
 .code16
 _start:
   # Disable interrupts until kernel can setup interrupt routines
@@ -97,7 +99,7 @@ long_mode:
   mov %rax, %fs
   mov %rax, %gs
   mov %rax, %ss
-  mov $KERNEL_STACK, %rsp
+  mov $X86_64_KERNEL_STACK, %rsp
   mov %rsp, %rbp
 
   movabs $kernel, %rax
@@ -152,7 +154,7 @@ gdt_descriptor_16:
 # 64-bit GDT descriptor for later use in long mode
 gdt_descriptor:
   .word gdt_descriptor - gdt - 1    # size of GDT - 1
-  .quad KERNEL_BASE + gdt           # GDT virtual address
+  .quad X86_64_KERNEL_BASE + gdt    # GDT virtual address
 
 # Pad to 510 bytes (512 - 2 for signature)
 .fill 510 - (. - _start), 1, 0x00

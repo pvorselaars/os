@@ -1,24 +1,27 @@
-#include "arch/arch.h"
+#include "arch/cpu.h"
 #include "board/board.h"
 #include "drivers/console.h"
 #include "kernel/test.h"
 
 void kernel(void)
 {
-	arch_init();
-	board_init();
+	if (arch_cpu_init() != RESULT_OK || board_init() != RESULT_OK) {
+		arch_cpu_halt();
+	}
 
-	console_register();
+	if (console_register() != RESULT_OK) {
+		arch_cpu_halt();
+	}
 
-	arch_interrupt_enable();
+	arch_cpu_interrupt_enable();
 
 #ifdef DEBUG
 	if (test_run() != RESULT_OK) {
-		arch_halt();
+		arch_cpu_halt();
 	}
 #endif
 
 	while (1) {
-		arch_halt();
+		arch_cpu_halt();
 	}
 }

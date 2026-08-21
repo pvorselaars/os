@@ -1,5 +1,6 @@
-#include "arch/x86_64/io.h"
 #include "board/pc/disk.h"
+
+#include "board/pc/io.h"
 #include "kernel/device.h"
 
 #define ATA_DATA         0x1F0
@@ -33,7 +34,7 @@ static ata_disk_t ata_disk = {
 static result_t ata_wait_ready(void)
 {
     for (int timeout = 10000; timeout > 0; timeout--) {
-        uint8_t status = inb(ATA_STATUS);
+        uint8_t status = pc_io_read8(ATA_STATUS);
         if (!(status & ATA_STATUS_BUSY) && (status & ATA_STATUS_READY)) {
             return RESULT_OK;
         }
@@ -45,7 +46,7 @@ static result_t ata_wait_ready(void)
 static result_t ata_wait_data(void)
 {
     for (int timeout = 10000; timeout > 0; timeout--) {
-        uint8_t status = inb(ATA_STATUS);
+        uint8_t status = pc_io_read8(ATA_STATUS);
         if (status & ATA_STATUS_ERROR) {
             return RESULT_ERROR;
         }
@@ -63,23 +64,23 @@ static result_t ata_select_sector(uint64_t lba, uint8_t command)
         return RESULT_ERROR;
     }
 
-    outb(ATA_DRIVE_SELECT, 0x40);
-    outb(ATA_SECTOR_COUNT, 0);
-    outb(ATA_LBA_LOW, (uint8_t)(lba >> 24));
-    outb(ATA_LBA_MID, (uint8_t)(lba >> 32));
-    outb(ATA_LBA_HIGH, (uint8_t)(lba >> 40));
-    outb(ATA_SECTOR_COUNT, 1);
-    outb(ATA_LBA_LOW, (uint8_t)lba);
-    outb(ATA_LBA_MID, (uint8_t)(lba >> 8));
-    outb(ATA_LBA_HIGH, (uint8_t)(lba >> 16));
-    outb(ATA_COMMAND, command);
+    pc_io_write8(ATA_DRIVE_SELECT, 0x40);
+    pc_io_write8(ATA_SECTOR_COUNT, 0);
+    pc_io_write8(ATA_LBA_LOW, (uint8_t)(lba >> 24));
+    pc_io_write8(ATA_LBA_MID, (uint8_t)(lba >> 32));
+    pc_io_write8(ATA_LBA_HIGH, (uint8_t)(lba >> 40));
+    pc_io_write8(ATA_SECTOR_COUNT, 1);
+    pc_io_write8(ATA_LBA_LOW, (uint8_t)lba);
+    pc_io_write8(ATA_LBA_MID, (uint8_t)(lba >> 8));
+    pc_io_write8(ATA_LBA_HIGH, (uint8_t)(lba >> 16));
+    pc_io_write8(ATA_COMMAND, command);
 
     return ata_wait_data();
 }
 
 static result_t ata_disk_init(device_t *device)
 {
-    ata_disk_t *disk = device->data;
+    ata_disk_t *disk = device_data(device);
 
     disk->initialized = true;
     return RESULT_OK;
@@ -87,7 +88,7 @@ static result_t ata_disk_init(device_t *device)
 
 static result_t ata_disk_sync(device_t *device)
 {
-    ata_disk_t *disk = device->data;
+    ata_disk_t *disk = device_data(device);
 
     if (!disk->initialized) {
         return RESULT_ERROR;
@@ -102,7 +103,7 @@ static int ata_disk_read_blocks(
     uint64_t start_block,
     uint32_t block_count
 ) {
-    ata_disk_t *disk = device->data;
+    ata_disk_t *disk = device_data(device);
 
     if (!disk->initialized || !buffer || block_count == 0 ||
         start_block >= disk->block_count ||
@@ -117,7 +118,7 @@ static int ata_disk_read_blocks(
         }
 
         for (int word = 0; word < 256; word++) {
-            *words++ = inw(ATA_DATA);
+            *words++ = pc_io_read16(ATA_DATA);
         }
     }
 
@@ -130,7 +131,7 @@ static int ata_disk_write_blocks(
     uint64_t start_block,
     uint32_t block_count
 ) {
-    ata_disk_t *disk = device->data;
+    ata_disk_t *disk = device_data(device);
 
     if (!disk->initialized || !buffer || block_count == 0 ||
         start_block >= disk->block_count ||
@@ -145,7 +146,7 @@ static int ata_disk_write_blocks(
         }
 
         for (int word = 0; word < 256; word++) {
-            outw(ATA_DATA, *words++);
+            pc_io_write16(ATA_DATA, *words++);
         }
     }
 
@@ -154,15 +155,15 @@ static int ata_disk_write_blocks(
 
 static uint32_t ata_disk_get_block_size(device_t *device)
 {
-    return ((ata_disk_t *)device->data)->block_size;
+    return ((ata_disk_t *)device_data(device))->block_size;
 }
 
 static uint64_t ata_disk_get_block_count(device_t *device)
 {
-    return ((ata_disk_t *)device->data)->block_count;
+    return ((ata_disk_t *)device_data(device))->block_count;
 }
 
-static device_t ata_disk_device = {
+static const device_descriptor_t ata_disk_device = {
     .name = "ata0",
     .class = DEVICE_CLASS_BLOCK,
     .init = ata_disk_init,

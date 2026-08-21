@@ -1,6 +1,5 @@
-#include "arch/arch.h"
-#include "arch/x86_64/io.h"
-#include "arch/x86_64/interrupt.h"
+#include "arch/interrupt.h"
+#include "board/pc/io.h"
 #include "lib/utils.h"
 
 #define PIT_CHANNEL_0   0x40    // Channel 0 data port
@@ -55,14 +54,14 @@ void pc_timer_init(const unsigned int frequency_hz)
     // - Access both low and high byte
     // - Mode 2 (rate generator) - generates periodic interrupts
     // - Binary mode
-    uint8_t command = PIT_CHANNEL_0_SELECT | PIT_ACCESS_BOTH | PIT_MODE_2 | PIT_BINARY;
+    const uint8_t command = PIT_CHANNEL_0_SELECT | PIT_ACCESS_BOTH | PIT_MODE_2 | PIT_BINARY;
 
-    outb(PIT_COMMAND, command);
+    arch_io_write8(PIT_COMMAND, command);
 
-    outb(PIT_CHANNEL_0, (uint8_t)(divisor & 0xFF));
-    outb(PIT_CHANNEL_0, (uint8_t)((divisor >> 8) & 0xFF));
+    arch_io_write8(PIT_CHANNEL_0, (uint8_t)(divisor & 0xFF));
+    arch_io_write8(PIT_CHANNEL_0, (uint8_t)((divisor >> 8) & 0xFF));
 
-    x86_64_register_interrupt(0x20, pc_timer_interrupt);
+    arch_interrupt_register(0x20, pc_timer_interrupt);
 }
 
 uint64_t time_now_ns()

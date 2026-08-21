@@ -1,5 +1,5 @@
-#include "arch/x86_64/io.h"
 #include "definitions.h"
+#include "board/pc/io.h"
 
 #define PIC1                0x20    // Master PIC
 #define PIC2                0xA0    // Slave PIC  
@@ -16,20 +16,20 @@
 static void pc_pic_remap(void)
 {
     
-    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
-    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+    arch_io_write8(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
+    arch_io_write8(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
     
-    outb(PIC1_DATA, 0x20);  // Master PIC vector offset
-    outb(PIC2_DATA, 0x28);  // Slave PIC vector offset
+    arch_io_write8(PIC1_DATA, 0x20);  // Master PIC vector offset
+    arch_io_write8(PIC2_DATA, 0x28);  // Slave PIC vector offset
     
-    outb(PIC1_DATA, 0x04);
-    outb(PIC2_DATA, 0x02);
+    arch_io_write8(PIC1_DATA, 0x04);
+    arch_io_write8(PIC2_DATA, 0x02);
     
-    outb(PIC1_DATA, ICW4_8086);
-    outb(PIC2_DATA, ICW4_8086);
+    arch_io_write8(PIC1_DATA, ICW4_8086);
+    arch_io_write8(PIC2_DATA, ICW4_8086);
     
-    outb(PIC1_DATA, 0xFC);
-    outb(PIC2_DATA, 0xFF);
+    arch_io_write8(PIC1_DATA, 0xFC);
+    arch_io_write8(PIC2_DATA, 0xFF);
 }
 
 void pc_pic_init(void)

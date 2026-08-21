@@ -1,7 +1,7 @@
 #include "arch/x86_64/memory.h"
 #include "arch/x86_64/gdt.h"
 
-#include "arch/arch.h"
+#include "arch/memory.h"
 #include "lib/utils.h"
 
 typedef struct region

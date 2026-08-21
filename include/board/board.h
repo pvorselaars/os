@@ -1,8 +1,8 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-/* Board initialization and management interface */
+#include "kernel/base.h"
 
-void board_init(void);
+result_t board_init(void);
 
 #endif

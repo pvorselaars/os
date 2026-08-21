@@ -1,5 +1,7 @@
 #include "board/pc/vga.h"
-#include "arch/arch.h"
+#include "arch/memory.h"
+#include "arch/x86_64/layout.h"
+#include "board/pc/io.h"
 #include "lib/memory.h"
 
 // Basic 8x16 font data for ASCII characters 0x20-0x7F
@@ -1905,24 +1907,24 @@ void vga_load_font(void) {
     uint8_t seq2, seq4, gc5, gc6;
     
     // Read current sequencer register 2 and 4
-    outb(0x3C4, 0x02); seq2 = inb(0x3C5);
-    outb(0x3C4, 0x04); seq4 = inb(0x3C5);
+    arch_io_write8(0x3C4, 0x02); seq2 = arch_io_read8(0x3C5);
+    arch_io_write8(0x3C4, 0x04); seq4 = arch_io_read8(0x3C5);
     
     // Read current graphics controller register 5 and 6
-    outb(0x3CE, 0x05); gc5 = inb(0x3CF);
-    outb(0x3CE, 0x06); gc6 = inb(0x3CF);
+    arch_io_write8(0x3CE, 0x05); gc5 = arch_io_read8(0x3CF);
+    arch_io_write8(0x3CE, 0x06); gc6 = arch_io_read8(0x3CF);
     
     // Set up sequencer for font loading
     // Turn off even/odd (allow access to full memory)
-    outb(0x3C4, 0x02); outb(0x3C5, 0x04); // Select plane 2
-    outb(0x3C4, 0x04); outb(0x3C5, 0x07); // Sequential mode
+    arch_io_write8(0x3C4, 0x02); arch_io_write8(0x3C5, 0x04); // Select plane 2
+    arch_io_write8(0x3C4, 0x04); arch_io_write8(0x3C5, 0x07); // Sequential mode
     
     // Set up graphics controller for font loading
-    outb(0x3CE, 0x05); outb(0x3CF, 0x00); // Disable odd/even, enable all planes
-    outb(0x3CE, 0x06); outb(0x3CF, 0x00); // Map to A0000-AFFFF
+    arch_io_write8(0x3CE, 0x05); arch_io_write8(0x3CF, 0x00); // Disable odd/even, enable all planes
+    arch_io_write8(0x3CE, 0x06); arch_io_write8(0x3CF, 0x00); // Map to A0000-AFFFF
     
     // Load font data into video memory plane 2
-    uint8_t* font_mem = (uint8_t*)virtual_address(0xA0000);
+    uint8_t* font_mem = (uint8_t*)x86_64_virtual_address(0xA0000);
     
     // Clear font memory first
     arch_memory_set_qword(font_mem, 0, 1024);
@@ -1937,28 +1939,28 @@ void vga_load_font(void) {
     }
     
     // Restore original state
-    outb(0x3C4, 0x02); outb(0x3C5, seq2);
-    outb(0x3C4, 0x04); outb(0x3C5, seq4);
-    outb(0x3CE, 0x05); outb(0x3CF, gc5);
-    outb(0x3CE, 0x06); outb(0x3CF, gc6);
+    arch_io_write8(0x3C4, 0x02); arch_io_write8(0x3C5, seq2);
+    arch_io_write8(0x3C4, 0x04); arch_io_write8(0x3C5, seq4);
+    arch_io_write8(0x3CE, 0x05); arch_io_write8(0x3CF, gc5);
+    arch_io_write8(0x3CE, 0x06); arch_io_write8(0x3CF, gc6);
 }
 
 void vga_init()
 {
-    outb(0x3C2, 0x67);  // Color mode, enable video, select clocks
+    arch_io_write8(0x3C2, 0x67);  // Color mode, enable video, select clocks
     
     // Sequencer
-    outb(0x3C4, 0x00); outb(0x3C5, 0x01);  // Reset
+    arch_io_write8(0x3C4, 0x00); arch_io_write8(0x3C5, 0x01);  // Reset
     
-    outb(0x3C4, 0x01); outb(0x3C5, 0x00);  // Clocking mode
-    outb(0x3C4, 0x02); outb(0x3C5, 0x03);  // Map mask (all planes)
-    outb(0x3C4, 0x03); outb(0x3C5, 0x00);  // Char map select  
-    outb(0x3C4, 0x04); outb(0x3C5, 0x02);  // Memory mode
+    arch_io_write8(0x3C4, 0x01); arch_io_write8(0x3C5, 0x00);  // Clocking mode
+    arch_io_write8(0x3C4, 0x02); arch_io_write8(0x3C5, 0x03);  // Map mask (all planes)
+    arch_io_write8(0x3C4, 0x03); arch_io_write8(0x3C5, 0x00);  // Char map select
+    arch_io_write8(0x3C4, 0x04); arch_io_write8(0x3C5, 0x02);  // Memory mode
 
-    outb(0x3C4, 0x00); outb(0x3C5, 0x03);  // Normal operation
+    arch_io_write8(0x3C4, 0x00); arch_io_write8(0x3C5, 0x03);  // Normal operation
     
     // CRTC
-    outb(0x3D4, 0x11); outb(0x3D5, inb(0x3D5) & 0x7f);  // Unlock
+    arch_io_write8(0x3D4, 0x11); arch_io_write8(0x3D5, arch_io_read8(0x3D5) & 0x7f);  // Unlock
 
     uint8_t crtc[25] = {
         0x5F, // 0: Horizontal Total (number of character clocks per line - 5Fh = 95)
@@ -1989,8 +1991,8 @@ void vga_init()
     };
 
     for(int i = 0; i < 25; i++) {
-        outb(0x3D4, i);
-        outb(0x3D5, crtc[i]);
+        arch_io_write8(0x3D4, i);
+        arch_io_write8(0x3D5, crtc[i]);
     }
     
     // Graphics Controller
@@ -2007,23 +2009,23 @@ void vga_init()
     };
     
     for(int i = 0; i < 9; i++) {
-        outb(0x3CE, i);
-        outb(0x3CF, gc_regs[i]);
+        arch_io_write8(0x3CE, i);
+        arch_io_write8(0x3CF, gc_regs[i]);
     }
 
     vga_load_font();
 
     // Attribute controller
-    inb(0x3DA);  // Reset flip-flop
+    arch_io_read8(0x3DA);  // Reset flip-flop
     for(int i = 0; i < 16; i++) {
-        outb(0x3C0, i);      // Select palette register i
-        outb(0x3C0, i);      // Map to color i (identity mapping)
+        arch_io_write8(0x3C0, i);      // Select palette register i
+        arch_io_write8(0x3C0, i);      // Map to color i (identity mapping)
     }
-    outb(0x3C0, 0x10); outb(0x3C0, 0x0C);  // Mode: text, enable line graphics
-    outb(0x3C0, 0x11); outb(0x3C0, 0x00);  // Overscan: black
-    outb(0x3C0, 0x12); outb(0x3C0, 0x0F);  // Color plane enable: all planes
-    outb(0x3C0, 0x13); outb(0x3C0, 0x08);
-    outb(0x3C0, 0x20); // unblank 
+    arch_io_write8(0x3C0, 0x10); arch_io_write8(0x3C0, 0x0C);  // Mode: text, enable line graphics
+    arch_io_write8(0x3C0, 0x11); arch_io_write8(0x3C0, 0x00);  // Overscan: black
+    arch_io_write8(0x3C0, 0x12); arch_io_write8(0x3C0, 0x0F);  // Color plane enable: all planes
+    arch_io_write8(0x3C0, 0x13); arch_io_write8(0x3C0, 0x08);
+    arch_io_write8(0x3C0, 0x20); // unblank
 
     // DAC
     uint8_t colors[16][3] = {
@@ -2033,13 +2035,13 @@ void vga_init()
         {63,21,21}, {63,21,63}, {63,63,21}, {63,63,63}
     };
     for(int i = 0; i < 16; i++) {
-        outb(0x3C8, i);           // Select DAC register
-        outb(0x3C9, colors[i][0]); // Red
-        outb(0x3C9, colors[i][1]); // Green  
-        outb(0x3C9, colors[i][2]); // Blue
+        arch_io_write8(0x3C8, i);           // Select DAC register
+        arch_io_write8(0x3C9, colors[i][0]); // Red
+        arch_io_write8(0x3C9, colors[i][1]); // Green
+        arch_io_write8(0x3C9, colors[i][2]); // Blue
     }
 
-    inb(0x3DA);  // Reset flip-flop
-    outb(0x3C0, 0x20);  // Enable palette and video output
+    arch_io_read8(0x3DA);  // Reset flip-flop
+    arch_io_write8(0x3C0, 0x20);  // Enable palette and video output
 
 }

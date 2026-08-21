@@ -19,7 +19,7 @@ ifeq ($(filter $(BOARD),$(VALID_BOARDS)),)
     $(error Invalid BOARD=$(BOARD) for ARCH=$(ARCH). Valid boards: $(VALID_BOARDS))
 endif
 
-CFLAGS = -Wall -s -pedantic \
+CFLAGS := -Wall -s -pedantic \
                         -ffreestanding \
                         -nostdlib \
                         -fcf-protection=none \
