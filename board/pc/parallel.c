@@ -1,5 +1,6 @@
-#include "arch/x86_64/io.h"
 #include "board/pc/parallel.h"
+
+#include "arch/arch.h"
 #include "kernel/device.h"
 #include "lib/utils.h"
 
@@ -20,14 +21,14 @@ static result_t pc_parallel_init(device_t *device)
 {
     pc_parallel_t *parallel = device->data;
 
-    outb(parallel->base_port + 2, PC_PARALLEL_CONTROL_IDLE);
+    arch_io_write8(parallel->base_port + 2, PC_PARALLEL_CONTROL_IDLE);
     parallel->initialized = true;
     return RESULT_OK;
 }
 
 static bool pc_parallel_present(const pc_parallel_t *parallel)
 {
-    return inb(parallel->base_port + 1) != 0xFF;
+    return arch_io_read8(parallel->base_port + 1) != 0xFF;
 }
 
 static int pc_parallel_write(device_t *device, const void *buffer, size_t length)
@@ -42,9 +43,9 @@ static int pc_parallel_write(device_t *device, const void *buffer, size_t length
     for (size_t i = 0; i < length; i++) {
         uint16_t port = parallel->base_port;
 
-        outb(port, data[i]);
-        outb(port + 2, PC_PARALLEL_CONTROL_STROBE);
-        outb(port + 2, PC_PARALLEL_CONTROL_IDLE);
+        arch_io_write8(port, data[i]);
+        arch_io_write8(port + 2, PC_PARALLEL_CONTROL_STROBE);
+        arch_io_write8(port + 2, PC_PARALLEL_CONTROL_IDLE);
     }
 
     return (int)length;

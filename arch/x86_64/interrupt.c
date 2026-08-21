@@ -21,7 +21,7 @@ static void double_fault_handler() { default_exception_handler("Double fault"); 
 static void gpf_handler() { default_exception_handler("General protection fault"); }
 static void page_fault_handler() { default_exception_handler("Page fault"); }
 
-result_t x86_64_register_interrupt(const unsigned vector, void (*handler)())
+result_t arch_register_interrupt(const unsigned vector, void (*handler)())
 {
     if (vector >= 256 || !handler) {
         return RESULT_ERROR;
@@ -45,12 +45,12 @@ void x86_64_interrupt_init()
     x86_64_idt_set_entry(0x21, irq_0x21, IDT_FLAG_INTERRUPT_GATE);
     x86_64_idt_set_entry(0x24, irq_0x24, IDT_FLAG_INTERRUPT_GATE);
 
-    x86_64_register_interrupt(0, divide_by_zero_handler);
-    x86_64_register_interrupt(2, nmi_handler);
-    x86_64_register_interrupt(4, overflow_handler);
-    x86_64_register_interrupt(8, double_fault_handler);
-    x86_64_register_interrupt(13, gpf_handler);
-    x86_64_register_interrupt(14, page_fault_handler);
+    arch_register_interrupt(0, divide_by_zero_handler);
+    arch_register_interrupt(2, nmi_handler);
+    arch_register_interrupt(4, overflow_handler);
+    arch_register_interrupt(8, double_fault_handler);
+    arch_register_interrupt(13, gpf_handler);
+    arch_register_interrupt(14, page_fault_handler);
 
 }
 

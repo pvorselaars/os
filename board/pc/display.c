@@ -1,7 +1,9 @@
-#include "arch/x86_64/io.h"
-#include "arch/x86_64/memory.h"
 #include "board/pc/display.h"
+
+#include "arch/arch.h"
 #include "kernel/device.h"
+
+#include "lib/memory.h"
 
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25
@@ -32,10 +34,10 @@ static void vga_update_hardware_cursor(uint32_t x, uint32_t y)
 {
     uint16_t position = y * VGA_WIDTH + x;
 
-    outb(VGA_CURSOR_CMD, 0x0F);
-    outb(VGA_CURSOR_DATA, (uint8_t)position);
-    outb(VGA_CURSOR_CMD, 0x0E);
-    outb(VGA_CURSOR_DATA, (uint8_t)(position >> 8));
+    arch_io_write8(VGA_CURSOR_CMD, 0x0F);
+    arch_io_write8(VGA_CURSOR_DATA, (uint8_t)position);
+    arch_io_write8(VGA_CURSOR_CMD, 0x0E);
+    arch_io_write8(VGA_CURSOR_DATA, (uint8_t)(position >> 8));
 }
 
 static result_t vga_display_init(device_t *device)

@@ -8,6 +8,7 @@ void arch_idle();
 void arch_halt();
 void arch_interrupt_enable();
 void arch_interrupt_disable();
+result_t arch_register_interrupt(unsigned vector, void (*handler)());
 
 void arch_memory_set_byte(void *ptr, uint8_t value, uint64_t size);
 void arch_memory_set_word(void *ptr, uint16_t value, uint64_t size);
@@ -22,6 +23,11 @@ void arch_memory_deallocate_page(void *page);
 
 result_t arch_vmm_map_page(uint64_t virtual_address, uint64_t physical_address, int flags);
 result_t arch_vmm_unmap_page(uint64_t virtual_address);
-void arch_vmm_map_user_pages(uint64_t page_directory_pointer_table);
+
+uint8_t arch_io_read8(uint16_t address);
+void arch_io_write8(uint16_t address, uint8_t value);
+
+uint16_t arch_io_read16(uint16_t address);
+void arch_io_write16(uint16_t address, uint16_t value);
 
 #endif

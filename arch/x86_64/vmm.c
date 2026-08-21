@@ -2,6 +2,7 @@
 #include "arch/x86_64/vmm.h"
 
 #include "arch/arch.h"
+#include "lib/memory.h"
 #include "lib/utils.h"
 
 static pml4e *pml4 = virtual_address(PML4_ADDRESS);
@@ -97,11 +98,6 @@ result_t arch_vmm_unmap_page(uint64_t virtual_address)
 
 	pt[pt_offset] = 0;
 	return RESULT_OK;
-}
-
-void arch_vmm_map_user_pages(uint64_t page_directory_pointer_table)
-{
-	pml4[0] = page_directory_pointer_table;
 }
 
 void x86_64_vmm_init(void)

@@ -23,12 +23,6 @@
 
 #define PAGE_SIZE 0x1000
 
-#define KERNEL_BASE 0xFFFFFF8000000000
-#define KERNEL_STACK KERNEL_BASE + 0x200000 - 1
-
-#define physical_address(va) ((uint64_t)(va) - KERNEL_BASE)
-#define virtual_address(pa) ((void *)((uint64_t)(pa) + KERNEL_BASE))
-
 #ifdef __ASSEMBLER__
 
 #define SEGMENT(access, flags, base, limit)     \

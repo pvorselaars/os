@@ -1,6 +1,8 @@
 #include "arch/x86_64/memory.h"
 #include "arch/x86_64/gdt.h"
 
+#include "lib/memory.h"
+
 .code16
 _start:
   # Disable interrupts until kernel can setup interrupt routines

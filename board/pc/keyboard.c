@@ -1,6 +1,6 @@
-#include "arch/x86_64/interrupt.h"
-#include "arch/x86_64/io.h"
 #include "drivers/keyboard.h"
+
+#include "arch/arch.h"
 #include "kernel/device.h"
 #include "lib/unicode.h"
 
@@ -148,7 +148,7 @@ static ps2_keyboard_t ps2_keyboard_device;
 static void ps2_wait_output(void) {
     int timeout = 100000;
     while (timeout-- > 0) {
-        if (!(inb(PS2_STATUS_PORT) & 0x02)) {
+        if (!(arch_io_read8(PS2_STATUS_PORT) & 0x02)) {
             break;
         }
     }
@@ -157,7 +157,7 @@ static void ps2_wait_output(void) {
 static void ps2_wait_input(void) {
     int timeout = 100000;
     while (timeout-- > 0) {
-        if (inb(PS2_STATUS_PORT) & 0x01) {
+        if (arch_io_read8(PS2_STATUS_PORT) & 0x01) {
             break;
         }
     }
@@ -165,17 +165,17 @@ static void ps2_wait_input(void) {
 
 static void ps2_send_command(uint8_t cmd) {
     ps2_wait_output();
-    outb(PS2_COMMAND_PORT, cmd);
+    arch_io_write8(PS2_COMMAND_PORT, cmd);
 }
 
 static void ps2_send_data(uint8_t data) {
     ps2_wait_output();
-    outb(PS2_DATA_PORT, data);
+    arch_io_write8(PS2_DATA_PORT, data);
 }
 
 static uint8_t ps2_read_data(void) {
     ps2_wait_input();
-    return inb(PS2_DATA_PORT);
+    return arch_io_read8(PS2_DATA_PORT);
 }
 
 static void ps2_keyboard_buffer_event(const keyboard_event_t *event)
@@ -197,7 +197,7 @@ static void ps2_keyboard_buffer_event(const keyboard_event_t *event)
 }
 
 void ps2_keyboard_interrupt(void) {
-    uint8_t scancode = inb(PS2_DATA_PORT);
+    uint8_t scancode = arch_io_read8(PS2_DATA_PORT);
     keyboard_state_t *state = &ps2_keyboard_device.state;
     keyboard_event_t event;
     
@@ -312,8 +312,8 @@ static result_t ps2_keyboard_init(device_t *device) {
     
     ps2_send_command(PS2_CMD_DISABLE_PORT1);
     
-    while (inb(PS2_STATUS_PORT) & 0x01) {
-        inb(PS2_DATA_PORT);
+    while (arch_io_read8(PS2_STATUS_PORT) & 0x01) {
+        arch_io_read8(PS2_DATA_PORT);
     }
     
     ps2_send_command(PS2_CMD_READ_CONFIG);
@@ -350,7 +350,7 @@ static result_t ps2_keyboard_init(device_t *device) {
     }
     
     // Register keyboard interrupt handler
-    if (x86_64_register_interrupt(0x21, ps2_keyboard_interrupt) != RESULT_OK)
+    if (arch_register_interrupt(0x21, ps2_keyboard_interrupt) != RESULT_OK)
         return RESULT_ERROR;
 
     kbd->initialized = true;

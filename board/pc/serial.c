@@ -1,5 +1,6 @@
-#include "arch/x86_64/io.h"
 #include "board/pc/serial.h"
+
+#include "arch/arch.h"
 #include "kernel/device.h"
 
 #define PC_UART_DATA 0
@@ -29,13 +30,13 @@ static result_t pc_serial_init(device_t *device)
         return RESULT_OK;
     }
 
-    outb(serial->base + PC_UART_IER, 0x00);
-    outb(serial->base + PC_UART_LCR, 0x80);
-    outb(serial->base + PC_UART_DATA, 0x03);
-    outb(serial->base + PC_UART_IER, 0x00);
-    outb(serial->base + PC_UART_LCR, 0x03);
-    outb(serial->base + PC_UART_FCR, 0xC7);
-    outb(serial->base + PC_UART_MCR, 0x0F);
+    arch_io_write8(serial->base + PC_UART_IER, 0x00);
+    arch_io_write8(serial->base + PC_UART_LCR, 0x80);
+    arch_io_write8(serial->base + PC_UART_DATA, 0x03);
+    arch_io_write8(serial->base + PC_UART_IER, 0x00);
+    arch_io_write8(serial->base + PC_UART_LCR, 0x03);
+    arch_io_write8(serial->base + PC_UART_FCR, 0xC7);
+    arch_io_write8(serial->base + PC_UART_MCR, 0x0F);
 
     serial->initialized = true;
     return RESULT_OK;
@@ -49,10 +50,10 @@ static int pc_serial_write_bytes(
     const uint8_t *bytes = buffer;
 
     for (size_t i = 0; i < length; i++) {
-        while (!(inb(serial->base + PC_UART_LSR) & PC_UART_LSR_TX_EMPTY))
+        while (!(arch_io_read8(serial->base + PC_UART_LSR) & PC_UART_LSR_TX_EMPTY))
             ;
 
-        outb(serial->base + PC_UART_DATA, bytes[i]);
+        arch_io_write8(serial->base + PC_UART_DATA, bytes[i]);
     }
 
     return (int)length;
@@ -68,8 +69,8 @@ static int pc_serial_read(device_t *device, void *buffer, size_t length)
         return -1;
 
     while (count < length &&
-           (inb(serial->base + PC_UART_LSR) & PC_UART_LSR_DATA_READY)) {
-        bytes[count++] = inb(serial->base + PC_UART_DATA);
+           arch_io_read8(serial->base + PC_UART_LSR) & PC_UART_LSR_DATA_READY) {
+        bytes[count++] = arch_io_read8(serial->base + PC_UART_DATA);
     }
 
     return (int)count;

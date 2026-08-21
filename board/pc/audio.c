@@ -1,5 +1,6 @@
-#include "arch/x86_64/io.h"
 #include "board/pc/audio.h"
+
+#include "arch/arch.h"
 #include "kernel/device.h"
 
 #define PIT_FREQUENCY    1193180    // PIT base frequency
@@ -19,8 +20,8 @@ static result_t pc_speaker_init(device_t *device)
 {
     pc_speaker_device_t *speaker = device->data;
 
-    uint8_t speaker_control = inb(SPEAKER_PORT) & 0xFC;
-    outb(SPEAKER_PORT, speaker_control);
+    uint8_t speaker_control = arch_io_read8(SPEAKER_PORT) & 0xFC;
+    arch_io_write8(SPEAKER_PORT, speaker_control);
 
     speaker->initialized = true;
     speaker->is_playing = false;
@@ -34,8 +35,8 @@ static result_t pc_speaker_stop(pc_speaker_device_t *spk)
         return RESULT_ERROR;
     }
 
-    uint8_t speaker_control = inb(SPEAKER_PORT) & 0xFC;
-    outb(SPEAKER_PORT, speaker_control);
+    uint8_t speaker_control = arch_io_read8(SPEAKER_PORT) & 0xFC;
+    arch_io_write8(SPEAKER_PORT, speaker_control);
     
     spk->is_playing = false;
     spk->current_frequency = 0;
@@ -60,12 +61,12 @@ static result_t pc_speaker_play(pc_speaker_device_t *spk, uint32_t frequency)
         divisor = 0xFFFF;
     }
 
-    outb(PIT_COMMAND, 0xB6);
-    outb(PIT_CHANNEL_2, (uint8_t)(divisor & 0xFF));
-    outb(PIT_CHANNEL_2, (uint8_t)((divisor >> 8) & 0xFF));
+    arch_io_write8(PIT_COMMAND, 0xB6);
+    arch_io_write8(PIT_CHANNEL_2, (uint8_t)(divisor & 0xFF));
+    arch_io_write8(PIT_CHANNEL_2, (uint8_t)((divisor >> 8) & 0xFF));
 
-    uint8_t speaker_control = inb(SPEAKER_PORT);
-    outb(SPEAKER_PORT, speaker_control | 0x03);
+    uint8_t speaker_control = arch_io_read8(SPEAKER_PORT);
+    arch_io_write8(SPEAKER_PORT, speaker_control | 0x03);
 
     spk->is_playing = true;
     spk->current_frequency = frequency;
