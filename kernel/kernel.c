@@ -1,7 +1,12 @@
 #include "arch/cpu.h"
 #include "board/board.h"
 #include "drivers/console.h"
+#include "kernel/process.h"
 #include "kernel/test.h"
+
+void process1() {
+	while (1) ;
+}
 
 void kernel(void)
 {
@@ -21,7 +26,10 @@ void kernel(void)
 	}
 #endif
 
+	process_start(process1);
+
 	while (1) {
 		arch_cpu_halt();
 	}
 }
+

@@ -23,6 +23,12 @@ void x86_64_gdt_set_entry(int index, uint64_t base, uint64_t limit, uint8_t acce
     gdt[index] = v;
 }
 
+void x86_64_gdt_set_tss_entry(int index, uint64_t base, uint64_t limit)
+{
+    x86_64_gdt_set_entry(index, base, limit, SDA_P | SDA_A | SDA_TSS, 0x0);
+    gdt[index + 1] = base >> 32;
+}
+
 void x86_64_gdt_init(void)
 {
     // Null entry

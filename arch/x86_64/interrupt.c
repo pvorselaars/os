@@ -1,5 +1,7 @@
 #include "arch/cpu.h"
 #include "arch/interrupt.h"
+
+#include "arch/x86_64/tss.h"
 #include "arch/x86_64/idt.h"
 #include "lib/utils.h"
 
@@ -36,23 +38,24 @@ void x86_64_interrupt_init()
 {
     x86_64_idt_init();
 
-    x86_64_idt_set_entry(0, exception_0, IDT_FLAG_INTERRUPT_GATE);
-    x86_64_idt_set_entry(2, exception_2, IDT_FLAG_INTERRUPT_GATE);
-    x86_64_idt_set_entry(4, exception_4, IDT_FLAG_INTERRUPT_GATE);
-    x86_64_idt_set_entry(8, exception_8, IDT_FLAG_INTERRUPT_GATE);
-    x86_64_idt_set_entry(13, exception_13, IDT_FLAG_INTERRUPT_GATE);
-    x86_64_idt_set_entry(14, exception_14, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0x0, exception_0, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0x2, exception_2, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0x4, exception_4, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0x8, exception_8, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0xD, exception_13, IDT_FLAG_INTERRUPT_GATE);
+    x86_64_idt_set_entry(0xE, exception_14, IDT_FLAG_INTERRUPT_GATE);
     x86_64_idt_set_entry(0x20, irq_0x20, IDT_FLAG_INTERRUPT_GATE);
     x86_64_idt_set_entry(0x21, irq_0x21, IDT_FLAG_INTERRUPT_GATE);
     x86_64_idt_set_entry(0x24, irq_0x24, IDT_FLAG_INTERRUPT_GATE);
 
-    arch_interrupt_register(0, divide_by_zero_handler);
-    arch_interrupt_register(2, nmi_handler);
-    arch_interrupt_register(4, overflow_handler);
-    arch_interrupt_register(8, double_fault_handler);
-    arch_interrupt_register(13, gpf_handler);
-    arch_interrupt_register(14, page_fault_handler);
+    arch_interrupt_register(0x0, divide_by_zero_handler);
+    arch_interrupt_register(0x2, nmi_handler);
+    arch_interrupt_register(0x4, overflow_handler);
+    arch_interrupt_register(0x8, double_fault_handler);
+    arch_interrupt_register(0xD, gpf_handler);
+    arch_interrupt_register(0xE, page_fault_handler);
 
+    x86_64_tss_init();
 }
 
 void arch_handle_interrupt(const unsigned vector)
