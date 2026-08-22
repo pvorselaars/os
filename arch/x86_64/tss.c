@@ -1,7 +1,7 @@
 #include "arch/x86_64/tss.h"
 #include "arch/x86_64/gdt.h"
-#include "arch/x86_64/memory.h"
 
+#pragma pack(1)
 typedef struct
 {
     uint32_t reserved0;
@@ -20,21 +20,20 @@ typedef struct
     uint16_t reserved3;
     uint16_t iomap_base;
 } tss64;
+#pragma pack()
+
+uint64_t kernel_stack[64];
 
 tss64 tss = {.rsp0 = 0x1000};
 
-void x86_64_tss_set_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags)
-{
-    x86_64_gdt_set_entry(index, base, limit, access, flags);
-    x86_64_gdt_set_entry(index + 1, 0, 0, 0, 0);
-}
-
 void x86_64_tss_init(void)
 {
-    uint64_t tss_base = (uint64_t)&tss;
-    uint64_t tss_limit = sizeof(tss) - 1;
+    tss.rsp0 = (uint64_t)&kernel_stack[64];
+    tss.iomap_base = sizeof(tss64);
 
-    x86_64_tss_set_entry(5, tss_base, tss_limit, SDA_P | SDA_A | SDA_TSS, 0x0);
+    uint64_t tss_base = (uint64_t)&tss;
+    uint64_t tss_limit = sizeof(tss64) - 1;
+    x86_64_gdt_set_tss_entry(5, tss_base, tss_limit);
 
     __asm__ volatile("ltr %0" : : "r"(0x28)); // Selector for TSS entry (index 5)
 }

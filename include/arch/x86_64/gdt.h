@@ -21,6 +21,7 @@
 #include "definitions.h"
 
 void x86_64_gdt_set_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags);
+void x86_64_gdt_set_tss_entry(int index, uint64_t base, uint64_t limit);
 
 void x86_64_gdt_init(void);
 #endif

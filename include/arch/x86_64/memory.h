@@ -18,6 +18,9 @@
 #define CODE_SEG 0x18 // Kernel 64-bit code segment selector (index 3)
 #define DATA_SEG 0x20 // Kernel 64-bit data segment selector (index 4)
 
+#define USER_CODE_SEG 0x38 // User 64-bit code segment selector (index 7)
+#define USER_DATA_SEG 0x40 // User 64-bit data segment selector (index 8)
+
 #define PML4_ADDRESS 0x1000
 #define BOOT_SEGMENT 0xF000
 
@@ -36,15 +39,6 @@
 void x86_64_memory_init(void);
 void x86_64_memory_flush_tlb();
 
-extern char KERNEL_VMA[];
-extern char KERNEL_END[];
-
-typedef uint64_t pte;
-typedef uint64_t pde;
-typedef uint64_t pdpte;
-typedef uint64_t pml4e;
-
-typedef uint64_t address;
 
 #endif
 

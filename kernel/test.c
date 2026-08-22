@@ -1,6 +1,5 @@
 #include "kernel/test.h"
 
-#include "drivers/console.h"
 #include "kernel/device.h"
 #include "kernel/time.h"
 #include "lib/utils.h"

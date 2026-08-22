@@ -14,4 +14,17 @@ int arch_memory_compare(const void *ptr1, const void *ptr2, size_t size);
 void *arch_memory_allocate_page(void);
 void arch_memory_deallocate_page(void *page);
 
+enum {
+    ARCH_MEMORY_MAP_READ = 1 << 0,
+    ARCH_MEMORY_MAP_WRITE = 1 << 1,
+    ARCH_MEMORY_MAP_USER = 1 << 2,
+};
+
+result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_address, uint32_t flags);
+result_t arch_memory_unmap_page(uint64_t virtual_address);
+
+extern char KERNEL_BASE[];
+extern char KERNEL_VMA[];
+extern char KERNEL_END[];
+
 #endif

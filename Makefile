@@ -36,8 +36,6 @@ CFLAGS := -Wall -s -pedantic \
 						-Iinclude/arch/$(ARCH) \
 						-Iinclude/board/$(BOARD) \
 						-Werror \
-						-Wno-error=unused-variable \
-						-Wno-error=unused-but-set-variable \
 						-g
 
 LFLAGS = --no-relax $(ARCH_LFLAGS)
