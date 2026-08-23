@@ -1,8 +1,7 @@
 #ifndef LIB_PRINTF_H
 #define LIB_PRINTF_H
 
-#include "definitions.h"
-#include "lib/string.h"
+#include "kernel/base.h"
 
 #define PRINTF_BUFFER_SIZE 256
 

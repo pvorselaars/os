@@ -1,4 +1,5 @@
 #include "lib/printf.h"
+#include "lib/string.h"
 
 #define FLAGS_ZERO      (1 << 0)
 #define FLAGS_LEFT      (1 << 1)

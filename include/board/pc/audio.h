@@ -1,8 +1,8 @@
 #ifndef PC_AUDIO_H
 #define PC_AUDIO_H
 
-#include "definitions.h"
+#include "kernel/base.h"
 
-result_t pc_audio_register(void);
+result_t pc_audio_register();
 
 #endif

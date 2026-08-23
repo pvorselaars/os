@@ -29,8 +29,8 @@ static uint64_t x86_64_page_flags(const uint32_t flags)
 
 result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_address, uint32_t flags)
 {
-	//assert(IS_ALIGNED(physical_address, PAGE_SIZE));
-	//assert(IS_ALIGNED(virtual_address, PAGE_SIZE));
+	assert(IS_ALIGNED(physical_address, PAGE_SIZE));
+	assert(IS_ALIGNED(virtual_address, PAGE_SIZE));
 
 	unsigned short pml4_offset = (virtual_address >> 39) & 0x1FF;
 	unsigned short pdpt_offset = (virtual_address >> 30) & 0x1FF;
@@ -61,9 +61,9 @@ result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_addres
 
 	pde *pd = x86_64_virtual_address((pdpt[pdpt_offset] >> 12) << 12);
 
-	if ((pd[pd_offset] & (PAGE_PS | PAGE_PRESENT)) == (PAGE_PS | PAGE_PRESENT))
+	if ((pd[pd_offset] & (PAGE_PS | PAGE_PRESENT)) == (PAGE_PS | PAGE_PRESENT) && !(flags & PAGE_PS))
 	{
-		return RESULT_ERROR; // do not split huge pages
+		fatal("Cannot split a page\n"); // do not split huge pages
 	}
 
 	if (!(pd[pd_offset] & PAGE_PRESENT))
