@@ -27,7 +27,7 @@ void process_create(void (*entry)(void)) {
             uint64_t start = (uint64_t)entry - (uint64_t)KERNEL_BASE;
             uint64_t page = ALIGN_DOWN(start, PAGE_SIZE);
 
-            arch_memory_map_page(page, page, ARCH_MEMORY_MAP_WRITE | ARCH_MEMORY_MAP_USER);
+            arch_memory_map_page(page, page, ARCH_MEMORY_MAP_READ | ARCH_MEMORY_MAP_USER);
             processes[i].context = arch_process_context_create(start);
             processes[i].state = PROCESS_READY;
             return;

@@ -3,7 +3,7 @@
 
 #include "kernel/base.h"
 
-typedef void (*arch_interrupt_handler_t)(void);
+typedef void (*arch_interrupt_handler_t)();
 
 result_t arch_interrupt_register(uint32_t vector, arch_interrupt_handler_t handler);
 

@@ -1,16 +1,8 @@
-#include "arch/memory.h"
 #include "arch/x86_64/memory.h"
+#include "arch/x86_64/process.h"
 #include "kernel/base.h"
 #include "lib/memory.h"
 #include "lib/utils.h"
-
-struct arch_process_context {
-    uint64_t rax, rbx, rcx, rdx, rsi, rdi, rbp, r8, r9, r10, r11, r12, r13, r14, r15;
-    uint64_t vector, error_code;
-    uint64_t rip, cs, rflags, rsp, ss;
-};
-
-#include "arch/process.h"
 
 void x86_64_process_start(struct arch_process_context * context);
 
