@@ -1,7 +1,7 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
-#include "definitions.h"
+#include "kernel/base.h"
 
 // Logical key identifiers for special keys (hardware-independent)
 typedef enum {

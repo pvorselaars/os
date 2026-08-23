@@ -1,4 +1,4 @@
-#include "definitions.h"
+#include "kernel/base.h"
 #include "board/pc/io.h"
 
 #define PIC1                0x20    // Master PIC

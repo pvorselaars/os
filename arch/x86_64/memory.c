@@ -3,12 +3,6 @@
 #include "arch/memory.h"
 #include "lib/utils.h"
 
-typedef uint64_t pte;
-typedef uint64_t pde;
-typedef uint64_t pdpte;
-typedef uint64_t pml4e;
-
-typedef uint64_t address;
 
 typedef struct region
 {

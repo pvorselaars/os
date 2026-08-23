@@ -1,7 +1,7 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include "definitions.h"
+#include "kernel/base.h"
 
 result_t test_run();
 

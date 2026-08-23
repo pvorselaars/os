@@ -7,7 +7,7 @@
 
 #ifndef __ASSEMBLER__
 
-#include "definitions.h"
+#include "kernel/base.h"
 
 void memory_set(void *ptr, uint8_t value, uint64_t size);
 void memory_copy(void *dest, const void *src, uint64_t size);

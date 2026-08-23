@@ -18,12 +18,12 @@
 #define SDF_L (1 << 1)  // Long mode flag
 
 #ifndef __ASSEMBLER__
-#include "definitions.h"
+#include "kernel/base.h"
 
 void x86_64_gdt_set_entry(int index, uint64_t base, uint64_t limit, uint8_t access, uint8_t flags);
 void x86_64_gdt_set_tss_entry(int index, uint64_t base, uint64_t limit);
 
-void x86_64_gdt_init(void);
+void x86_64_gdt_init();
 #endif
 
 #endif

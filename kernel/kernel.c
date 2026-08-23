@@ -4,7 +4,11 @@
 #include "kernel/process.h"
 #include "kernel/test.h"
 
-void process1() {
+void process_1() {
+	while (1) ;
+}
+
+void process_2() {
 	while (1) ;
 }
 
@@ -26,7 +30,9 @@ void kernel(void)
 	}
 #endif
 
-	process_start(process1);
+	process_create(process_1);
+	process_create(process_2);
+	process_start_scheduler();
 
 	while (1) {
 		arch_cpu_halt();

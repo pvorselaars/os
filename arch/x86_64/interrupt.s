@@ -25,52 +25,47 @@ irq_\vector:
 .endm
 
 common_interrupt_handler:
-    pushq %rax
-    pushq %rbx
-    pushq %rcx
-    pushq %rdx
-    pushq %rsi
-    pushq %rdi
-    pushq %rbp
-    pushq %r8
-    pushq %r9
-    pushq %r10
-    pushq %r11
-    pushq %r12
-    pushq %r13
-    pushq %r14
     pushq %r15
-    
+    pushq %r14
+    pushq %r13
+    pushq %r12
+    pushq %r11
+    pushq %r10
+    pushq %r9
+    pushq %r8
+    pushq %rbp
+    pushq %rdi
+    pushq %rsi
+    pushq %rdx
+    pushq %rcx
+    pushq %rbx
+    pushq %rax
+
     movq 120(%rsp), %rdi    # Vector is at offset 120 (15*8 + 8)
     movq %rsp, %rsi         # Context pointer
-    call arch_handle_interrupt
-    
-    popq %r15
-    popq %r14
-    popq %r13
-    popq %r12
-    popq %r11
-    popq %r10
-    popq %r9
-    popq %r8
-    popq %rbp
-    popq %rdi
-    popq %rsi
-    popq %rdx
-    popq %rcx
-    popq %rbx
+    call x86_64_handle_interrupt
+    movq %rax, %rsp
+
+.globl x86_64_restore_context
+x86_64_restore_context:
     popq %rax
-    
+    popq %rbx
+    popq %rcx
+    popq %rdx
+    popq %rsi
+    popq %rdi
+    popq %rbp
+    popq %r8
+    popq %r9
+    popq %r10
+    popq %r11
+    popq %r12
+    popq %r13
+    popq %r14
+    popq %r15
+
     addq $16, %rsp
     
-    # Send EOI for hardware interrupts (0x20-0x2F)
-    cmpq $0x20, -16(%rsp)  # Check vector 
-    jb skip_eoi
-    cmpq $0x30, -16(%rsp)
-    jae skip_eoi
-    mov $0x20, %al
-    out %al, $0x20
-skip_eoi:
     iretq
 
 EXCEPTION_HANDLER_NOERR 0   # Divide by zero

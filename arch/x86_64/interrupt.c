@@ -1,8 +1,11 @@
 #include "arch/cpu.h"
 #include "arch/interrupt.h"
 
+#include "io.h"
+#include "arch/process.h"
 #include "arch/x86_64/tss.h"
 #include "arch/x86_64/idt.h"
+#include "kernel/process.h"
 #include "lib/utils.h"
 
 static void (*interrupt_handlers[256])(void) = {0};
@@ -58,12 +61,27 @@ void x86_64_interrupt_init()
     x86_64_tss_init();
 }
 
-void arch_handle_interrupt(const unsigned vector)
+static void eoi(const unsigned vector) {
+    if (vector >= 0x28)
+        pc_io_write8(0xA0, 0x20);
+
+    pc_io_write8(0x20, 0x20);
+}
+
+arch_process_context_t * x86_64_handle_interrupt(const unsigned vector, arch_process_context_t *context)
 {
     if (vector < 256 && interrupt_handlers[vector]) {
         void (*handler)() = interrupt_handlers[vector];
         handler();
     }
+
+    if (vector >= 0x20 && vector < 0x30)
+        eoi(vector);
+
+    if (vector == 0x20)
+        return process_schedule(context);
+
+    return context;
 }
 
 void arch_cpu_interrupt_enable(void)

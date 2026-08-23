@@ -1,7 +1,7 @@
 #ifndef UNICODE_H
 #define UNICODE_H
 
-#include "definitions.h"
+#include "kernel/base.h"
 
 /* Unicode and UTF-8 Utilities
  * 
