@@ -5,6 +5,13 @@
 #include "arch/x86_64/layout.h"
 #include "lib/utils.h"
 
+typedef uint64_t pte;
+typedef uint64_t pde;
+typedef uint64_t pdpte;
+typedef uint64_t pml4e;
+
+typedef uint64_t address;
+
 static pml4e *pml4 = x86_64_virtual_address(PML4_ADDRESS);
 
 static uint64_t x86_64_page_flags(const uint32_t flags)

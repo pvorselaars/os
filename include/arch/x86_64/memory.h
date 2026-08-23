@@ -34,11 +34,8 @@
 
 #else
 
-#include "definitions.h"
-
-void x86_64_memory_init(void);
+void x86_64_memory_init();
 void x86_64_memory_flush_tlb();
-
 
 #endif
 
