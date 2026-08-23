@@ -1,6 +1,9 @@
 #include "arch/x86_64/memory.h"
 
 #include "arch/memory.h"
+#include "lib/memory.h"
+
+#include "layout.h"
 #include "lib/utils.h"
 
 
@@ -48,6 +51,9 @@ void *arch_memory_allocate_page(void)
 		page = (void *)free_regions[0].start;
 		free_regions[0].start += PAGE_SIZE;
 		free_regions[0].size--;
+
+		void *virt = x86_64_virtual_address(page);
+		memory_zero(virt, PAGE_SIZE);
 
 		sort(free_regions, total_regions);
 	}

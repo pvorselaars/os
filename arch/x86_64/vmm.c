@@ -45,8 +45,11 @@ result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_addres
 		if (page == NULL)
 			fatal("Unable to get page for PDPT\n");
 
-		pml4[pml4_offset] = (pml4e)page | PAGE_PRESENT | flags;
+		pml4[pml4_offset] = (pml4e)page | PAGE_PRESENT | page_flags;
+	} else {
+		pml4[pml4_offset] |= page_flags;
 	}
+
 
 	pdpte *pdpt = x86_64_virtual_address((pml4[pml4_offset] >> 12) << 12);
 
@@ -56,7 +59,9 @@ result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_addres
 		if (page == NULL)
 			fatal("Unable to get page for PD\n");
 
-		pdpt[pdpt_offset] = (pdpte)page | PAGE_PRESENT | flags;
+		pdpt[pdpt_offset] = (pdpte)page | PAGE_PRESENT | page_flags;
+	} else {
+		pdpt[pdpt_offset] |= page_flags;
 	}
 
 	pde *pd = x86_64_virtual_address((pdpt[pdpt_offset] >> 12) << 12);
@@ -72,7 +77,9 @@ result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_addres
 		if (page == NULL)
 			fatal("Unable to get page for PT\n");
 
-		pd[pd_offset] = (pde)page | PAGE_PRESENT | flags;
+		pd[pd_offset] = (pde)page | PAGE_PRESENT | page_flags;
+	} else {
+		pd[pd_offset] |= page_flags;
 	}
 
 	pte *pt = x86_64_virtual_address((pd[pd_offset] >> 12) << 12);

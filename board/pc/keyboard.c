@@ -197,7 +197,7 @@ static void ps2_keyboard_buffer_event(const keyboard_event_t *event)
     }
 }
 
-void ps2_keyboard_interrupt(void) {
+void ps2_keyboard_interrupt() {
     uint8_t scancode = pc_io_read8(PS2_DATA_PORT);
     keyboard_state_t *state = &ps2_keyboard_device.state;
     keyboard_event_t event;

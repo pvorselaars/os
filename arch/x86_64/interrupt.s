@@ -40,14 +40,17 @@ common_interrupt_handler:
     pushq %rcx
     pushq %rbx
     pushq %rax
+    mov %cr2, %rax
+    pushq %rax
 
-    movq 120(%rsp), %rdi    # Vector is at offset 120 (15*8 + 8)
+    movq 128(%rsp), %rdi    # Vector is at offset 128 (16*8 + 8)
     movq %rsp, %rsi         # Context pointer
     call x86_64_handle_interrupt
     movq %rax, %rsp
 
 .globl x86_64_restore_context
 x86_64_restore_context:
+    addq $8, %rsp // discard cr2
     popq %rax
     popq %rbx
     popq %rcx
