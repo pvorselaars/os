@@ -27,4 +27,7 @@ extern char KERNEL_BASE[];
 extern char KERNEL_VMA[];
 extern char KERNEL_END[];
 
+#define VIRTUAL_ADDRESS(x) ((uint64_t)(x) + (uint64_t)(KERNEL_BASE))
+#define PHYSICAL_ADDRESS(x) ((uint64_t)(x) - (uint64_t)(KERNEL_BASE))
+
 #endif

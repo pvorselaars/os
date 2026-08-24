@@ -1,15 +1,17 @@
 #include "arch/cpu.h"
+#include "arch/syscall.h"
 #include "board/board.h"
 #include "drivers/console.h"
 #include "kernel/process.h"
 #include "kernel/test.h"
 
 void process_1() {
-	while (1) ;
+	__asm__("syscall");
+	while (1) {};
 }
 
 void process_2() {
-	while (1) ;
+	while (1) {};
 }
 
 void kernel(void)
