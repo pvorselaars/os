@@ -8,7 +8,7 @@
 #include "kernel/process.h"
 #include "lib/utils.h"
 
-static void (*interrupt_handlers[256])() = {0};
+static arch_interrupt_handler_t interrupt_handlers[256] = {0};
 
 extern void exception_0(), exception_2(), exception_4();
 extern void exception_8(), exception_13(), exception_14();

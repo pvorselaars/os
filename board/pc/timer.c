@@ -31,6 +31,7 @@
 
 static uint32_t timer_frequency_hz = 0;
 static uint64_t timer_ticks = 0;
+static uint64_t timer_divisor = 0;
 
 static void pc_timer_interrupt() {
     timer_ticks++;
@@ -38,15 +39,16 @@ static void pc_timer_interrupt() {
 
 void pc_timer_init(const unsigned int frequency_hz)
 {
+    assert(frequency_hz)
     timer_frequency_hz = frequency_hz;
 
-    uint32_t divisor = PIT_FREQUENCY / frequency_hz;
+    timer_divisor = PIT_FREQUENCY / frequency_hz;
 
-    if (divisor > 0xFFFF) {
-        divisor = 0xFFFF;
+    if (timer_divisor > 0xFFFF) {
+        timer_divisor = 0xFFFF;
     }
-    if (divisor < 1) {
-        divisor = 1;
+    if (timer_divisor < 1) {
+        timer_divisor = 1;
     }
 
     // Configure PIT Channel 0:
@@ -58,13 +60,13 @@ void pc_timer_init(const unsigned int frequency_hz)
 
     arch_io_write8(PIT_COMMAND, command);
 
-    arch_io_write8(PIT_CHANNEL_0, (uint8_t)(divisor & 0xFF));
-    arch_io_write8(PIT_CHANNEL_0, (uint8_t)((divisor >> 8) & 0xFF));
+    arch_io_write8(PIT_CHANNEL_0, (uint8_t)(timer_divisor & 0xFF));
+    arch_io_write8(PIT_CHANNEL_0, (uint8_t)((timer_divisor >> 8) & 0xFF));
 
     arch_interrupt_register(0x20, pc_timer_interrupt);
 }
 
 uint64_t time_now_ns()
 {
-    return timer_ticks * 1000000000ULL / timer_frequency_hz;
+    return timer_ticks * timer_divisor * 1000000000ULL / PIT_FREQUENCY;
 }

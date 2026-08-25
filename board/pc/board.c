@@ -45,6 +45,6 @@ result_t board_init(void)
 {
     pc_pic_init();
     vga_init();
-    pc_timer_init(100);
+    pc_timer_init(1000);
     return board_register_devices();
 }

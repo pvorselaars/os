@@ -1,22 +1,16 @@
 .code64
-.globl syscall_entry
-.globl syscall
+.globl x86_64_syscall_entry
 
 .section .text
 
-syscall_entry:
+// TODO: rsp is in user memory, this is unsafe
+// save user rsp and restore kernel rsp
+x86_64_syscall_entry:
     pushq %rcx
     pushq %r11
-
-    mov %rax, %rdi
 
     call syscall_dispatch
 
     popq %r11
     popq %rcx
     sysretq
-
-syscall:
-    movq %rdi, %rax
-    syscall
-    ret

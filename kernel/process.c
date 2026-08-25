@@ -41,10 +41,11 @@ void process_create(void (*entry)(void)) {
     }
 }
 
-void process_start_scheduler() {
+void process_scheduler_start() {
     for (int i = 0; i < MAX_PROCESS_COUNT; i++) {
         if (processes[i].state == PROCESS_READY) {
             current_process = i;
+            arch_process_start(processes[i].context);
         }
     }
 }
