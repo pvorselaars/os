@@ -3,6 +3,7 @@
 #include "arch/x86_64/interrupt.h"
 #include "arch/x86_64/memory.h"
 #include "arch/x86_64/vmm.h"
+#include "arch/x86_64/syscall.h"
 
 result_t arch_cpu_init(void)
 {
@@ -12,6 +13,7 @@ result_t arch_cpu_init(void)
     x86_64_interrupt_init();
     x86_64_memory_init();
     x86_64_vmm_init();
+    x86_64_syscall_init();
 
     return RESULT_OK;
 }

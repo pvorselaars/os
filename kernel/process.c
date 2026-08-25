@@ -21,24 +21,31 @@ process_t processes[MAX_PROCESS_COUNT];
 
 static int32_t current_process = -1;
 
+static void map_user_page(uint64_t address) {
+    const uint64_t physical = PHYSICAL_ADDRESS(address);
+    const uint64_t page = ALIGN_DOWN(physical, PAGE_SIZE);
+
+    arch_memory_map_page(page, page, ARCH_MEMORY_MAP_READ | ARCH_MEMORY_MAP_USER);
+}
+
 void process_create(void (*entry)(void)) {
     for (int i = 0; i < MAX_PROCESS_COUNT; i++) {
         if (processes[i].state == PROCESS_DONE) {
-            uint64_t start = (uint64_t)entry - (uint64_t)KERNEL_BASE;
-            uint64_t page = ALIGN_DOWN(start, PAGE_SIZE);
 
-            arch_memory_map_page(page, page, ARCH_MEMORY_MAP_READ | ARCH_MEMORY_MAP_USER);
-            processes[i].context = arch_process_context_create(start);
+            map_user_page((uint64_t)entry);
+
+            processes[i].context = arch_process_context_create(PHYSICAL_ADDRESS(entry));
             processes[i].state = PROCESS_READY;
             return;
         }
     }
 }
 
-void process_start_scheduler() {
+void process_scheduler_start() {
     for (int i = 0; i < MAX_PROCESS_COUNT; i++) {
         if (processes[i].state == PROCESS_READY) {
             current_process = i;
+            arch_process_start(processes[i].context);
         }
     }
 }

@@ -1,4 +1,3 @@
-#include "arch/x86_64/gdt.h"
 #include "arch/x86_64/memory.h"
 #include "arch/x86_64/idt.h"
 

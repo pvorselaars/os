@@ -33,9 +33,9 @@ void x86_64_tss_init(void)
 
     uint64_t tss_base = (uint64_t)&tss;
     uint64_t tss_limit = sizeof(tss64) - 1;
-    x86_64_gdt_set_tss_entry(5, tss_base, tss_limit);
+    x86_64_gdt_set_tss_entry(tss_base, tss_limit);
 
-    __asm__ volatile("ltr %0" : : "r"(0x28)); // Selector for TSS entry (index 5)
+    __asm__ volatile("ltr %0" : : "r"(0x38));
 }
 
 void arch_set_interrupt_stack_pointer(uint64_t sp)

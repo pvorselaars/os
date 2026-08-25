@@ -2,14 +2,19 @@
 #include "board/board.h"
 #include "drivers/console.h"
 #include "kernel/process.h"
+#include "kernel/syscall.h"
 #include "kernel/test.h"
 
 void process_1() {
-	while (1) ;
+	while (1) {
+		sys_write("A\n");
+	};
 }
 
 void process_2() {
-	while (1) ;
+	while (1) {
+		sys_write("B\n");
+	};
 }
 
 void kernel(void)
@@ -32,7 +37,7 @@ void kernel(void)
 
 	process_create(process_1);
 	process_create(process_2);
-	process_start_scheduler();
+	process_scheduler_start();
 
 	while (1) {
 		arch_cpu_halt();

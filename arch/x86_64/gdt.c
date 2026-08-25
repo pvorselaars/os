@@ -23,10 +23,10 @@ void x86_64_gdt_set_entry(int index, uint64_t base, uint64_t limit, uint8_t acce
     gdt[index] = v;
 }
 
-void x86_64_gdt_set_tss_entry(int index, uint64_t base, uint64_t limit)
+void x86_64_gdt_set_tss_entry(uint64_t base, uint64_t limit)
 {
-    x86_64_gdt_set_entry(index, base, limit, SDA_P | SDA_A | SDA_TSS, 0x0);
-    gdt[index + 1] = base >> 32;
+    x86_64_gdt_set_entry(7, base, limit, SDA_P | SDA_A | SDA_TSS, 0x0);
+    gdt[8] = base >> 32;
 }
 
 void x86_64_gdt_init(void)
@@ -46,15 +46,15 @@ void x86_64_gdt_init(void)
     // 64-bit kernel data segment (index 4, selector 0x20)
     x86_64_gdt_set_entry(4, 0x0, 0x0, SDA_P | SDA_S | SDA_W, 0x0);
 
-    // TSS slots (index 5 and 6)
-    gdt[5] = 0;
-    gdt[6] = 0;
+    // 64-bit user data segment (index 5, selector 0x28)
+    x86_64_gdt_set_entry(5, 0x0, 0xFFFFF, SDA_P | SDA_S | SDA_W | SDA_U, SDF_DB | SDF_G);
 
-    // 64-bit user code segment (index 7, selector 0x38)
-    x86_64_gdt_set_entry(7, 0x0, 0x0, SDA_P | SDA_S | SDA_E | SDA_R | SDA_U, SDF_L);
+    // 64-bit user code segment (index 6, selector 0x30)
+    x86_64_gdt_set_entry(6, 0x0, 0x0, SDA_P | SDA_S | SDA_E | SDA_R | SDA_U, SDF_L);
 
-    // 64-bit user data segment (index 8, selector 0x40)
-    x86_64_gdt_set_entry(8, 0x0, 0xFFFFF, SDA_P | SDA_S | SDA_W | SDA_U, SDF_DB | SDF_G);
+    // TSS slots (index 7 and 8)
+    gdt[7] = 0;
+    gdt[8] = 0;
 
     gdt_descriptor desc = {
         .limit = sizeof(gdt) - 1,

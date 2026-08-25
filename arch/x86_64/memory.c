@@ -9,19 +9,16 @@
 
 typedef struct region
 {
-	unsigned long start;
-	unsigned long size;
+	uint64_t start;
+	uint64_t size;
 } region;
 
 static region free_regions[32];
 
-static unsigned long total_regions;
-static unsigned long total_memory;
-static unsigned long total_memory_free;
-static unsigned long total_memory_reserved;
+static uint64_t total_regions;
 
 // TODO: more efficient sorting algorithm
-static void sort(region r[], int size)
+static void sort(region r[], uint64_t size)
 {
 	region temp;
 	bool swapped = false;
@@ -118,24 +115,15 @@ void arch_memory_deallocate_page(void *page)
 	sort(free_regions, total_regions);
 }
 
-void x86_64_memory_init(void)
+void x86_64_memory_init()
 {
-	total_regions = 4;
-	total_memory = 0x200000;
+	uint64_t kernel_end = ALIGN_UP(PHYSICAL_ADDRESS(KERNEL_END), PAGE_SIZE);
 
-	free_regions[0].start = PAGE_SIZE * 6;
-	free_regions[0].size = 0xA0000 - free_regions[0].start;
+	total_regions = 2;
 
-	free_regions[1].start = 0xC0000;
-	free_regions[1].size = 0xF0000 - 0xC0000;
+	free_regions[0].start = kernel_end;
+	free_regions[0].size = (0xA0000 - kernel_end) / PAGE_SIZE;
 
-	free_regions[2].start = 0xF0000 + ALIGN_UP((uint64_t)KERNEL_END - (uint64_t)KERNEL_VMA, PAGE_SIZE);
-	free_regions[2].size = 0x100000 - free_regions[2].start;
-
-	free_regions[3].start = 0x100000;
-	free_regions[3].size = total_memory - 0x100000;
-
-	total_memory_free = free_regions[0].size + free_regions[1].size + free_regions[2].size + free_regions[3].size;
-	total_memory_reserved = total_memory - total_memory_free;
-
+	free_regions[1].start = 0x100000;
+	free_regions[1].size = (0x200000 - 0x100000) / PAGE_SIZE;
 }

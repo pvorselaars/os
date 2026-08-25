@@ -5,6 +5,6 @@
 void process_create(void (*entry)());
 
 arch_process_context_t *process_schedule(arch_process_context_t *current);
-void process_start_scheduler();
+void process_scheduler_start();
 
 #endif

@@ -15,11 +15,11 @@
 #define MSR_EFER 0xC0000080 // EFER model specific register
 #define EFER_LME (1 << 8)   // Long mode bit
 
-#define CODE_SEG 0x18 // Kernel 64-bit code segment selector (index 3)
-#define DATA_SEG 0x20 // Kernel 64-bit data segment selector (index 4)
+#define CODE_SEG 0x18 // Kernel 64-bit code segment selector
+#define DATA_SEG 0x20 // Kernel 64-bit data segment selector
 
-#define USER_CODE_SEG 0x38 // User 64-bit code segment selector (index 7)
-#define USER_DATA_SEG 0x40 // User 64-bit data segment selector (index 8)
+#define USER_CODE_SEG 0x30 // User 64-bit code segment selector
+#define USER_DATA_SEG 0x28 // User 64-bit data segment selector
 
 #define PML4_ADDRESS 0x1000
 #define BOOT_SEGMENT 0xF000

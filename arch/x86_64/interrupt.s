@@ -24,6 +24,11 @@ irq_\vector:
     jmp common_interrupt_handler
 .endm
 
+.globl arch_process_start
+arch_process_start:
+    movq %rdi, %rsp
+    jmp restore_context
+
 common_interrupt_handler:
     pushq %r15
     pushq %r14
@@ -48,8 +53,7 @@ common_interrupt_handler:
     call x86_64_handle_interrupt
     movq %rax, %rsp
 
-.globl x86_64_restore_context
-x86_64_restore_context:
+restore_context:
     addq $8, %rsp // discard cr2
     popq %rax
     popq %rbx

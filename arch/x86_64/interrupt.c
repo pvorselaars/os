@@ -8,13 +8,13 @@
 #include "kernel/process.h"
 #include "lib/utils.h"
 
-static void (*interrupt_handlers[256])() = {0};
+static arch_interrupt_handler_t interrupt_handlers[256] = {0};
 
 extern void exception_0(), exception_2(), exception_4();
 extern void exception_8(), exception_13(), exception_14();
 extern void irq_0x20(), irq_0x21(), irq_0x24();
 
-static void default_exception_handler(const char *name, arch_process_context_t *context)
+static void default_exception_handler(const char *name, const arch_process_context_t *context)
 {
     debug_printf("EXCEPTION: %s\n", name);
     debug_printf("Instruction 0x%x\n", context->rip);
@@ -22,11 +22,11 @@ static void default_exception_handler(const char *name, arch_process_context_t *
     arch_cpu_halt();
 }
 
-static void divide_by_zero_handler(arch_process_context_t *context) { default_exception_handler("Divide by zero", context); }
-static void nmi_handler(arch_process_context_t *context) { default_exception_handler("NMI", context); }
-static void overflow_handler(arch_process_context_t *context) { default_exception_handler("Overflow", context); }
-static void double_fault_handler(arch_process_context_t *context) { default_exception_handler("Double fault", context); }
-static void gpf_handler(arch_process_context_t *context) { default_exception_handler("General protection fault", context); }
+static void divide_by_zero_handler(const arch_process_context_t *context) { default_exception_handler("Divide by zero", context); }
+static void nmi_handler(const arch_process_context_t *context) { default_exception_handler("NMI", context); }
+static void overflow_handler(const arch_process_context_t *context) { default_exception_handler("Overflow", context); }
+static void double_fault_handler(const arch_process_context_t *context) { default_exception_handler("Double fault", context); }
+static void gpf_handler(const arch_process_context_t *context) { default_exception_handler("General protection fault", context); }
 static void page_fault_handler(const arch_process_context_t *context)
 {
     debug_printf("EXCEPTION: Page fault\n");
@@ -106,12 +106,12 @@ arch_process_context_t * x86_64_handle_interrupt(const unsigned vector, arch_pro
     return context;
 }
 
-void arch_cpu_interrupt_enable(void)
+void arch_cpu_interrupt_enable()
 {
     __asm__ volatile("sti");
 }
 
-void arch_cpu_interrupt_disable(void)
+void arch_cpu_interrupt_disable()
 {
     __asm__ volatile("cli");
 }
