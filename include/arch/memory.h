@@ -20,8 +20,13 @@ enum {
     ARCH_MEMORY_MAP_USER = 1 << 2,
 };
 
-result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_address, uint32_t flags);
-result_t arch_memory_unmap_page(uint64_t virtual_address);
+typedef struct arch_memory_address_space arch_memory_address_space_t;
+
+arch_memory_address_space_t* arch_memory_address_space_create();
+void arch_memory_address_space_switch(arch_memory_address_space_t* space);
+
+result_t arch_memory_map_page(const arch_memory_address_space_t* space, uint64_t virtual_address, uint64_t physical_address, uint32_t flags);
+result_t arch_memory_unmap_page(const arch_memory_address_space_t* space, uint64_t virtual_address);
 
 extern char KERNEL_BASE[];
 extern char KERNEL_VMA[];
