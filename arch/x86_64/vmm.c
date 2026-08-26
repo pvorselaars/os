@@ -28,7 +28,7 @@ static uint64_t x86_64_page_flags(const uint32_t flags)
 	return page_flags;
 }
 
-result_t arch_memory_map_page(const arch_memory_address_space_t* space, uint64_t virtual_address, uint64_t physical_address, uint32_t flags)
+result_t arch_memory_map_page(const uint64_t page_table, uint64_t virtual_address, uint64_t physical_address, uint32_t flags)
 {
 	assert(IS_ALIGNED(physical_address, PAGE_SIZE));
 	assert(IS_ALIGNED(virtual_address, PAGE_SIZE));
@@ -40,7 +40,7 @@ result_t arch_memory_map_page(const arch_memory_address_space_t* space, uint64_t
 
 	uint64_t page_flags = x86_64_page_flags(flags);
 
-	pml4e* table = x86_64_virtual_address(space->page_table);
+	pml4e* table = x86_64_virtual_address(page_table);
 
 	if (!(table[pml4_offset] & PAGE_PRESENT))
 	{
@@ -92,14 +92,14 @@ result_t arch_memory_map_page(const arch_memory_address_space_t* space, uint64_t
 	return RESULT_OK;
 }
 
-result_t arch_memory_unmap_page(const arch_memory_address_space_t* space, uint64_t virtual_address)
+result_t arch_memory_unmap_page(const uint64_t page_table, uint64_t virtual_address)
 {
 	unsigned short pml4_offset = (virtual_address >> 39) & 0x1FF;
 	unsigned short pdpt_offset = (virtual_address >> 30) & 0x1FF;
 	unsigned short pd_offset = (virtual_address >> 21) & 0x1FF;
 	unsigned short pt_offset = (virtual_address >> 12) & 0x1FF;
 
-	pml4e* table = x86_64_virtual_address(space->page_table);
+	pml4e* table = x86_64_virtual_address(page_table);
 
 	if (!(table[pml4_offset] & PAGE_PRESENT))
 		return RESULT_ERROR;
@@ -140,26 +140,4 @@ uint64_t x86_64_vmm_page_table_create()
 	virt[511] = pml4[511]; // copy kernel upper half mapping
 
 	return table;
-}
-
-arch_memory_address_space_t* arch_memory_address_space_create()
-{
-	static arch_memory_address_space_t spaces[MAX_PROCESS_COUNT];
-	static uint32_t id = -1;
-	id++;
-	assert(id < MAX_PROCESS_COUNT);
-
-	spaces[id].page_table = x86_64_vmm_page_table_create();
-	return &spaces[id];
-}
-
-void arch_memory_address_space_switch(arch_memory_address_space_t* space)
-{
-	x86_64_memory_set_pml4(space->page_table);
-}
-
-
-
-void x86_64_vmm_init()
-{
 }

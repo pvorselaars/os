@@ -45,15 +45,23 @@ common_interrupt_handler:
     pushq %rcx
     pushq %rbx
     pushq %rax
-    mov %cr2, %rax
+    movq %cr2, %rax
+    pushq %rax
+    movq %cr3, %rax
     pushq %rax
 
-    movq 128(%rsp), %rdi    # Vector is at offset 128 (16*8 + 8)
+    movq 136(%rsp), %rdi    # Vector is at offset 136 (17*8 + 8)
     movq %rsp, %rsi         # Context pointer
     call x86_64_handle_interrupt
     movq %rax, %rsp
 
 restore_context:
+    movq %cr3, %rax
+    popq %rbx
+    cmpq %rax, %rbx
+    je do_not_restore_page_table
+    movq %rbx, %cr3
+do_not_restore_page_table:
     addq $8, %rsp // discard cr2
     popq %rax
     popq %rbx
