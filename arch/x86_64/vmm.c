@@ -2,6 +2,7 @@
 #include "arch/x86_64/vmm.h"
 
 #include "arch/memory.h"
+#include "arch/process.h"
 #include "arch/x86_64/layout.h"
 #include "lib/utils.h"
 
@@ -27,7 +28,7 @@ static uint64_t x86_64_page_flags(const uint32_t flags)
 	return page_flags;
 }
 
-result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_address, uint32_t flags)
+result_t arch_memory_map_page(const arch_memory_address_space_t* space, uint64_t virtual_address, uint64_t physical_address, uint32_t flags)
 {
 	assert(IS_ALIGNED(physical_address, PAGE_SIZE));
 	assert(IS_ALIGNED(virtual_address, PAGE_SIZE));
@@ -39,19 +40,20 @@ result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_addres
 
 	uint64_t page_flags = x86_64_page_flags(flags);
 
-	if (!(pml4[pml4_offset] & PAGE_PRESENT))
+	pml4e* table = x86_64_virtual_address(space->page_table);
+
+	if (!(table[pml4_offset] & PAGE_PRESENT))
 	{
 		void *page = arch_memory_allocate_page();
 		if (page == NULL)
 			fatal("Unable to get page for PDPT\n");
 
-		pml4[pml4_offset] = (pml4e)page | PAGE_PRESENT | page_flags;
+		table[pml4_offset] = (pml4e)page | PAGE_PRESENT | page_flags;
 	} else {
-		pml4[pml4_offset] |= page_flags;
+		table[pml4_offset] |= page_flags;
 	}
 
-
-	pdpte *pdpt = x86_64_virtual_address((pml4[pml4_offset] >> 12) << 12);
+	pdpte *pdpt = x86_64_virtual_address((table[pml4_offset] >> 12) << 12);
 
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 	{
@@ -90,17 +92,19 @@ result_t arch_memory_map_page(uint64_t virtual_address, uint64_t physical_addres
 	return RESULT_OK;
 }
 
-result_t arch_memory_unmap_page(uint64_t virtual_address)
+result_t arch_memory_unmap_page(const arch_memory_address_space_t* space, uint64_t virtual_address)
 {
 	unsigned short pml4_offset = (virtual_address >> 39) & 0x1FF;
 	unsigned short pdpt_offset = (virtual_address >> 30) & 0x1FF;
 	unsigned short pd_offset = (virtual_address >> 21) & 0x1FF;
 	unsigned short pt_offset = (virtual_address >> 12) & 0x1FF;
 
-	if (!(pml4[pml4_offset] & PAGE_PRESENT))
+	pml4e* table = x86_64_virtual_address(space->page_table);
+
+	if (!(table[pml4_offset] & PAGE_PRESENT))
 		return RESULT_ERROR;
 
-	pdpte *pdpt = x86_64_virtual_address((pml4[pml4_offset] >> 12) << 12);
+	pdpte *pdpt = x86_64_virtual_address((table[pml4_offset] >> 12) << 12);
 	if (!(pdpt[pdpt_offset] & PAGE_PRESENT))
 		return RESULT_ERROR;
 
@@ -128,8 +132,34 @@ result_t arch_memory_unmap_page(uint64_t virtual_address)
 	return RESULT_OK;
 }
 
-void x86_64_vmm_init(void)
+uint64_t x86_64_vmm_page_table_create()
 {
-	pml4[0] = 0;
-	x86_64_memory_flush_tlb();
+	uint64_t table = (uint64_t)arch_memory_allocate_page();
+
+	uint64_t* virt = x86_64_virtual_address(table);
+	virt[511] = pml4[511]; // copy kernel upper half mapping
+
+	return table;
+}
+
+arch_memory_address_space_t* arch_memory_address_space_create()
+{
+	static arch_memory_address_space_t spaces[MAX_PROCESS_COUNT];
+	static uint32_t id = -1;
+	id++;
+	assert(id < MAX_PROCESS_COUNT);
+
+	spaces[id].page_table = x86_64_vmm_page_table_create();
+	return &spaces[id];
+}
+
+void arch_memory_address_space_switch(arch_memory_address_space_t* space)
+{
+	x86_64_memory_set_pml4(space->page_table);
+}
+
+
+
+void x86_64_vmm_init()
+{
 }

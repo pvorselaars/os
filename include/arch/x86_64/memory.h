@@ -37,7 +37,13 @@
 #include "arch/memory.h"
 
 void x86_64_memory_init();
+void x86_64_memory_set_pml4(uint64_t address);
 void x86_64_memory_flush_tlb();
+
+struct arch_memory_address_space {
+        uint64_t page_table;
+};
+
 
 #endif
 

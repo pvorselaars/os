@@ -10,4 +10,8 @@ struct arch_process_context {
     uint64_t rip, cs, rflags, rsp, ss;
 };
 
+struct arch_address_space {
+    uint64_t cr3; // PML4 table address
+};
+
 #endif

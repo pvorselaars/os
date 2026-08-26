@@ -7,6 +7,7 @@
 .globl arch_memory_compare
 .globl arch_memory_move
 .globl arch_memory_copy
+.globl x86_64_memory_set_pml4
 .globl x86_64_memory_flush_tlb
 
 .section .text
@@ -66,6 +67,10 @@ arch_memory_copy:
   1:
   mov %rdx, %rcx
   rep movsb
+  ret
+
+x86_64_memory_set_pml4:
+  movq %rdi, %cr3
   ret
 
 x86_64_memory_flush_tlb:
