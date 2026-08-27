@@ -15,11 +15,19 @@ static result_t syscall_write(uint64_t arg1) {
     return RESULT_OK;
 }
 
-static syscall_handler_t* syscall_handlers[SYSCALL_COUNT] = {
+syscall_handler_t* syscall_handlers[SYSCALL_COUNT] = {
     syscall_write
 };
 
-result_t syscall_dispatch(uint64_t syscall, uint64_t arg1) {
-    assert(syscall < SYSCALL_COUNT);
-    return syscall_handlers[syscall](arg1);
+result_t syscall_handle(uint64_t number, uint64_t arg1)
+{
+    if (number >= SYSCALL_COUNT)
+        return RESULT_ERROR;
+
+    syscall_handler_t *handler = syscall_handlers[number];
+
+    if (!handler)
+        return RESULT_ERROR;
+
+    return handler(arg1);
 }

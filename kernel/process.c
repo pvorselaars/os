@@ -1,10 +1,7 @@
 #include "kernel/process.h"
 #include "arch/process.h"
 
-#include "memory.h"
 #include "arch/cpu.h"
-#include "arch/memory.h"
-#include "lib/memory.h"
 
 typedef enum {
     PROCESS_DONE,
@@ -14,7 +11,6 @@ typedef enum {
 
 typedef struct process_t {
     process_state_t state;
-    arch_memory_address_space_t *space;
     arch_process_context_t *context;
 } process_t;
 
@@ -22,22 +18,10 @@ process_t processes[MAX_PROCESS_COUNT];
 
 static int32_t current_process = -1;
 
-static void map_user_page(arch_memory_address_space_t* space, uint64_t address) {
-    const uint64_t physical = PHYSICAL_ADDRESS(address);
-    const uint64_t page = ALIGN_DOWN(physical, PAGE_SIZE);
-
-    arch_memory_map_page(space, page, page, ARCH_MEMORY_MAP_READ | ARCH_MEMORY_MAP_USER);
-}
-
-void process_create(void (*entry)(void)) {
+void process_create(void (*entry)()) {
     for (int i = 0; i < MAX_PROCESS_COUNT; i++) {
         if (processes[i].state == PROCESS_DONE) {
-
-            processes[i].space = arch_memory_address_space_create();
-            processes[i].context = arch_process_context_create(PHYSICAL_ADDRESS(entry), processes[i].space);
-
-            map_user_page(processes[i].space, (uint64_t)entry);
-
+            processes[i].context = arch_process_context_create(i, (uint64_t)entry);
             processes[i].state = PROCESS_READY;
             return;
         }
@@ -45,10 +29,12 @@ void process_create(void (*entry)(void)) {
 }
 
 void process_scheduler_start() {
+    arch_cpu_interrupt_disable();
     for (int i = 0; i < MAX_PROCESS_COUNT; i++) {
         if (processes[i].state == PROCESS_READY) {
             current_process = i;
-            arch_memory_address_space_switch(processes[i].space);
+            processes[i].state = PROCESS_RUNNING;
+            arch_process_activate(i);
             arch_process_start(processes[i].context);
         }
     }
@@ -58,21 +44,25 @@ arch_process_context_t *process_schedule(arch_process_context_t *current) {
     if (current_process == -1)
         return current;
 
-    processes[current_process].state = PROCESS_READY;
+    int32_t next = current_process;
 
-    int32_t next = current_process == MAX_PROCESS_COUNT - 1 ? 0 : current_process + 1;
-    while (processes[next].state != PROCESS_READY) {
-        next = next == MAX_PROCESS_COUNT - 1 ? 0 : next + 1;
+    for (int32_t offset = 1; offset < MAX_PROCESS_COUNT; offset++) {
+        int32_t i = (current_process + offset) % MAX_PROCESS_COUNT;
+        if (processes[i].state == PROCESS_READY) {
+            next = i;
+            break;
+        }
     }
 
+    processes[current_process].state = PROCESS_READY;
     processes[next].state = PROCESS_RUNNING;
 
     if (next != current_process) {
-        arch_process_save_context(current, processes[current_process].context);
-        arch_memory_address_space_switch(processes[next].space);
+        processes[current_process].context = current;
+        arch_process_activate(next);
+        current_process = next;
+        return processes[next].context;
     }
 
-    current_process = next;
-
-    return processes[next].context;
+    return current;
 }

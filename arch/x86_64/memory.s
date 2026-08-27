@@ -69,10 +69,6 @@ arch_memory_copy:
   rep movsb
   ret
 
-x86_64_memory_set_pml4:
-  movq %rdi, %cr3
-  ret
-
 x86_64_memory_flush_tlb:
   mov %cr3, %rax
   mov %rax, %cr3
