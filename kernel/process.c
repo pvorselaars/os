@@ -21,7 +21,7 @@ static int32_t current_process = -1;
 void process_create(void (*entry)()) {
     for (int i = 0; i < MAX_PROCESS_COUNT; i++) {
         if (processes[i].state == PROCESS_DONE) {
-            processes[i].context = arch_process_context_create((uint64_t)entry);
+            processes[i].context = arch_process_context_create(i, (uint64_t)entry);
             processes[i].state = PROCESS_READY;
             return;
         }
@@ -34,6 +34,7 @@ void process_scheduler_start() {
         if (processes[i].state == PROCESS_READY) {
             current_process = i;
             processes[i].state = PROCESS_RUNNING;
+            arch_process_activate(i);
             arch_process_start(processes[i].context);
         }
     }
@@ -57,9 +58,11 @@ arch_process_context_t *process_schedule(arch_process_context_t *current) {
     processes[next].state = PROCESS_RUNNING;
 
     if (next != current_process) {
-        arch_process_save_context(current, processes[current_process].context);
+        processes[current_process].context = current;
+        arch_process_activate(next);
+        current_process = next;
+        return processes[next].context;
     }
 
-    current_process = next;
-    return processes[next].context;
+    return current;
 }

@@ -10,4 +10,6 @@ struct arch_process_context {
     uint64_t rip, cs, rflags, rsp, ss;
 };
 
+void x86_64_process_start(arch_process_context_t *context);
+
 #endif

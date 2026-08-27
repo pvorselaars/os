@@ -24,12 +24,16 @@ irq_\vector:
     jmp common_interrupt_handler
 .endm
 
-.globl arch_process_start
-arch_process_start:
+.globl x86_64_process_start
+x86_64_process_start:
     movq %rdi, %rsp
     jmp restore_context
 
 common_interrupt_handler:
+    testb $3, 24(%rsp)  # saved CS
+    jz gs_ready
+    swapgs
+gs_ready:
     pushq %r15
     pushq %r14
     pushq %r13
@@ -54,6 +58,10 @@ common_interrupt_handler:
     movq %rsp, %rsi         # Context pointer
     call x86_64_handle_interrupt
     movq %rax, %rsp
+
+    testb $3, 160(%rsp)     # saved CS is 160 bytes from the start of arch_process_context
+    jz restore_context
+    swapgs
 
 restore_context:
     movq %cr3, %rax
